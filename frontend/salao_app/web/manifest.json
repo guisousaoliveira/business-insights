@@ -1,6 +1,6 @@
 {
-    "name": "salao_app",
-    "short_name": "salao_app",
+    "name": "salon_app",
+    "short_name": "salon_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

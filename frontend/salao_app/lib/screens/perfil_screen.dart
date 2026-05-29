@@ -1,17 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// screens/perfil_screen.dart — Fase 1
-//
-// Configura:
-//   • Aluguel mensal
-//   • Outros custos fixos (streaming, softwares, etc.)
-//   • Limite de alerta de gasto
-//   • WhatsApp para receber alertas automáticos
-//
-// Dados mockados localmente em memória.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import '../models/models.dart';
+import '../theme/app_theme.dart';
+import '../widgets/common_widgets.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -21,210 +11,368 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  final _key     = GlobalKey<FormState>();
-  final _aluguel = TextEditingController();
-  final _outros  = TextEditingController();
-  final _limite  = TextEditingController();
-  final _whats   = TextEditingController();
+  final List<CustoFixo> _fixos = List.from(custosFixosExemplo);
+  final List<Servico> _servicos = List.from(servicosExemplo);
+  final String _nomeSalao = 'Studio Bela';
+  final String _nomeProprietaria = 'Proprietária';
 
-  bool _loading = true;
-  bool _saving  = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final res = await ApiService.getPerfil();
-      if (mounted) {
-        _aluguel.text = (res['aluguel'] ?? 0).toString();
-        _outros.text  = (res['outros_fixos'] ?? 0).toString();
-        _limite.text  = (res['limite_gasto_alerta'] ?? 0).toString();
-        _whats.text   = res['telefone_whatsapp'] ?? '';
-      }
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _aluguel.dispose();
-    _outros.dispose();
-    _limite.dispose();
-    _whats.dispose();
-    super.dispose();
-  }
+  double get _totalFixos => _fixos.fold(0.0, (s, c) => s + c.valor);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil e custos fixos'),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text('Salvar'),
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _key,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
+      appBar: AppBar(title: const Text('Perfil do salão')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header do salão
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border, width: 0.5),
+              ),
+              child: Row(
                 children: [
-                  // ── Custos fixos ──────────────────────────────────────────
-                  const _SecHeader(
-                    icon:    Icons.home_outlined,
-                    titulo:  'Custos fixos mensais',
-                    sub:     'Usados automaticamente no cálculo do resultado',
-                  ),
-                  const SizedBox(height: 12),
-                  _MoneyField(
-                    ctrl:  _aluguel,
-                    label: 'Aluguel',
-                    hint:  'Ex: 900.00',
-                  ),
-                  const SizedBox(height: 10),
-                  _MoneyField(
-                    ctrl:  _outros,
-                    label: 'Outros custos fixos',
-                    hint:  'Conta de luz, internet...',
-                  ),
-                  const Divider(height: 32),
-
-                  // ── Alertas ───────────────────────────────────────────────
-                  const _SecHeader(
-                    icon:   Icons.notifications_outlined,
-                    titulo: 'Alertas automáticos',
-                    sub:    'Insira o limite para alertas de gastos por item',
-                  ),
-                  const SizedBox(height: 12),
-                  _MoneyField(
-                    ctrl:  _limite,
-                    label: 'Limite de gasto por item',
-                    hint:  'Acima disso você recebe alerta',
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _whats,
-                    decoration: const InputDecoration(
-                      labelText:   'WhatsApp para alertas',
-                      hintText:    '+5511999999999',
-                      border:      OutlineInputBorder(),
-                      prefixIcon:  Icon(Icons.phone_outlined),
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    keyboardType: TextInputType.phone,
+                    child: const Center(
+                      child: Icon(Icons.store_outlined,
+                          size: 26, color: AppTheme.primary),
+                    ),
                   ),
-                  const Divider(height: 32),
-
-                  // ── Conta ─────────────────────────────────────────────────
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('Sair da conta',
-                        style: TextStyle(color: Colors.red)),
-                    onTap: ApiService.signOut,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_nomeSalao,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 2),
+                        Text(_nomeProprietaria,
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 18, color: AppTheme.textSecondary),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
                 ],
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // Custos fixos
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SectionLabel('Custos fixos mensais'),
+                TextButton.icon(
+                  onPressed: () => _showNovoCustoFixo(context),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Adicionar',
+                      style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
+
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border, width: 0.5),
+              ),
+              child: Column(
+                children: [
+                  ..._fixos.asMap().entries.map((e) {
+                    final i = e.key;
+                    final c = e.value;
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: i > 0
+                            ? const Border(
+                                top: BorderSide(
+                                    color: AppTheme.border, width: 0.5))
+                            : null,
+                      ),
+                      child: ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 0),
+                        title: Text(c.descricao,
+                            style: const TextStyle(fontSize: 13)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(formatBRL(c.valor),
+                                style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.danger)),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _fixos.removeAt(i)),
+                              child: const Icon(Icons.delete_outline,
+                                  size: 18,
+                                  color: AppTheme.textTertiary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                  // Total
+                  Container(
+                    decoration: const BoxDecoration(
+                      color: AppTheme.surfaceSecondary,
+                      border: Border(
+                          top: BorderSide(
+                              color: AppTheme.border, width: 0.5)),
+                      borderRadius: BorderRadius.vertical(
+                          bottom: Radius.circular(12)),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total mensal',
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textSecondary)),
+                        Text(formatBRL(_totalFixos),
+                            style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.danger)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Serviços
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SectionLabel('Tabela de serviços'),
+                TextButton.icon(
+                  onPressed: () => _showNovoServico(context),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Adicionar',
+                      style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
+
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border, width: 0.5),
+              ),
+              child: Column(
+                children: _servicos.asMap().entries.map((e) {
+                  final i = e.key;
+                  final s = e.value;
+                  return Container(
+                    decoration: BoxDecoration(
+                      border: i > 0
+                          ? const Border(
+                              top: BorderSide(
+                                  color: AppTheme.border, width: 0.5))
+                          : null,
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 0),
+                      leading: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.content_cut,
+                              size: 15, color: AppTheme.primary),
+                        ),
+                      ),
+                      title: Text(s.nome,
+                          style: const TextStyle(fontSize: 13)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(formatBRL(s.preco),
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.primary)),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () =>
+                                setState(() => _servicos.removeAt(i)),
+                            child: const Icon(Icons.delete_outline,
+                                size: 18,
+                                color: AppTheme.textTertiary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 
-  Future<void> _save() async {
-    if (!_key.currentState!.validate()) return;
-    setState(() => _saving = true);
-
-    try {
-      await ApiService.savePerfil(
-        aluguel:             double.tryParse(_aluguel.text) ?? 0,
-        outrosFixos:         double.tryParse(_outros.text) ?? 0,
-        limiteGastoAlerta:   double.tryParse(_limite.text) ?? 0,
-        telefoneWhatsApp:    _whats.text.trim(),
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil salvo com sucesso'),
-            backgroundColor: Color(0xFF1D9E75),
+  void _showNovoCustoFixo(BuildContext context) {
+    final descCtrl = TextEditingController();
+    final valorCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) {
+        final bottom = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Novo custo fixo',
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              TextField(
+                  controller: descCtrl,
+                  decoration:
+                      const InputDecoration(labelText: 'Descrição')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: valorCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Valor mensal', prefixText: 'R\$ '),
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final v = double.tryParse(
+                        valorCtrl.text.replaceAll(',', '.'));
+                    if (descCtrl.text.isNotEmpty && v != null) {
+                      setState(() => _fixos.add(CustoFixo(
+                          id: DateTime.now().toString(),
+                          descricao: descCtrl.text,
+                          valor: v)));
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Salvar'),
+                ),
+              ),
+            ],
           ),
         );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
+      },
+    );
   }
-}
 
-// ── Sub-widgets ───────────────────────────────────────────────────────────────
-
-class _SecHeader extends StatelessWidget {
-  final IconData icon;
-  final String titulo, sub;
-  const _SecHeader({
-    required this.icon,
-    required this.titulo,
-    required this.sub,
-  });
-
-  @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Icon(icon, size: 20, color: const Color(0xFF1D9E75)),
-      const SizedBox(width: 10),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(titulo,
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(sub,
-              style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF9A9A96))),
-        ]),
-      ),
-    ],
-  );
-}
-
-class _MoneyField extends StatelessWidget {
-  final TextEditingController ctrl;
-  final String label, hint;
-  const _MoneyField({required this.ctrl, required this.label, required this.hint});
-
-  @override
-  Widget build(BuildContext context) => TextFormField(
-    controller: ctrl,
-    decoration: InputDecoration(
-      labelText:  label,
-      hintText:   hint,
-      border:     const OutlineInputBorder(),
-      prefixText: 'R\$ ',
-    ),
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    validator: (v) {
-      if (v != null && v.isNotEmpty && double.tryParse(v) == null) {
-        return 'Valor inválido';
-      }
-      return null;
-    },
-  );
+  void _showNovoServico(BuildContext context) {
+    final nomeCtrl = TextEditingController();
+    final precoCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (_) {
+        final bottom = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Novo serviço',
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              TextField(
+                  controller: nomeCtrl,
+                  decoration:
+                      const InputDecoration(labelText: 'Nome do serviço')),
+              const SizedBox(height: 10),
+              TextField(
+                  controller: precoCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Preço', prefixText: 'R\$ '),
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final v = double.tryParse(
+                        precoCtrl.text.replaceAll(',', '.'));
+                    if (nomeCtrl.text.isNotEmpty && v != null) {
+                      setState(() => _servicos.add(Servico(
+                          id: DateTime.now().toString(),
+                          nome: nomeCtrl.text,
+                          preco: v)));
+                    }
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Salvar'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

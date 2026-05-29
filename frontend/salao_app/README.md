@@ -1,66 +1,61 @@
-# Salão App — POC Flutter
+# Salon App — Flutter
 
-Gestão financeira para empreendedora solo de salão de beleza.
+App de gestão financeira para salão de beleza. Interface mobile-first, simples e funcional.
 
-## Stack
-
-| Camada | Tecnologia |
-|--------|-----------|
-| App mobile | Flutter + Dart |
-| Estado | Provider (ChangeNotifier) |
-| Banco / Auth | Mock local em memória |
-| Backend | Mock local em memória |
-| Automações | Sem integração externa |
-
-## Estrutura
+## Estrutura do projeto
 
 ```
 lib/
-├── main.dart                        ← entry point, MultiProvider, tema
+├── main.dart                    # Entrada do app
+├── theme/
+│   └── app_theme.dart           # Cores, tipografia, estilos globais
 ├── models/
-│   └── atendimento.dart             ← todos os modelos + enums
-├── services/
-│   └── api_service.dart             ← dados mockados em memória
-├── providers/
-│   ├── atendimento_provider.dart    ← estado dos atendimentos
-│   ├── gasto_provider.dart          ← estado dos gastos
-│   └── relatorio_provider.dart      ← estado do relatório mensal
-├── screens/
-│   ├── login_screen.dart
-│   ├── main_nav_screen.dart         ← IndexedStack + NavigationBar
-│   ├── home_screen.dart             ← painel mensal (Fase 2)
-│   ├── atendimentos_screen.dart     ← lista + formulário (Fase 1)
-│   ├── gastos_screen.dart           ← lista + formulário (Fase 1)
-│   └── perfil_screen.dart           ← custos fixos + alertas (Fase 1)
-└── widgets/
-    └── atendimento_tile.dart        ← collapsable central ★
+│   └── models.dart              # Modelos de dados + dados de exemplo
+├── widgets/
+│   └── common_widgets.dart      # Componentes reutilizáveis
+└── screens/
+    ├── home_screen.dart         # BottomNav + IndexedStack
+    ├── atendimentos_screen.dart # Lista colapsável de atendimentos
+    ├── gastos_screen.dart       # Gastos semanais com checkbox
+    ├── resumo_screen.dart       # Resumo financeiro do mês
+    └── perfil_screen.dart       # Custos fixos e tabela de serviços
 ```
 
 ## Como rodar
 
-### 1. Instale as dependências
 ```bash
+cd salon_app
 flutter pub get
-```
-
-### 2. Rode o app
-```bash
 flutter run
 ```
 
-> Os dados são mockados localmente. Não há necessidade de Supabase nem variáveis de ambiente.
+## Telas
 
-## Fases
+### Atendimentos
+- Lista colapsável por cliente
+- Mostra serviços realizados, insumos usados e saldo líquido por atendimento
+- Banner com total do mês no topo
+- FAB para novo atendimento
 
-| Fase | Funcionalidades | Status |
-|------|----------------|--------|
-| 1 | Registro de atendimentos, gastos, perfil de custos fixos | ✅ POC |
-| 2 | Painel mensal com DRE simplificado | ✅ POC |
-| 3 | Calculadora de precificação mínima | 🔜 Próximo |
+### Gastos
+- Agrupado por semana, colapsável
+- Checkbox para marcar como pago
+- Tags de prioridade (alta / média / baixa) e forma de pagamento
+- Métricas de pendente vs pago no topo
 
-## Dependências principais
+### Resumo
+- Saldo real do mês (entrou − saiu)
+- Barra visual de proporção
+- Breakdown de receita de atendimentos e gastos
+- Aviso quando está no zero a zero
 
-```yaml
-intl: ^0.19.0               # pt-BR (moeda e datas)
-provider: ^6.1.2            # Gerência de estado
-```
+### Perfil
+- Cadastro de custos fixos (aluguel, internet, etc.)
+- Tabela de serviços com preços
+- Adicionar e remover itens
+
+## Próximos passos (integração com backend)
+1. Substituir dados de exemplo por chamadas ao Supabase REST API
+2. Adicionar auth (Supabase Auth)
+3. Conectar endpoints de cálculo no FastAPI (`/relatorio/mensal`)
+4. Transformar em PWA para rodar no celular sem app store

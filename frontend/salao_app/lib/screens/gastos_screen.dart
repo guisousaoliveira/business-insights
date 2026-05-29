@@ -1,16 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// screens/gastos_screen.dart — Fase 1
-//
-// Lista gastos como collapsables com badge de urgência (vence ≤ 3 dias),
-// itens detalhados ao expandir e botão "Marcar como pago".
-// Banner no topo alerta sobre gastos urgentes.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import '../models/atendimento.dart';
-import '../providers/gasto_provider.dart';
+import '../models/models.dart';
+import '../theme/app_theme.dart';
+import '../widgets/common_widgets.dart';
 
 class GastosScreen extends StatefulWidget {
   const GastosScreen({super.key});
@@ -20,380 +11,419 @@ class GastosScreen extends StatefulWidget {
 }
 
 class _GastosScreenState extends State<GastosScreen> {
-  bool _soPendentes = true;
+  final List<Gasto> _gastos = gastosExemplo;
+  bool _semanaExpanded = true;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<GastoProvider>().carregar(apenasNaoPagos: true);
-    });
-  }
+  double get _totalPendente => _gastos
+      .where((g) => !g.pago)
+      .fold(0.0, (s, g) => s + g.valor);
+
+  double get _totalPago => _gastos
+      .where((g) => g.pago)
+      .fold(0.0, (s, g) => s + g.valor);
 
   @override
   Widget build(BuildContext context) {
-    final prov = context.watch<GastoProvider>();
+    final pendentes = _gastos.where((g) => !g.pago).toList();
+    final pagos = _gastos.where((g) => g.pago).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gastos'),
-        actions: [
-          FilterChip(
-            label: Text(_soPendentes ? 'Pendentes' : 'Todos'),
-            selected: _soPendentes,
-            onSelected: (v) {
-              setState(() => _soPendentes = v);
-              prov.carregar(apenasNaoPagos: v ? true : null);
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(children: [
-        // Banner de urgência
-        if (prov.urgentes.isNotEmpty)
+      appBar: AppBar(title: const Text('Gastos')),
+      body: Column(
+        children: [
+          // Métricas topo
           Container(
-            width: double.infinity,
-            color: const Color(0xFFFAEEDA),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(children: [
-              const Icon(Icons.warning_amber,
-                  color: Color(0xFF854F0B), size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${prov.urgentes.length} gasto(s) vencendo em até 3 dias',
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF633806),
-                      fontWeight: FontWeight.w500),
+            color: AppTheme.surface,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: MetricCard(
+                    label: 'Pendente',
+                    value: formatBRL(_totalPendente),
+                    backgroundColor: AppTheme.dangerLight,
+                    textColor: AppTheme.danger,
+                    valueColor: AppTheme.danger,
+                  ),
                 ),
-              ),
-            ]),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: MetricCard(
+                    label: 'Pago em maio',
+                    value: formatBRL(_totalPago),
+                    backgroundColor: AppTheme.successLight,
+                    textColor: AppTheme.success,
+                    valueColor: AppTheme.success,
+                  ),
+                ),
+              ],
+            ),
           ),
 
-        Expanded(
-          child: prov.loading
-              ? const Center(child: CircularProgressIndicator())
-              : prov.gastos.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Nenhum gasto ${_soPendentes ? "pendente" : ""} registrado',
-                        style: TextStyle(color: Colors.grey.shade500),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: () => prov.carregar(
-                          apenasNaoPagos: _soPendentes ? true : null),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: prov.gastos.length,
-                        itemBuilder: (ctx, i) =>
-                            _GastoTile(gasto: prov.gastos[i]),
-                      ),
-                    ),
-        ),
-      ]),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          useSafeArea: true,
-          builder: (_) => const _FormGasto(),
-        ),
-        icon: const Icon(Icons.add),
-        label: const Text('Novo gasto'),
+          // Lista
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Seção pendentes
+                _SemanaSection(
+                  titulo: 'Semana 12–18 mai',
+                  gastos: pendentes,
+                  isExpanded: _semanaExpanded,
+                  onToggle: () =>
+                      setState(() => _semanaExpanded = !_semanaExpanded),
+                  onPagarToggle: (id, valor) {
+                    setState(() {
+                      final idx = _gastos.indexWhere((g) => g.id == id);
+                      if (idx != -1) {
+                        final g = _gastos[idx];
+                        _gastos[idx] = Gasto(
+                          id: g.id,
+                          descricao: g.descricao,
+                          valor: g.valor,
+                          prazo: g.prazo,
+                          formaPagamento: g.formaPagamento,
+                          prioridade: g.prioridade,
+                          pago: !g.pago,
+                        );
+                      }
+                    });
+                  },
+                ),
+
+                if (pagos.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const SectionLabel('Já pagos'),
+                  ...pagos.map((g) => _GastoTile(
+                        gasto: g,
+                        onToggle: () {
+                          setState(() {
+                            final idx =
+                                _gastos.indexWhere((x) => x.id == g.id);
+                            if (idx != -1) {
+                              final old = _gastos[idx];
+                              _gastos[idx] = Gasto(
+                                id: old.id,
+                                descricao: old.descricao,
+                                valor: old.valor,
+                                prazo: old.prazo,
+                                formaPagamento: old.formaPagamento,
+                                prioridade: old.prioridade,
+                                pago: !old.pago,
+                              );
+                            }
+                          });
+                        },
+                      )),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
+      floatingActionButton: AppFAB(
+        label: 'Novo gasto',
+        onPressed: () => _showNovoGasto(context),
+      ),
+    );
+  }
+
+  void _showNovoGasto(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => const _NovoGastoSheet(),
     );
   }
 }
 
-// ── GastoTile ─────────────────────────────────────────────────────────────────
+// ── Seção semanal colapsável ────────────────────────────────────────
+class _SemanaSection extends StatelessWidget {
+  final String titulo;
+  final List<Gasto> gastos;
+  final bool isExpanded;
+  final VoidCallback onToggle;
+  final void Function(String id, double valor) onPagarToggle;
 
-class _GastoTile extends StatelessWidget {
-  final Gasto gasto;
-  static final _cur = NumberFormat.simpleCurrency(locale: 'pt_BR');
-  const _GastoTile({required this.gasto});
+  const _SemanaSection({
+    required this.titulo,
+    required this.gastos,
+    required this.isExpanded,
+    required this.onToggle,
+    required this.onPagarToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final urgente = gasto.venceEm3Dias;
+    final total = gastos.fold(0.0, (s, g) => s + g.valor);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-      // Borda laranja em gastos urgentes
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: urgente ? const Color(0xFFF5C05A) : Colors.grey.shade200,
-          width: urgente ? 1.0 : 0.5,
-        ),
+        border: Border.all(color: AppTheme.border, width: 0.5),
       ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        collapsedShape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-
-        title: Row(children: [
-          Expanded(
-            child: Text(gasto.nome,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500, fontSize: 14)),
-          ),
-          if (gasto.pago)
-            _Badge('Pago', const Color(0xFF1D9E75), const Color(0xFFE1F5EE))
-          else if (urgente)
-            _Badge(
-                'Urgente', const Color(0xFF854F0B), const Color(0xFFFAEEDA)),
-        ]),
-        subtitle: Text(
-          'Vence ${gasto.prazoFormatado} · ${_fmtPag(gasto.formaPagamento)}',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-        ),
-        trailing: Text(
-          _cur.format(gasto.valor),
-          style: const TextStyle(
-              color: Color(0xFFA32D2D),
-              fontWeight: FontWeight.w500,
-              fontSize: 14),
-        ),
-
+      child: Column(
         children: [
-          // Itens detalhados
-          if (gasto.itens.isNotEmpty) ...[
-            const _SecLabel('Itens'),
-            ...gasto.itens.map((i) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(children: [
-                Expanded(
-                  child: Text(i.nome,
-                      style: TextStyle(
-                          fontSize: 13, color: Colors.grey.shade700)),
-                ),
-                Text(_cur.format(i.preco),
-                    style: const TextStyle(fontSize: 13)),
-              ]),
-            )),
-            const Divider(height: 16),
-          ],
-
-          // Botão marcar como pago
-          if (!gasto.pago)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () =>
-                    context.read<GastoProvider>().marcarPago(gasto.id),
-                icon: const Icon(Icons.check, size: 16),
-                label: const Text('Marcar como pago'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1D9E75),
-                  side: const BorderSide(color: Color(0xFF1D9E75)),
-                ),
+          // Header
+          InkWell(
+            onTap: onToggle,
+            borderRadius: isExpanded
+                ? const BorderRadius.vertical(top: Radius.circular(12))
+                : BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_month_outlined,
+                      size: 18, color: AppTheme.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(titulo,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w500)),
+                  ),
+                  Text(formatBRL(total),
+                      style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.danger)),
+                  const SizedBox(width: 6),
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.keyboard_arrow_down,
+                        size: 20, color: AppTheme.textSecondary),
+                  ),
+                ],
               ),
             ),
+          ),
+
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 200),
+            crossFadeState: isExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox.shrink(),
+            secondChild: Column(
+              children: [
+                const Divider(height: 0),
+                ...gastos.map((g) => _GastoTile(
+                      gasto: g,
+                      onToggle: () => onPagarToggle(g.id, g.valor),
+                    )),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
+}
 
-  String _fmtPag(FormaPagamento f) {
-    switch (f) {
-      case FormaPagamento.pix:     return 'PIX';
-      case FormaPagamento.avista:  return 'À vista';
-      case FormaPagamento.credito: return 'Crédito';
-      case FormaPagamento.debito:  return 'Débito';
+// ── Tile de gasto ──────────────────────────────────────────────────
+class _GastoTile extends StatelessWidget {
+  final Gasto gasto;
+  final VoidCallback onToggle;
+
+  const _GastoTile({required this.gasto, required this.onToggle});
+
+  Color _prioridadeColor() {
+    switch (gasto.prioridade) {
+      case 'alta':
+        return AppTheme.danger;
+      case 'média':
+        return AppTheme.amber;
+      default:
+        return AppTheme.textTertiary;
     }
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String l;
-  final Color cor, bg;
-  const _Badge(this.l, this.cor, this.bg);
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration:
-        BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
-    child: Text(l,
-        style: TextStyle(
-            fontSize: 10, fontWeight: FontWeight.w600, color: cor)),
-  );
-}
-
-class _SecLabel extends StatelessWidget {
-  final String l;
-  const _SecLabel(this.l);
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 4, bottom: 6),
-    child: Text(l.toUpperCase(),
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-            letterSpacing: .9, color: Color(0xFF9A9A96))),
-  );
-}
-
-// ── Formulário de novo gasto ──────────────────────────────────────────────────
-
-class _FormGasto extends StatefulWidget {
-  const _FormGasto();
-
-  @override
-  State<_FormGasto> createState() => _FormGastoState();
-}
-
-class _FormGastoState extends State<_FormGasto> {
-  final _key   = GlobalKey<FormState>();
-  final _nome  = TextEditingController();
-  final _valor = TextEditingController();
-
-  DateTime _prazo  = DateTime.now().add(const Duration(days: 7));
-  String   _fp     = 'pix';
-  String   _cat    = 'material';
-  bool     _saving = false;
-
-  @override
-  void dispose() {
-    _nome.dispose();
-    _valor.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          16, 16, 16, MediaQuery.of(context).viewInsets.bottom + 16),
-      child: Form(
-        key: _key,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Novo gasto',
+    return Container(
+      decoration: BoxDecoration(
+        color: gasto.pago ? AppTheme.surfaceSecondary : AppTheme.surface,
+        border: const Border(
+          top: BorderSide(color: AppTheme.border, width: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            // Checkbox estilizado
+            GestureDetector(
+              onTap: onToggle,
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: gasto.pago ? AppTheme.success : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color:
+                        gasto.pago ? AppTheme.success : AppTheme.border,
+                    width: 1.5,
+                  ),
+                ),
+                child: gasto.pago
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    gasto.descricao,
                     style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w600)),
-                IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context)),
-              ]),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _nome,
-                decoration: const InputDecoration(
-                    labelText: 'Nome do gasto',
-                    border: OutlineInputBorder()),
-                validator: (v) =>
-                    (v?.isEmpty ?? true) ? 'Informe o nome' : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _valor,
-                decoration: const InputDecoration(
-                    labelText: 'Valor (R\$)', border: OutlineInputBorder()),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                validator: (v) {
-                  if (v?.isEmpty ?? true) return 'Informe o valor';
-                  if (double.tryParse(v!) == null) return 'Valor inválido';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.calendar_today, size: 18),
-                title: Text(
-                    'Prazo: ${DateFormat('dd/MM/yyyy', 'pt_BR').format(_prazo)}'),
-                onTap: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    initialDate: _prazo,
-                    firstDate: DateTime.now(),
-                    lastDate:
-                        DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (d != null) setState(() => _prazo = d);
-                },
-              ),
-
-              DropdownButtonFormField<String>(
-                value: _fp,
-                decoration: const InputDecoration(
-                    labelText: 'Forma de pagamento',
-                    border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'pix',     child: Text('PIX')),
-                  DropdownMenuItem(value: 'avista',  child: Text('À vista')),
-                  DropdownMenuItem(value: 'credito', child: Text('Cartão de crédito')),
-                  DropdownMenuItem(value: 'debito',  child: Text('Cartão de débito')),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: gasto.pago
+                          ? AppTheme.textSecondary
+                          : AppTheme.textPrimary,
+                      decoration:
+                          gasto.pago ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      AppTag(
+                        label: gasto.prioridade,
+                        backgroundColor:
+                            _prioridadeColor().withOpacity(0.1),
+                        textColor: _prioridadeColor(),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(gasto.formaPagamento,
+                          style: const TextStyle(
+                              fontSize: 11, color: AppTheme.textTertiary)),
+                      const SizedBox(width: 6),
+                      Text('até ${formatDate(gasto.prazo)}',
+                          style: const TextStyle(
+                              fontSize: 11, color: AppTheme.textTertiary)),
+                    ],
+                  ),
                 ],
-                onChanged: (v) => setState(() => _fp = v!),
               ),
-              const SizedBox(height: 10),
+            ),
 
-              DropdownButtonFormField<String>(
-                value: _cat,
-                decoration: const InputDecoration(
-                    labelText: 'Categoria', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 'material', child: Text('Material / reposição')),
-                  DropdownMenuItem(value: 'fixo',     child: Text('Custo fixo')),
-                  DropdownMenuItem(value: 'outros',   child: Text('Outros')),
-                ],
-                onChanged: (v) => setState(() => _cat = v!),
+            // Valor
+            Text(
+              formatBRL(gasto.valor),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: gasto.pago
+                    ? AppTheme.textSecondary
+                    : AppTheme.danger,
+                decoration: gasto.pago ? TextDecoration.lineThrough : null,
               ),
-              const SizedBox(height: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _saving ? null : _salvar,
-                  child: _saving
-                      ? const SizedBox(
-                          height: 18, width: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Salvar gasto'),
+// ── Bottomsheet novo gasto ─────────────────────────────────────────
+class _NovoGastoSheet extends StatefulWidget {
+  const _NovoGastoSheet();
+
+  @override
+  State<_NovoGastoSheet> createState() => _NovoGastoSheetState();
+}
+
+class _NovoGastoSheetState extends State<_NovoGastoSheet> {
+  final _descCtrl = TextEditingController();
+  final _valorCtrl = TextEditingController();
+  String _prioridade = 'alta';
+  String _forma = 'à vista';
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Novo gasto',
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              IconButton(
+                icon: const Icon(Icons.close, size: 20),
+                onPressed: () => Navigator.pop(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _descCtrl,
+            decoration: const InputDecoration(labelText: 'Descrição'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _valorCtrl,
+            decoration: const InputDecoration(
+                labelText: 'Valor (R\$)', prefixText: 'R\$ '),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _prioridade,
+                  decoration: const InputDecoration(labelText: 'Prioridade'),
+                  items: ['alta', 'média', 'baixa']
+                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _prioridade = v!),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _forma,
+                  decoration:
+                      const InputDecoration(labelText: 'Pagamento'),
+                  items: ['à vista', 'cartão']
+                      .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _forma = v!),
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Salvar gasto'),
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  Future<void> _salvar() async {
-    if (!_key.currentState!.validate()) return;
-    setState(() => _saving = true);
-    try {
-      await context.read<GastoProvider>().registrar(
-        nome:           _nome.text.trim(),
-        valor:          double.parse(_valor.text),
-        prazo:          _prazo,
-        formaPagamento: _fp,
-        categoria:      _cat,
-      );
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
   }
 }
