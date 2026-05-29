@@ -1,0 +1,277 @@
+{
+  "name": "Salão — Alerta de Saldo Mensal",
+  "nodes": [
+
+    {
+      "id": "node-webhook-entrada",
+      "name": "Receber alerta do FastAPI",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "alerta-saldo-mensal",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alerta-saldo-mensal",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "notes": "O FastAPI chama esta URL quando calcula o resumo mensal e o saldo fica abaixo de R$100. URL completa: https://SEU-N8N.com/webhook/alerta-saldo-mensal"
+    },
+
+    {
+      "id": "node-validar-secret",
+      "name": "Validar secret do FastAPI",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "check-secret",
+              "leftValue": "={{ $request.headers['x-n8n-secret'] }}",
+              "rightValue": "={{ $vars.N8N_WEBHOOK_SECRET }}",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "notes": "Verifica o header X-N8N-Secret enviado pelo FastAPI. Configure N8N_WEBHOOK_SECRET nas variáveis de ambiente do n8n."
+    },
+
+    {
+      "id": "node-rejeitar",
+      "name": "Rejeitar — secret inválido",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"erro\": \"secret inválido\" }",
+        "options": { "responseCode": 403 }
+      }
+    },
+
+    {
+      "id": "node-extrair-dados",
+      "name": "Extrair dados do payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [680, 300],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            { "id": "1", "name": "user_id",      "value": "={{ $json.body.user_id }}",      "type": "string" },
+            { "id": "2", "name": "mes",           "value": "={{ $json.body.mes }}",           "type": "number" },
+            { "id": "3", "name": "ano",           "value": "={{ $json.body.ano }}",           "type": "number" },
+            { "id": "4", "name": "saldo_final",   "value": "={{ $json.body.saldo_final }}",   "type": "number" },
+            { "id": "5", "name": "total_entrou",  "value": "={{ $json.body.total_entrou }}",  "type": "number" },
+            { "id": "6", "name": "total_saiu",    "value": "={{ $json.body.total_saiu }}",    "type": "number" },
+            { "id": "7", "name": "mensagem_api",  "value": "={{ $json.body.mensagem }}",      "type": "string" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "node-buscar-telefone",
+      "name": "Buscar telefone da proprietária no Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/perfil_salao",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "user_id", "value": "=eq.{{ $json.user_id }}" },
+            { "name": "select",  "value": "telefone,nome_salao,nome_proprietaria" }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Busca o telefone cadastrado pela proprietária no perfil do salão. Tabela: perfil_salao (adicionar ao schema.sql se ainda não existir: id, user_id, nome_salao, nome_proprietaria, telefone)"
+    },
+
+    {
+      "id": "node-formatar-meses",
+      "name": "Formatar nomes do mês em português",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const meses = [\n  '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',\n  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'\n];\n\nconst dados = $input.first().json;\nconst perfil = $('Buscar telefone da proprietária no Supabase').first().json;\n\nconst mes_nome = meses[dados.mes] || 'mês';\nconst saldo = dados.saldo_final;\nconst entrou = dados.total_entrou;\nconst saiu = dados.total_saiu;\n\nconst nome = perfil[0]?.nome_proprietaria || 'proprietária';\nconst telefone = perfil[0]?.telefone || '';\nconst nome_salao = perfil[0]?.nome_salao || 'seu salão';\n\nconst emoji_saldo = saldo < 0 ? '🔴' : '🟡';\n\nconst mensagem_whatsapp = [\n  `Oi ${nome}! 👋 Aqui é o resumo do *${nome_salao}*.`,\n  ``,\n  `${emoji_saldo} *Resultado de ${mes_nome}/${dados.ano}*`,\n  ``,\n  `💰 Entrou: *R$ ${entrou.toFixed(2).replace('.', ',')}*`,\n  `💸 Saiu:   *R$ ${saiu.toFixed(2).replace('.', ',')}*`,\n  `📊 Saldo:  *R$ ${saldo.toFixed(2).replace('.', ',')}*`,\n  ``,\n  saldo < 0\n    ? `Atenção: o salão fechou o mês no negativo. Pode ser hora de revisar os preços dos serviços. 💡`\n    : `O salão fechou o mês quase no zero a zero. Que tal avaliar a precificação dos serviços? 💡`,\n  ``,\n  `_Mensagem automática do app de gestão_`\n].join('\\n');\n\nconst mensagem_email_html = `\n<p>Oi <strong>${nome}</strong>,</p>\n<p>Aqui está o resumo financeiro de <strong>${mes_nome}/${dados.ano}</strong> do <strong>${nome_salao}</strong>:</p>\n<table style=\"border-collapse:collapse;width:100%;max-width:400px\">\n  <tr><td style=\"padding:8px;border-bottom:1px solid #eee\">💰 Total entrou</td><td style=\"padding:8px;border-bottom:1px solid #eee;text-align:right\"><strong>R$ ${entrou.toFixed(2).replace('.', ',')}</strong></td></tr>\n  <tr><td style=\"padding:8px;border-bottom:1px solid #eee\">💸 Total saiu</td><td style=\"padding:8px;border-bottom:1px solid #eee;text-align:right\"><strong>R$ ${saiu.toFixed(2).replace('.', ',')}</strong></td></tr>\n  <tr style=\"background:#f9f9f9\"><td style=\"padding:8px\">📊 Saldo final</td><td style=\"padding:8px;text-align:right;color:${saldo < 0 ? '#a32d2d' : '#854f0b'}\"><strong>R$ ${saldo.toFixed(2).replace('.', ',')}</strong></td></tr>\n</table>\n<br>\n<p>${saldo < 0 ? '⚠️ O salão fechou o mês no negativo.' : '⚠️ O salão fechou o mês quase no zero a zero.'} Pode ser uma boa hora de revisar a precificação dos serviços.</p>\n<p style=\"color:#999;font-size:12px\">Mensagem automática do app de gestão</p>\n`;\n\nreturn [{\n  json: {\n    ...dados,\n    nome,\n    telefone,\n    nome_salao,\n    mes_nome,\n    mensagem_whatsapp,\n    mensagem_email_html\n  }\n}];"
+      }
+    },
+
+    {
+      "id": "node-canal",
+      "name": "Escolher canal de envio",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1340, 300],
+      "parameters": {
+        "mode": "expression",
+        "output": "={{ $vars.CANAL_NOTIFICACAO }}",
+        "rules": {
+          "values": [
+            { "outputKey": "whatsapp" },
+            { "outputKey": "email" }
+          ]
+        },
+        "fallbackOutput": "none"
+      },
+      "notes": "Configure a variável CANAL_NOTIFICACAO nas variáveis de ambiente do n8n com o valor 'whatsapp' ou 'email'."
+    },
+
+    {
+      "id": "node-whatsapp",
+      "name": "Enviar WhatsApp (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",       "value": "={{ $vars.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "number": "={{ $json.telefone }}",
+          "text":   "={{ $json.mensagem_whatsapp }}"
+        },
+        "options": {}
+      },
+      "notes": "Requer Evolution API rodando. Variáveis necessárias:\n- EVOLUTION_API_URL: ex https://evolution.seudominio.com\n- EVOLUTION_INSTANCE: nome da instância\n- EVOLUTION_API_KEY: chave da API"
+    },
+
+    {
+      "id": "node-email",
+      "name": "Enviar Email (SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1560, 400],
+      "parameters": {
+        "fromEmail":  "={{ $vars.SMTP_FROM }}",
+        "toEmail":    "={{ $vars.EMAIL_PROPRIETARIA }}",
+        "subject":    "=Resumo financeiro de {{ $json.mes_nome }}/{{ $json.ano }} — {{ $json.nome_salao }}",
+        "emailType":  "html",
+        "html":       "={{ $json.mensagem_email_html }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": { "id": "CONFIGURE-SMTP-CREDENTIAL", "name": "SMTP Salão" }
+      },
+      "notes": "Configure a credencial SMTP no n8n (Settings > Credentials). Variáveis necessárias:\n- SMTP_FROM: remetente ex noreply@seudominio.com\n- EMAIL_PROPRIETARIA: e-mail da proprietária"
+    },
+
+    {
+      "id": "node-confirmar-fastapi",
+      "name": "Confirmar ao FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 300],
+      "parameters": {
+        "method": "POST",
+        "url":    "={{ $vars.FASTAPI_URL }}/webhooks/confirmacao",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-N8N-Secret", "value": "={{ $vars.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "user_id":  "={{ $('Extrair dados do payload').first().json.user_id }}",
+          "evento":   "alerta_saldo_mensal",
+          "mensagem": "=Notificação enviada via {{ $vars.CANAL_NOTIFICACAO }}"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "node-responder-ok",
+      "name": "Responder ao FastAPI — OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"canal\": \"{{ $vars.CANAL_NOTIFICACAO }}\" }",
+        "options": { "responseCode": 200 }
+      }
+    }
+
+  ],
+
+  "connections": {
+    "Receber alerta do FastAPI": {
+      "main": [[{ "node": "Validar secret do FastAPI", "type": "main", "index": 0 }]]
+    },
+    "Validar secret do FastAPI": {
+      "main": [
+        [{ "node": "Extrair dados do payload",       "type": "main", "index": 0 }],
+        [{ "node": "Rejeitar — secret inválido",     "type": "main", "index": 0 }]
+      ]
+    },
+    "Extrair dados do payload": {
+      "main": [[{ "node": "Buscar telefone da proprietária no Supabase", "type": "main", "index": 0 }]]
+    },
+    "Buscar telefone da proprietária no Supabase": {
+      "main": [[{ "node": "Formatar nomes do mês em português", "type": "main", "index": 0 }]]
+    },
+    "Formatar nomes do mês em português": {
+      "main": [[{ "node": "Escolher canal de envio", "type": "main", "index": 0 }]]
+    },
+    "Escolher canal de envio": {
+      "main": [
+        [{ "node": "Enviar WhatsApp (Evolution API)", "type": "main", "index": 0 }],
+        [{ "node": "Enviar Email (SMTP)",             "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar WhatsApp (Evolution API)": {
+      "main": [[{ "node": "Confirmar ao FastAPI", "type": "main", "index": 0 }]]
+    },
+    "Enviar Email (SMTP)": {
+      "main": [[{ "node": "Confirmar ao FastAPI", "type": "main", "index": 0 }]]
+    },
+    "Confirmar ao FastAPI": {
+      "main": [[{ "node": "Responder ao FastAPI — OK", "type": "main", "index": 0 }]]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "errorWorkflow": ""
+  },
+
+  "staticData": null,
+  "tags": [{ "name": "salão" }, { "name": "financeiro" }],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-20T00:00:00.000Z",
+  "versionId": "1"
+}

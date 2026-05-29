@@ -1,0 +1,144 @@
+{
+  "name": "Salão — Tratamento de Erros Global",
+  "nodes": [
+
+    {
+      "id": "node-erro-trigger",
+      "name": "Capturar erro de qualquer fluxo",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "parameters": {},
+      "notes": "Este fluxo é acionado automaticamente quando qualquer outro fluxo do salão falha. Configure-o como error workflow em Settings > Workflows de cada fluxo."
+    },
+
+    {
+      "id": "node-extrair-erro",
+      "name": "Extrair detalhes do erro",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "1", "name": "fluxo_nome",     "value": "={{ $json.workflow.name }}",       "type": "string" },
+            { "id": "2", "name": "node_erro",       "value": "={{ $json.execution.lastNodeExecuted }}", "type": "string" },
+            { "id": "3", "name": "mensagem_erro",   "value": "={{ $json.execution.error.message }}", "type": "string" },
+            { "id": "4", "name": "data_hora",       "value": "={{ $now.toFormat('dd/MM/yyyy HH:mm') }}", "type": "string" },
+            { "id": "5", "name": "execution_id",    "value": "={{ $json.execution.id }}",        "type": "string" }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "node-formatar-alerta-erro",
+      "name": "Formatar alerta de erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const d = $input.first().json;\n\nconst msg_whatsapp = [\n  `⚠️ *Erro no app de gestão do salão*`,\n  ``,\n  `📋 Fluxo: ${d.fluxo_nome}`,\n  `🔴 Nó com erro: ${d.node_erro}`,\n  `💬 Mensagem: ${d.mensagem_erro}`,\n  `🕐 Horário: ${d.data_hora}`,\n  `🔑 ID execução: ${d.execution_id}`,\n  ``,\n  `Acesse o n8n para verificar: ${process.env.N8N_EDITOR_BASE_URL || 'seu n8n'}`\n].join('\\n');\n\nconst msg_email = `\n<p><strong>⚠️ Erro no app de gestão do salão</strong></p>\n<table style=\"border-collapse:collapse;font-family:sans-serif;font-size:13px\">\n  <tr><td style=\"padding:6px 12px 6px 0;color:#6b6b6b\">Fluxo</td><td style=\"padding:6px 0\">${d.fluxo_nome}</td></tr>\n  <tr><td style=\"padding:6px 12px 6px 0;color:#6b6b6b\">Nó com erro</td><td style=\"padding:6px 0\">${d.node_erro}</td></tr>\n  <tr><td style=\"padding:6px 12px 6px 0;color:#6b6b6b\">Mensagem</td><td style=\"padding:6px 0;color:#a32d2d\">${d.mensagem_erro}</td></tr>\n  <tr><td style=\"padding:6px 12px 6px 0;color:#6b6b6b\">Horário</td><td style=\"padding:6px 0\">${d.data_hora}</td></tr>\n  <tr><td style=\"padding:6px 12px 6px 0;color:#6b6b6b\">ID execução</td><td style=\"padding:6px 0;font-family:monospace\">${d.execution_id}</td></tr>\n</table>\n`;\n\nreturn [{ json: { ...d, msg_whatsapp, msg_email } }];"
+      }
+    },
+
+    {
+      "id": "node-canal-erro",
+      "name": "Escolher canal de alerta",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [900, 300],
+      "parameters": {
+        "mode": "expression",
+        "output": "={{ $vars.CANAL_NOTIFICACAO }}",
+        "rules": {
+          "values": [
+            { "outputKey": "whatsapp" },
+            { "outputKey": "email" }
+          ]
+        },
+        "fallbackOutput": "none"
+      }
+    },
+
+    {
+      "id": "node-whatsapp-erro",
+      "name": "Avisar por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",       "value": "={{ $vars.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "number": "={{ $vars.TELEFONE_DEV }}",
+          "text":   "={{ $json.msg_whatsapp }}"
+        },
+        "options": {}
+      },
+      "notes": "Envia para TELEFONE_DEV (número do desenvolvedor/admin), não para a proprietária."
+    },
+
+    {
+      "id": "node-email-erro",
+      "name": "Avisar por Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1120, 400],
+      "parameters": {
+        "fromEmail": "={{ $vars.SMTP_FROM }}",
+        "toEmail":   "={{ $vars.EMAIL_DEV }}",
+        "subject":   "=[ERRO] Fluxo n8n falhou — {{ $json.fluxo_nome }}",
+        "emailType": "html",
+        "html":      "={{ $json.msg_email }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": { "id": "CONFIGURE-SMTP-CREDENTIAL", "name": "SMTP Salão" }
+      },
+      "notes": "Envia para EMAIL_DEV (e-mail do time), não para a proprietária."
+    }
+
+  ],
+
+  "connections": {
+    "Capturar erro de qualquer fluxo": {
+      "main": [[{ "node": "Extrair detalhes do erro", "type": "main", "index": 0 }]]
+    },
+    "Extrair detalhes do erro": {
+      "main": [[{ "node": "Formatar alerta de erro", "type": "main", "index": 0 }]]
+    },
+    "Formatar alerta de erro": {
+      "main": [[{ "node": "Escolher canal de alerta", "type": "main", "index": 0 }]]
+    },
+    "Escolher canal de alerta": {
+      "main": [
+        [{ "node": "Avisar por WhatsApp", "type": "main", "index": 0 }],
+        [{ "node": "Avisar por Email",    "type": "main", "index": 0 }]
+      ]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": false
+  },
+
+  "staticData": null,
+  "tags": [{ "name": "salão" }, { "name": "infra" }],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-20T00:00:00.000Z",
+  "versionId": "1"
+}

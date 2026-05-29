@@ -1,0 +1,288 @@
+{
+  "name": "Salão — Resumo Semanal (Cron)",
+  "nodes": [
+
+    {
+      "id": "node-cron",
+      "name": "Todo domingo às 19h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 19 * * 0"
+            }
+          ]
+        }
+      },
+      "notes": "Dispara todo domingo às 19h (horário do servidor n8n). Ajuste o fuso em Settings > Timezone para America/Sao_Paulo."
+    },
+
+    {
+      "id": "node-buscar-usuarios",
+      "name": "Buscar todas as proprietárias ativas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.SUPABASE_URL }}/rest/v1/perfil_salao",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $vars.SUPABASE_ANON_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $vars.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select",        "value": "user_id,nome_proprietaria,nome_salao,telefone,email" },
+            { "name": "notificacoes_ativas", "value": "eq.true" }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Usa a service key para ler todos os perfis (bypassa RLS). Retorna apenas quem tem notificacoes_ativas = true — assim a proprietária pode desligar os alertas sem mudar o fluxo."
+    },
+
+    {
+      "id": "node-split-usuarios",
+      "name": "Processar uma por uma",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "notes": "Garante que cada proprietária seja processada individualmente. Útil quando o app escalar para mais de uma usuária."
+    },
+
+    {
+      "id": "node-chamar-fastapi-semanal",
+      "name": "Pedir resumo semanal ao FastAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.FASTAPI_URL }}/webhooks/acionar-resumo-semanal",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-N8N-Secret", "value": "={{ $vars.N8N_WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "user_id", "value": "={{ $json.user_id }}" }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Chama POST /webhooks/acionar-resumo-semanal?user_id=... O FastAPI calcula os dados da semana e devolve o JSON consolidado."
+    },
+
+    {
+      "id": "node-merge-dados",
+      "name": "Juntar dados do perfil com o resumo",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1120, 300],
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByPosition",
+        "options": {}
+      },
+      "notes": "Combina os dados do perfil (nome, telefone) com os dados do resumo semanal retornados pelo FastAPI."
+    },
+
+    {
+      "id": "node-formatar-mensagem",
+      "name": "Formatar mensagem da semana",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const item = $input.first().json;\n\n// Dados do perfil (vieram do Supabase)\nconst nome = item.nome_proprietaria || 'proprietária';\nconst nome_salao = item.nome_salao || 'seu salão';\nconst telefone = item.telefone || '';\nconst email = item.email || '';\n\n// Dados do resumo (vieram do FastAPI)\nconst atendimentos = item.atendimentos ?? 0;\nconst receita = item.receita_bruta ?? 0;\nconst gastos_pendentes = item.gastos_pendentes ?? 0;\nconst saldo = item.saldo_semana ?? 0;\nconst semana_inicio = item.semana_inicio ?? '';\nconst semana_fim = item.semana_fim ?? '';\n\n// Formata datas: '2025-05-12' → '12/05'\nconst fmt = (iso) => {\n  if (!iso) return '';\n  const [, m, d] = iso.split('-');\n  return `${d}/${m}`;\n};\n\n// Emoji de saldo\nconst emoji = saldo > 0 ? '🟢' : saldo === 0 ? '🟡' : '🔴';\n\n// ── Mensagem WhatsApp (markdown do WhatsApp) ───────────────────\nconst mensagem_whatsapp = [\n  `Oi ${nome}! 👋 Aqui está o resumo da semana do *${nome_salao}*.`,\n  ``,\n  `📅 *Semana ${fmt(semana_inicio)} a ${fmt(semana_fim)}*`,\n  ``,\n  `🪑 Atendimentos realizados: *${atendimentos}*`,\n  `💰 Receita bruta:           *R$ ${receita.toFixed(2).replace('.', ',')}*`,\n  `💸 Gastos pendentes:        *R$ ${gastos_pendentes.toFixed(2).replace('.', ',')}*`,\n  `${emoji} Saldo da semana:          *R$ ${saldo.toFixed(2).replace('.', ',')}*`,\n  ``,\n  atendimentos === 0\n    ? `Nenhum atendimento registrado essa semana. Não esquece de lançar os atendimentos no app! 📲`\n    : gastos_pendentes > 0\n      ? `Você tem gastos pendentes essa semana. Acesse o app para marcar como pagos. ✅`\n      : `Semana organizada! Continue assim. 💪`,\n  ``,\n  `_Mensagem automática — App de Gestão do Salão_`\n].join('\\n');\n\n// ── Mensagem Email (HTML) ──────────────────────────────────────\nconst cor_saldo = saldo > 0 ? '#3b6d11' : saldo === 0 ? '#854f0b' : '#a32d2d';\n\nconst mensagem_email_html = `\n<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head>\n<body style=\"font-family:sans-serif;color:#1a1a1a;max-width:480px;margin:0 auto;padding:24px\">\n  <p style=\"margin-bottom:16px\">Oi <strong>${nome}</strong> 👋</p>\n  <p style=\"margin-bottom:16px\">Aqui está o resumo da semana do <strong>${nome_salao}</strong>.</p>\n\n  <div style=\"background:#f7f7f5;border-radius:10px;padding:16px;margin-bottom:16px\">\n    <p style=\"margin:0 0 12px;font-size:13px;color:#6b6b6b;text-transform:uppercase;letter-spacing:.06em\">📅 Semana ${fmt(semana_inicio)} a ${fmt(semana_fim)}</p>\n    <table style=\"width:100%;border-collapse:collapse\">\n      <tr>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;font-size:14px\">🪑 Atendimentos</td>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;text-align:right;font-weight:600\">${atendimentos}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;font-size:14px\">💰 Receita bruta</td>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;text-align:right;font-weight:600;color:#3b6d11\">R$ ${receita.toFixed(2).replace('.', ',')}</td>\n      </tr>\n      <tr>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;font-size:14px\">💸 Gastos pendentes</td>\n        <td style=\"padding:8px 0;border-bottom:1px solid #e5e5e2;text-align:right;font-weight:600;color:#a32d2d\">R$ ${gastos_pendentes.toFixed(2).replace('.', ',')}</td>\n      </tr>\n      <tr style=\"background:#fff;border-radius:6px\">\n        <td style=\"padding:10px 8px;font-size:14px;font-weight:500\">📊 Saldo da semana</td>\n        <td style=\"padding:10px 8px;text-align:right;font-size:18px;font-weight:700;color:${cor_saldo}\">R$ ${saldo.toFixed(2).replace('.', ',')}</td>\n      </tr>\n    </table>\n  </div>\n\n  <p style=\"font-size:13px;color:#6b6b6b\">\n    ${\n      atendimentos === 0\n        ? 'Nenhum atendimento registrado essa semana. Não se esqueça de lançar os atendimentos no app!'\n        : gastos_pendentes > 0\n          ? 'Você tem gastos pendentes essa semana. Acesse o app para marcá-los como pagos.'\n          : 'Semana organizada! Continue assim. 💪'\n    }\n  </p>\n\n  <p style=\"margin-top:32px;font-size:11px;color:#9e9e9e\">Mensagem automática — App de Gestão do Salão</p>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    user_id: item.user_id,\n    nome,\n    nome_salao,\n    telefone,\n    email,\n    atendimentos,\n    receita,\n    gastos_pendentes,\n    saldo,\n    semana_inicio,\n    semana_fim,\n    mensagem_whatsapp,\n    mensagem_email_html\n  }\n}];"
+      }
+    },
+
+    {
+      "id": "node-tem-atendimento",
+      "name": "Tem pelo menos 1 atendimento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "id": "check-atend",
+              "leftValue": "={{ $json.atendimentos }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      },
+      "notes": "Se a proprietária não teve nenhum atendimento na semana, ainda envia a mensagem — só muda o texto (definido no nó anterior). Deixe este nó como 'sempre continuar' se quiser enviar em todo caso. Aqui está separado para facilitar personalização futura."
+    },
+
+    {
+      "id": "node-canal-semanal",
+      "name": "Escolher canal",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1780, 300],
+      "parameters": {
+        "mode": "expression",
+        "output": "={{ $vars.CANAL_NOTIFICACAO }}",
+        "rules": {
+          "values": [
+            { "outputKey": "whatsapp" },
+            { "outputKey": "email" }
+          ]
+        },
+        "fallbackOutput": "none"
+      },
+      "notes": "Mesma variável CANAL_NOTIFICACAO do fluxo de alerta mensal. Muda em um lugar, muda nos dois fluxos."
+    },
+
+    {
+      "id": "node-whatsapp-semanal",
+      "name": "WhatsApp semanal (Evolution API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2000, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.EVOLUTION_API_URL }}/message/sendText/{{ $vars.EVOLUTION_INSTANCE }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",       "value": "={{ $vars.EVOLUTION_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "number": "={{ $json.telefone }}",
+          "text":   "={{ $json.mensagem_whatsapp }}"
+        },
+        "options": {}
+      }
+    },
+
+    {
+      "id": "node-email-semanal",
+      "name": "Email semanal (SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2000, 400],
+      "parameters": {
+        "fromEmail": "={{ $vars.SMTP_FROM }}",
+        "toEmail":   "={{ $json.email }}",
+        "subject":   "=Resumo da semana — {{ $json.nome_salao }}",
+        "emailType": "html",
+        "html":      "={{ $json.mensagem_email_html }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": { "id": "CONFIGURE-SMTP-CREDENTIAL", "name": "SMTP Salão" }
+      }
+    },
+
+    {
+      "id": "node-aguardar-proximo",
+      "name": "Aguardar antes do próximo usuário",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2220, 300],
+      "parameters": {
+        "resume": "timeInterval",
+        "unit": "seconds",
+        "value": 3
+      },
+      "notes": "Pequena pausa entre usuárias para não sobrecarregar a Evolution API ou o SMTP com muitas requisições simultâneas. Ajuste conforme necessário."
+    },
+
+    {
+      "id": "node-voltar-loop",
+      "name": "Próxima proprietária",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1",
+      "position": [2440, 300],
+      "parameters": {}
+    }
+
+  ],
+
+  "connections": {
+    "Todo domingo às 19h": {
+      "main": [[{ "node": "Buscar todas as proprietárias ativas", "type": "main", "index": 0 }]]
+    },
+    "Buscar todas as proprietárias ativas": {
+      "main": [[{ "node": "Processar uma por uma", "type": "main", "index": 0 }]]
+    },
+    "Processar uma por uma": {
+      "main": [[{ "node": "Pedir resumo semanal ao FastAPI", "type": "main", "index": 0 }]]
+    },
+    "Pedir resumo semanal ao FastAPI": {
+      "main": [[{ "node": "Juntar dados do perfil com o resumo", "type": "main", "index": 0 }]]
+    },
+    "Juntar dados do perfil com o resumo": {
+      "main": [[{ "node": "Formatar mensagem da semana", "type": "main", "index": 0 }]]
+    },
+    "Formatar mensagem da semana": {
+      "main": [[{ "node": "Tem pelo menos 1 atendimento?", "type": "main", "index": 0 }]]
+    },
+    "Tem pelo menos 1 atendimento?": {
+      "main": [
+        [{ "node": "Escolher canal", "type": "main", "index": 0 }],
+        [{ "node": "Escolher canal", "type": "main", "index": 0 }]
+      ]
+    },
+    "Escolher canal": {
+      "main": [
+        [{ "node": "WhatsApp semanal (Evolution API)", "type": "main", "index": 0 }],
+        [{ "node": "Email semanal (SMTP)",             "type": "main", "index": 0 }]
+      ]
+    },
+    "WhatsApp semanal (Evolution API)": {
+      "main": [[{ "node": "Aguardar antes do próximo usuário", "type": "main", "index": 0 }]]
+    },
+    "Email semanal (SMTP)": {
+      "main": [[{ "node": "Aguardar antes do próximo usuário", "type": "main", "index": 0 }]]
+    },
+    "Aguardar antes do próximo usuário": {
+      "main": [[{ "node": "Próxima proprietária", "type": "main", "index": 0 }]]
+    },
+    "Próxima proprietária": {
+      "main": [[{ "node": "Processar uma por uma", "type": "main", "index": 0 }]]
+    }
+  },
+
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "errorWorkflow": ""
+  },
+
+  "staticData": null,
+  "tags": [{ "name": "salão" }, { "name": "financeiro" }, { "name": "cron" }],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-20T00:00:00.000Z",
+  "versionId": "1"
+}
