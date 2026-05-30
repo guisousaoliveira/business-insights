@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart';
@@ -14,13 +15,9 @@ class _GastosScreenState extends State<GastosScreen> {
   final List<Gasto> _gastos = gastosExemplo;
   bool _semanaExpanded = true;
 
-  double get _totalPendente => _gastos
-      .where((g) => !g.pago)
-      .fold(0.0, (s, g) => s + g.valor);
+  double get _totalPendente => _gastos.where((g) => !g.pago).fold(0.0, (s, g) => s + g.valor);
 
-  double get _totalPago => _gastos
-      .where((g) => g.pago)
-      .fold(0.0, (s, g) => s + g.valor);
+  double get _totalPago => _gastos.where((g) => g.pago).fold(0.0, (s, g) => s + g.valor);
 
   @override
   Widget build(BuildContext context) {
@@ -70,8 +67,7 @@ class _GastosScreenState extends State<GastosScreen> {
                   titulo: 'Semana 12–18 mai',
                   gastos: pendentes,
                   isExpanded: _semanaExpanded,
-                  onToggle: () =>
-                      setState(() => _semanaExpanded = !_semanaExpanded),
+                  onToggle: () => setState(() => _semanaExpanded = !_semanaExpanded),
                   onPagarToggle: (id, valor) {
                     setState(() {
                       final idx = _gastos.indexWhere((g) => g.id == id);
@@ -98,8 +94,7 @@ class _GastosScreenState extends State<GastosScreen> {
                         gasto: g,
                         onToggle: () {
                           setState(() {
-                            final idx =
-                                _gastos.indexWhere((x) => x.id == g.id);
+                            final idx = _gastos.indexWhere((x) => x.id == g.id);
                             if (idx != -1) {
                               final old = _gastos[idx];
                               _gastos[idx] = Gasto(
@@ -172,32 +167,22 @@ class _SemanaSection extends StatelessWidget {
           // Header
           InkWell(
             onTap: onToggle,
-            borderRadius: isExpanded
-                ? const BorderRadius.vertical(top: Radius.circular(12))
-                : BorderRadius.circular(12),
+            borderRadius: isExpanded ? const BorderRadius.vertical(top: Radius.circular(12)) : BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_month_outlined,
-                      size: 18, color: AppTheme.textSecondary),
+                  const Icon(Icons.calendar_month_outlined, size: 18, color: AppTheme.textSecondary),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(titulo,
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w500)),
+                    child: Text(titulo, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                   ),
-                  Text(formatBRL(total),
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.danger)),
+                  Text(formatBRL(total), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.danger)),
                   const SizedBox(width: 6),
                   AnimatedRotation(
                     turns: isExpanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.keyboard_arrow_down,
-                        size: 20, color: AppTheme.textSecondary),
+                    child: const Icon(Icons.keyboard_arrow_down, size: 20, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
@@ -206,9 +191,7 @@ class _SemanaSection extends StatelessWidget {
 
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 200),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
             firstChild: const SizedBox.shrink(),
             secondChild: Column(
               children: [
@@ -267,14 +250,11 @@ class _GastoTile extends StatelessWidget {
                   color: gasto.pago ? AppTheme.success : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color:
-                        gasto.pago ? AppTheme.success : AppTheme.border,
+                    color: gasto.pago ? AppTheme.success : AppTheme.border,
                     width: 1.5,
                   ),
                 ),
-                child: gasto.pago
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : null,
+                child: gasto.pago ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
               ),
             ),
             const SizedBox(width: 10),
@@ -289,11 +269,8 @@ class _GastoTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: gasto.pago
-                          ? AppTheme.textSecondary
-                          : AppTheme.textPrimary,
-                      decoration:
-                          gasto.pago ? TextDecoration.lineThrough : null,
+                      color: gasto.pago ? AppTheme.textSecondary : AppTheme.textPrimary,
+                      decoration: gasto.pago ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -301,18 +278,13 @@ class _GastoTile extends StatelessWidget {
                     children: [
                       AppTag(
                         label: gasto.prioridade,
-                        backgroundColor:
-                            _prioridadeColor().withOpacity(0.1),
+                        backgroundColor: _prioridadeColor().withOpacity(0.1),
                         textColor: _prioridadeColor(),
                       ),
                       const SizedBox(width: 6),
-                      Text(gasto.formaPagamento,
-                          style: const TextStyle(
-                              fontSize: 11, color: AppTheme.textTertiary)),
+                      Text(gasto.formaPagamento, style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary)),
                       const SizedBox(width: 6),
-                      Text('até ${formatDate(gasto.prazo)}',
-                          style: const TextStyle(
-                              fontSize: 11, color: AppTheme.textTertiary)),
+                      Text('até ${formatDate(gasto.prazo)}', style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary)),
                     ],
                   ),
                 ],
@@ -325,9 +297,7 @@ class _GastoTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: gasto.pago
-                    ? AppTheme.textSecondary
-                    : AppTheme.danger,
+                color: gasto.pago ? AppTheme.textSecondary : AppTheme.danger,
                 decoration: gasto.pago ? TextDecoration.lineThrough : null,
               ),
             ),
@@ -351,6 +321,9 @@ class _NovoGastoSheetState extends State<_NovoGastoSheet> {
   final _valorCtrl = TextEditingController();
   String _prioridade = 'alta';
   String _forma = 'à vista';
+  String _cat = 'material';
+
+  DateTime _prazo = DateTime.now().add(const Duration(days: 7));
 
   @override
   Widget build(BuildContext context) {
@@ -364,9 +337,7 @@ class _NovoGastoSheetState extends State<_NovoGastoSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Novo gasto',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text('Novo gasto', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               IconButton(
                 icon: const Icon(Icons.close, size: 20),
                 onPressed: () => Navigator.pop(context),
@@ -383,9 +354,23 @@ class _NovoGastoSheetState extends State<_NovoGastoSheet> {
           const SizedBox(height: 10),
           TextField(
             controller: _valorCtrl,
-            decoration: const InputDecoration(
-                labelText: 'Valor (R\$)', prefixText: 'R\$ '),
+            decoration: const InputDecoration(labelText: 'Valor (R\$)', prefixText: 'R\$ '),
             keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.calendar_today, size: 18),
+            title: Text('Prazo: ${DateFormat('dd/MM/yyyy', 'pt_BR').format(_prazo)}'),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _prazo,
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (d != null) setState(() => _prazo = d);
+            },
           ),
           const SizedBox(height: 10),
           Row(
@@ -394,9 +379,7 @@ class _NovoGastoSheetState extends State<_NovoGastoSheet> {
                 child: DropdownButtonFormField<String>(
                   value: _prioridade,
                   decoration: const InputDecoration(labelText: 'Prioridade'),
-                  items: ['alta', 'média', 'baixa']
-                      .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                      .toList(),
+                  items: ['alta', 'média', 'baixa'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                   onChanged: (v) => setState(() => _prioridade = v!),
                 ),
               ),
@@ -404,15 +387,23 @@ class _NovoGastoSheetState extends State<_NovoGastoSheet> {
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _forma,
-                  decoration:
-                      const InputDecoration(labelText: 'Pagamento'),
-                  items: ['à vista', 'cartão']
-                      .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                      .toList(),
+                  decoration: const InputDecoration(labelText: 'Pagamento'),
+                  items: ['à vista', 'cartão'].map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
                   onChanged: (v) => setState(() => _forma = v!),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _cat,
+            decoration: const InputDecoration(labelText: 'Categoria', border: OutlineInputBorder()),
+            items: const [
+              DropdownMenuItem(value: 'material', child: Text('Material / reposição')),
+              DropdownMenuItem(value: 'fixo', child: Text('Custo fixo')),
+              DropdownMenuItem(value: 'outros', child: Text('Outros')),
+            ],
+            onChanged: (v) => setState(() => _cat = v!),
           ),
           const SizedBox(height: 16),
           SizedBox(
