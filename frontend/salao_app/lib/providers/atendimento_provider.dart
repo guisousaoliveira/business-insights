@@ -1,13 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// providers/atendimento_provider.dart
-//
-// Fluxo:
-//   1. AtendimentosScreen chama provider.carregar()
-//   2. Provider busca dados mockados em memória
-//   3. notifyListeners() → widgets com context.watch() rebuildam
-//   4. AtendimentoTile lê dados e renderiza collapsable
-// ─────────────────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
 import '../models/atendimento.dart';
 import '../services/api_service.dart';
@@ -18,24 +8,20 @@ class AtendimentoProvider extends ChangeNotifier {
   String? _erro;
 
   List<Atendimento> get atendimentos => _atendimentos;
-  bool    get loading => _loading;
-  String? get erro    => _erro;
+  bool get loading => _loading;
+  String? get erro => _erro;
 
-  // Totais computados — usados nos chips rápidos da AppBar
-  double get receitaTotal  => _atendimentos.fold(0.0, (a, x) => a + x.totalGanho);
-  double get custosTotal   => _atendimentos.fold(0.0, (a, x) => a + x.totalMateriais);
+  // Totais ignoram os cancelados automaticamente graças ao getter no modelo
+  double get receitaTotal => _atendimentos.fold(0.0, (a, x) => a + x.totalGanho);
+  double get custosTotal => _atendimentos.fold(0.0, (a, x) => a + x.totalMateriais);
 
   Future<void> carregar({DateTime? inicio, DateTime? fim}) async {
     _loading = true;
     _erro = null;
     notifyListeners();
-
     try {
       final now = DateTime.now();
-      final ini = inicio ?? DateTime(now.year, now.month);
-      final f   = fim    ?? DateTime(now.year, now.month + 1);
-
-      _atendimentos = await ApiService.getAtendimentos(inicio: ini, fim: f);
+      _atendimentos = await ApiService.getAtendimentos(inicio: inicio ?? DateTime(now.year, now.month), fim: fim ?? DateTime(now.year, now.month + 1));
     } catch (e) {
       _erro = e.toString();
     } finally {
@@ -49,15 +35,25 @@ class AtendimentoProvider extends ChangeNotifier {
     required String clienteTelefone,
     required DateTime data,
     required List<Map<String, dynamic>> servicos,
-    required List<Map<String, dynamic>> materiais,
   }) async {
+    // Passa a bola pro ApiService (que cria como agendado)
     await ApiService.criarAtendimento(
-      clienteNome:     clienteNome,
+      clienteNome: clienteNome,
       clienteTelefone: clienteTelefone,
-      data:            data,
-      servicos:        servicos,
-      materiais:       materiais,
+      data: data,
+      servicos: servicos,
+      materiais: [], // Nasce sem material pois é agendamento
     );
+    await carregar(); // Recarrega a lista do banco
+  }
+
+  Future<void> cancelar(String id) async {
+    await ApiService.cancelarAtendimento(id);
+    await carregar();
+  }
+
+  Future<void> finalizar(String id, List<Map<String, dynamic>> materiais) async {
+    await ApiService.finalizarAtendimento(id, materiais);
     await carregar();
   }
 }

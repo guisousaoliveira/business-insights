@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:salon_app/providers/relatorio_provider.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/estoque_widgets.dart';
@@ -7,6 +8,8 @@ import 'gastos_screen.dart';
 import 'resumo_screen.dart';
 import 'perfil_screen.dart';
 import 'estoque_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/estoque_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,14 +29,9 @@ class _HomeScreenState extends State<HomeScreen> {
     PerfilScreen(),
   ];
 
-  // Conta itens em alerta para o badge do BottomNav.
-  // Em produção: vem de uma query ao Supabase no initState.
-  int get _alertasEstoque =>
-      estoqueExemplo.where((i) => i.emAlerta && i.ativo).length;
-
   @override
   Widget build(BuildContext context) {
-    final alertas = _alertasEstoque;
+    final alertas = context.watch<EstoqueProvider>().totalAlertas;
 
     return Scaffold(
       body: IndexedStack(
@@ -48,7 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
+          onTap: (i) {
+            setState(() => _currentIndex = i);
+
+            if (i == 2) {
+              context.read<RelatorioProvider>().carregar();
+            }
+          },
           items: [
             const BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today_outlined, size: 22),

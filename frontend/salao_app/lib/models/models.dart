@@ -4,8 +4,9 @@ class Servico {
   final String id;
   final String nome;
   final double preco;
+  final List<ProdutoAssociado> produtosPadrao;
 
-  const Servico({required this.id, required this.nome, required this.preco});
+  const Servico({required this.id, required this.nome, required this.preco, this.produtosPadrao = const []});
 }
 
 class InsumoUsado {
@@ -32,11 +33,9 @@ class Atendimento {
     required this.insumos,
   });
 
-  double get totalServicos =>
-      servicos.fold(0, (s, e) => s + e.preco);
+  double get totalServicos => servicos.fold(0, (s, e) => s + e.preco);
 
-  double get totalInsumos =>
-      insumos.fold(0, (s, e) => s + e.preco);
+  double get totalInsumos => insumos.fold(0, (s, e) => s + e.preco);
 
   double get saldo => totalServicos - totalInsumos;
 }
@@ -127,8 +126,7 @@ class ItemEstoque {
     return StatusEstoque.ok;
   }
 
-  double get deficit =>
-      (quantidadeMinima - quantidadeAtual).clamp(0, double.infinity);
+  double get deficit => (quantidadeMinima - quantidadeAtual).clamp(0, double.infinity);
 
   bool get emAlerta => status != StatusEstoque.ok;
 
@@ -171,6 +169,24 @@ class MovimentacaoEstoque {
     required this.criadoEm,
     this.atendimentoId,
   });
+}
+
+class ProdutoAssociado {
+  final String produtoId;
+  final String nomeProduto;
+  final double quantidade;
+  final String unidade;
+
+  ProdutoAssociado({required this.produtoId, required this.nomeProduto, required this.quantidade, required this.unidade});
+}
+
+class KitRevenda {
+  final String id;
+  final String nome;
+  final double precoVenda;
+  final List<ProdutoAssociado> produtos;
+
+  KitRevenda({required this.id, required this.nome, required this.precoVenda, required this.produtos});
 }
 
 // ── Dados de exemplo ───────────────────────────────────────────────
