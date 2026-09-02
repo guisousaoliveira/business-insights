@@ -196,7 +196,8 @@ class AppApi {
   /// header.
   static Future<void> _setTokenHeader() async {
     _dio.options.headers.addAll({
-      'Authorization': 'Bearer ${AppStorage.read<String>(AppStorage.bearerToken) ?? ''}',
+      'Authorization':
+          'Bearer ${AppStorage.read<String>(AppStorage.bearerToken) ?? ''}',
       'Accept-Language': globals.l10n?.localeName ?? 'pt-BR',
     });
   }

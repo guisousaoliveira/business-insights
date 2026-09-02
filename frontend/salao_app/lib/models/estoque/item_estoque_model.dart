@@ -20,6 +20,7 @@ class ItemEstoqueModel {
   final CategoriaEstoque categoria;
   final double quantidadeAtual;
   final double quantidadeMinima;
+
   /// Média ponderada móvel, calculada no servidor a cada entrada (§5 de
   /// `endpoints-backend.md`). É este o custo usado em margem de kit, custo de
   /// atendimento e valor total do estoque.

@@ -37,7 +37,8 @@ void main() {
     expect(comBadge, semBadge);
   });
 
-  testWidgets('o badge fica ancorado no canto do ícone, não no do alvo de toque',
+  testWidgets(
+      'o badge fica ancorado no canto do ícone, não no do alvo de toque',
       (tester) async {
     await centroDoIcone(tester, 3);
 

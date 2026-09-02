@@ -20,7 +20,8 @@ class AppLogger {
     if (!kReleaseMode) _log(message, level: 800);
   }
 
-  static void warning(String message, [Object? error, StackTrace? stackTrace]) =>
+  static void warning(String message,
+          [Object? error, StackTrace? stackTrace]) =>
       _log(message, level: 900, error: error, stackTrace: stackTrace);
 
   static void error(String message, [Object? error, StackTrace? stackTrace]) =>

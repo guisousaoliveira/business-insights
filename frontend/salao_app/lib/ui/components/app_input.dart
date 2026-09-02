@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart' show TextField, InputDecoration, OutlineInputBorder;
+import 'package:flutter/material.dart'
+    show TextField, InputDecoration, OutlineInputBorder;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -151,7 +152,8 @@ class _AppInputState extends State<AppInput> {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             border: _border(AppColors.border),
-            enabledBorder: _border(hasError ? AppColors.danger : AppColors.border),
+            enabledBorder:
+                _border(hasError ? AppColors.danger : AppColors.border),
             focusedBorder: _border(
               hasError ? AppColors.danger : AppColors.primary,
               width: 1.5,

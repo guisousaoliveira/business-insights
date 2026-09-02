@@ -38,7 +38,7 @@ autocontido. Se o original mudar, atualize a cópia deliberadamente.
 
 ## Decisões de arquitetura (02/09/2026)
 
-Estas oito foram decididas pelo dono do projeto e **não devem ser revisitadas sem
+Estas nove foram decididas pelo dono do projeto e **não devem ser revisitadas sem
 ele**. Vieram de perguntas explícitas, não de dedução.
 
 | # | Decisão | Consequência |
@@ -51,6 +51,7 @@ ele**. Vieram de perguntas explícitas, não de dedução.
 | **A6** | **Custo do item é média ponderada móvel**, não o último preço pago. | Cada entrada recalcula `custo_medio`; `custo_ultima_compra` fica ao lado, informativo. Uma compra cara ou promocional não reescreve o custo do saldo parado — a margem só se move quando o custo real se move. |
 | **A7** | **Montar kit é operação real.** Ela monta kits com o estoque que já tem, e vende depois. | Montar e vender são fatos separados, em momentos diferentes: o kit tem saldo próprio (`quantidade_montada`). Montar consome insumo e passa pelo aviso de A5; vender **não** tem segunda passada — `KIT_NAO_MONTADO` é definitivo, um kit que não existe não se vende. |
 | **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "Thamires Beauty". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. É a identidade do app nas lojas — cara de mudar depois. |
+| **A9** | **Resumo é a entrada do app e segue o painel Lovable de 02/09/2026.** | É a primeira aba e a `homeRoute`. Consolida alerta, resultado mensal, histórico de seis meses, lucro por serviço, meta, próximos gastos e reposição. A bottom bar destaca o ativo só por cor/ícone/rótulo, sem fundo. |
 
 ### O que essas decisões apagam do estado atual
 
@@ -183,7 +184,7 @@ Fases, nesta ordem (cada uma é entregável e revisável sozinha):
 
 ### Portões verificados
 
-`flutter analyze` sem nenhum aviso · `flutter test` com **69 testes verdes** ·
+`flutter analyze` sem nenhum aviso · `flutter test` com **75 testes verdes** ·
 `flutter build web --release` concluindo. Rode os três antes de fechar qualquer fase.
 
 ### Modo demo

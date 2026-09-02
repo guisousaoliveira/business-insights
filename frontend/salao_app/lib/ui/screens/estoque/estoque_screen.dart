@@ -127,7 +127,7 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
           ),
         ],
         child: BlocBuilder<AlertasCubit, AlertasState>(
-          buildWhen: (p, c) => p.getAlertasSubState != c.getAlertasSubState,
+          buildWhen: (p, c) => p.badgeCount != c.badgeCount,
           builder: (context, alertasState) =>
               BlocBuilder<EstoqueCubit, EstoqueState>(
             buildWhen: (p, c) => p.getItensSubState != c.getItensSubState,
@@ -267,8 +267,7 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
 
   Widget _buildKits(BuildContext context) => BlocBuilder<KitsCubit, KitsState>(
         buildWhen: (p, c) => p.getKitsSubState != c.getKitsSubState,
-        builder: (context, state) =>
-            AppSubStateBuilder<GetKitsResponseModel>(
+        builder: (context, state) => AppSubStateBuilder<GetKitsResponseModel>(
           subState: state.getKitsSubState,
           onLoading: const SizedBox.shrink(),
           onData: (data) => data.kits.isEmpty

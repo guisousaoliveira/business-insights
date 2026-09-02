@@ -147,9 +147,8 @@ class _ConfirmContent extends StatelessWidget {
               const SizedBox(width: 8),
               AppButton(
                 label: confirmLabel ?? context.l10n.confirm,
-                type: isDestructive
-                    ? AppButtonType.danger
-                    : AppButtonType.filled,
+                type:
+                    isDestructive ? AppButtonType.danger : AppButtonType.filled,
                 onPressed: () => Navigator.of(context).pop(true),
               ),
             ],

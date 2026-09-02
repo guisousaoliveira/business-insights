@@ -10,8 +10,7 @@ import '../../../../settings/app_utils.dart';
 import '../../../components/app_card.dart';
 import '../../../components/app_icon.dart';
 
-/// Os quatro números que respondem "como foi o mês": ticket médio, margem,
-/// variação e serviço mais lucrativo.
+/// Os cinco números principais do mês, na ordem visual do novo painel.
 ///
 /// 2×2 no mobile, 1×4 na web — é o mesmo conteúdo reflowado, não outra tela.
 class ResumoInsightsGrid extends StatelessWidget {
@@ -21,49 +20,56 @@ class ResumoInsightsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final variacao = resumo.variacaoPercentualMesAnterior;
-
     final cards = [
       _InsightCard(
-        icon: AppAssets.receipt,
+        icon: AppAssets.wallet,
         iconBackground: AppColors.primaryLight,
-        iconColor: AppColors.primaryDark,
-        label: context.l10n.averageTicket,
-        value: AppUtils.numToMoney(resumo.ticketMedio),
+        iconColor: AppColors.primary,
+        label: context.l10n.revenueLabel,
+        value: AppUtils.numToMoney(resumo.entrou),
       ),
       _InsightCard(
-        icon: AppAssets.chartPie,
-        iconBackground: AppColors.successLight,
-        iconColor: AppColors.success,
+        icon: AppAssets.receipt,
+        iconBackground: AppColors.dangerLight,
+        iconColor: AppColors.primary,
+        label: context.l10n.expensesLabel,
+        value: AppUtils.numToMoney(resumo.saiu),
+      ),
+      _InsightCard(
+        icon: AppAssets.target,
+        iconBackground: AppColors.primaryLight,
+        iconColor: AppColors.primary,
         label: context.l10n.profitMargin,
         value: AppUtils.numToPercent(resumo.margemLucroPercentual),
       ),
       _InsightCard(
-        icon: variacao >= 0 ? AppAssets.trendingUp : AppAssets.trendingDown,
-        iconBackground:
-            variacao >= 0 ? AppColors.successLight : AppColors.dangerLight,
-        iconColor: variacao >= 0 ? AppColors.success : AppColors.danger,
-        label: context.l10n.vsPreviousMonth,
-        value: AppUtils.numToSignedPercent(variacao),
-        valueColor: variacao >= 0 ? AppColors.success : AppColors.danger,
+        icon: AppAssets.trendingUp,
+        iconBackground: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        label: context.l10n.averageTicket,
+        value: AppUtils.numToMoney(resumo.ticketMedio),
       ),
       _InsightCard(
-        icon: AppAssets.star,
-        iconBackground: AppColors.accentTint,
-        iconColor: AppColors.primaryAccent,
-        label: context.l10n.mostProfitable,
-        value: resumo.servicoMaisLucrativo ?? '—',
+        icon: AppAssets.people,
+        iconBackground: AppColors.primaryLight,
+        iconColor: AppColors.primary,
+        label: context.l10n.appointmentsLabel,
+        value: resumo.quantidadeAtendimentos.toString(),
+        helper: context.l10n.finalizedInMonth,
       ),
     ];
 
     if (isWideLayout(context)) {
-      return Row(
-        children: [
-          for (var index = 0; index < cards.length; index++) ...[
-            if (index > 0) const SizedBox(width: 12),
-            Expanded(child: cards[index]),
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var index = 0; index < cards.length; index++) ...[
+              if (index > 0) const SizedBox(width: 12),
+              Expanded(child: cards[index]),
+            ],
           ],
-        ],
+        ),
       );
     }
 
@@ -72,6 +78,12 @@ class ResumoInsightsGrid extends StatelessWidget {
         _buildPar(cards[0], cards[1]),
         const SizedBox(height: 8),
         _buildPar(cards[2], cards[3]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: cards[4]),
+          const SizedBox(width: 8),
+          const Expanded(child: SizedBox()),
+        ]),
       ],
     );
   }
@@ -101,7 +113,7 @@ class _InsightCard extends StatelessWidget {
   final Color iconColor;
   final String label;
   final String value;
-  final Color? valueColor;
+  final String? helper;
 
   const _InsightCard({
     required this.icon,
@@ -109,7 +121,7 @@ class _InsightCard extends StatelessWidget {
     required this.iconColor,
     required this.label,
     required this.value,
-    this.valueColor,
+    this.helper,
   });
 
   @override
@@ -119,25 +131,31 @@ class _InsightCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 24,
-              height: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(7),
-              ),
-              child: AppIcon(icon, size: 13, color: iconColor),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppFonts.captionSmall(context),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                AppIcon(icon, size: 15, color: iconColor),
+              ],
             ),
             const SizedBox(height: 7),
-            Text(label, style: AppFonts.captionSmall(context)),
             Text(
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppFonts.insightValue(context)
-                  .copyWith(color: valueColor ?? AppColors.text1),
+              style: AppFonts.insightValue(context),
             ),
+            if (helper != null) ...[
+              const SizedBox(height: 3),
+              Text(helper!, style: AppFonts.captionSmall(context)),
+            ],
           ],
         ),
       );

@@ -20,7 +20,6 @@ import '../../../components/app_icon.dart';
 import '../../../components/app_tappable.dart';
 import '../../../dialogs/estoque_insuficiente_dialog.dart';
 
-
 /// Finalização: confirma os materiais consumidos, que o servidor usa para dar
 /// baixa no estoque.
 ///

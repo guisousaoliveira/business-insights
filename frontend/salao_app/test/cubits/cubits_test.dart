@@ -70,8 +70,7 @@ void main() {
     registerFallbackValue(
       const FinalizarAtendimentoRequestModel(id: 'a1', materiais: []),
     );
-    registerFallbackValue(FormaPagamento.pix
-    );
+    registerFallbackValue(FormaPagamento.pix);
     registerFallbackValue(
       CreateGastoRequestModel(
         nome: 'x',
@@ -485,7 +484,7 @@ void main() {
     );
 
     blocTest<AlertasCubit, AlertasState>(
-      'getAlertas erro zera o badge em vez de mostrar número velho',
+      'refresh com erro preserva o último número confirmado',
       build: () {
         when(
           () => repository.getAlertas(
@@ -494,13 +493,15 @@ void main() {
         ).thenThrow(_httpError());
         return AlertasCubit(repository: repository);
       },
+      seed: () => const AlertasState(badgeCount: 4),
       act: (cubit) => cubit.getAlertas(),
       expect: () => [
         isA<AlertasState>()
-            .having((s) => s.getAlertasSubState.isLoading, 'isLoading', true),
+            .having((s) => s.getAlertasSubState.isLoading, 'isLoading', true)
+            .having((s) => s.badgeCount, 'badge durante loading', 4),
         isA<AlertasState>()
             .having((s) => s.getAlertasSubState.hasError, 'hasError', true)
-            .having((s) => s.badgeCount, 'badge', 0),
+            .having((s) => s.badgeCount, 'badge após erro', 4),
       ],
     );
   });

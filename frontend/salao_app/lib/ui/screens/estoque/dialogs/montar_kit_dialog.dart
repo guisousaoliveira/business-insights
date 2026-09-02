@@ -90,9 +90,8 @@ class _MontarKitDialogState extends State<MontarKitDialog> {
               AppUtils.quantityToString(widget.kit.quantidadeMontavel),
             ),
             style: AppFonts.caption(context).copyWith(
-              color: widget.kit.podeMontar
-                  ? AppColors.success
-                  : AppColors.danger,
+              color:
+                  widget.kit.podeMontar ? AppColors.success : AppColors.danger,
             ),
           ),
           const SizedBox(height: 16),

@@ -16,7 +16,8 @@ class AuthRepositoryImpl implements AuthRepository {
       AppApi.loginPath,
       data: model.toBody,
     );
-    return LoginResponseModel.fromResponse(response.data as Map<String, dynamic>);
+    return LoginResponseModel.fromResponse(
+        response.data as Map<String, dynamic>);
   }
 
   @override

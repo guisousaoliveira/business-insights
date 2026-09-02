@@ -51,7 +51,8 @@ class AtendimentoModel {
         id: map[_idKey] as String? ?? '',
         clienteNome: map[_clienteNomeKey] as String? ?? '',
         clienteTelefone: map[_clienteTelefoneKey] as String? ?? '',
-        data: DateTime.tryParse(map[_dataKey] as String? ?? '') ?? DateTime.now(),
+        data:
+            DateTime.tryParse(map[_dataKey] as String? ?? '') ?? DateTime.now(),
         status: AppUtils.decodeStatusAtendimento(map[_statusKey] as String?),
         servicos: (map[_servicosKey] as List? ?? const [])
             .map((e) =>

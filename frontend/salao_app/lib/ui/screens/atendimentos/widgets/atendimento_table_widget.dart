@@ -82,7 +82,8 @@ class AtendimentoTableWidget extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppFonts.rowTitle(context).copyWith(
-              color: atendimento.isCancelado ? AppColors.text3 : AppColors.text1,
+              color:
+                  atendimento.isCancelado ? AppColors.text3 : AppColors.text1,
               decoration:
                   atendimento.isCancelado ? TextDecoration.lineThrough : null,
             ),

@@ -27,7 +27,8 @@ class EstoqueCubit extends Cubit<EstoqueState> {
       emit(state.copyWith(getItensSubState: BlocSubState.completed(response)));
     } on DioException catch (e) {
       emit(state.copyWith(
-        getItensSubState: BlocSubState.completed(ErrorModel.fromDioException(e)),
+        getItensSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
       ));
     } catch (e, s) {
       AppLogger.error('Falha inesperada ao buscar o estoque', e, s);

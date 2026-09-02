@@ -48,9 +48,8 @@ class AlertaModel {
         mensagem: map[_mensagemKey] as String? ?? '',
         referenciaTipo: map[_referenciaTipoKey] as String?,
         referenciaId: map[_referenciaIdKey] as String?,
-        criadoEm:
-            DateTime.tryParse(map[_criadoEmKey] as String? ?? '') ??
-                DateTime.now(),
+        criadoEm: DateTime.tryParse(map[_criadoEmKey] as String? ?? '') ??
+            DateTime.now(),
         lidoEm: DateTime.tryParse(map[_lidoEmKey] as String? ?? ''),
       );
 }

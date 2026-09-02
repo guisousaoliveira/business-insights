@@ -18,6 +18,8 @@ import 'app_globals.dart' as globals;
 class AppRoutes {
   const AppRoutes._();
 
+  static const pageTransitionDuration = Duration(milliseconds: 220);
+
   static final navigatorKey = GlobalKey<NavigatorState>();
   static final routeObserver = RouteObserver<ModalRoute<void>>();
 
@@ -30,16 +32,17 @@ class AppRoutes {
   static const perfilRoute = '/perfil';
   static const alertasRoute = '/alertas';
 
-  /// Rota inicial de quem está logado. Atendimentos é a tela do dia a dia.
-  static const homeRoute = atendimentosRoute;
+  /// Rota inicial de quem está logado. O resumo responde primeiro se o mês está
+  /// dando lucro ou prejuízo.
+  static const homeRoute = resumoRoute;
 
   /// O guard é feito **no builder**, ternário por ternário. Funciona sem
   /// `FutureBuilder` porque `globals.isLogged` lê o storage de forma síncrona.
   static final routeList = <String, Widget Function(BuildContext)>{
     defaultRoute: (context) =>
-        globals.isLogged ? const AtendimentosScreen() : const LoginScreen(),
+        globals.isLogged ? const ResumoScreen() : const LoginScreen(),
     loginRoute: (context) =>
-        globals.isLogged ? const AtendimentosScreen() : const LoginScreen(),
+        globals.isLogged ? const ResumoScreen() : const LoginScreen(),
     atendimentosRoute: (context) =>
         globals.isLogged ? const AtendimentosScreen() : const LoginScreen(),
     gastosRoute: (context) =>
@@ -83,9 +86,25 @@ class AppRoutes {
       // 404 não quebra o app: cai na rota padrão.
       pageBuilder: (context, _, __) =>
           (builder ?? routeList[defaultRoute]!).call(context),
-      transitionDuration: Duration.zero,
-      reverseTransitionDuration: Duration.zero,
-      transitionsBuilder: (context, animation, secondary, child) => child,
+      transitionDuration: pageTransitionDuration,
+      reverseTransitionDuration: pageTransitionDuration,
+      transitionsBuilder: (context, animation, secondary, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.035, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -105,7 +124,8 @@ class AppRoutes {
 
   /// Troca de aba: substitui em vez de empilhar, senão o botão voltar percorre
   /// todas as abas já visitadas.
-  static Future<dynamic> replace(String name, {Map<String, dynamic>? data}) async {
+  static Future<dynamic> replace(String name,
+      {Map<String, dynamic>? data}) async {
     final state = navigatorKey.currentState;
     if (state == null) return null;
     return state.pushReplacementNamed(name, arguments: data);

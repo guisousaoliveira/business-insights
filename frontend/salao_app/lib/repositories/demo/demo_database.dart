@@ -207,7 +207,8 @@ class DemoDatabase {
     for (final composicao in kit['itens'] as List) {
       final linha = composicao as Map<String, dynamic>;
       final item = _itemPorId(linha['item_estoque_id'] as String);
-      custo += (linha['quantidade'] as double) * (item['custo_medio'] as double);
+      custo +=
+          (linha['quantidade'] as double) * (item['custo_medio'] as double);
     }
     return custo;
   }
@@ -571,7 +572,8 @@ class DemoDatabase {
         'valor_total': lista.fold<double>(
           0,
           (soma, e) =>
-              soma + (e['quantidade_atual'] as double) * (e['custo_medio'] as double),
+              soma +
+              (e['quantidade_atual'] as double) * (e['custo_medio'] as double),
         ),
         'itens': lista,
       },
@@ -683,7 +685,8 @@ class DemoDatabase {
       'quantidade_montada': 0.0,
       'itens': (body['itens'] as List)
           .map((e) => {
-                'item_estoque_id': (e as Map<String, dynamic>)['item_estoque_id'],
+                'item_estoque_id':
+                    (e as Map<String, dynamic>)['item_estoque_id'],
                 'quantidade': (e['quantidade'] as num).toDouble(),
               })
           .toList(),
@@ -720,7 +723,8 @@ class DemoDatabase {
       _movimentar(item, 'saida', pedido.value, 'Montagem de kit');
     }
 
-    kit['quantidade_montada'] = (kit['quantidade_montada'] as double) + quantidade;
+    kit['quantidade_montada'] =
+        (kit['quantidade_montada'] as double) + quantidade;
     return envelope(const {});
   }
 
@@ -795,18 +799,17 @@ class DemoDatabase {
       'id': _novoId('servico'),
       'nome': body['nome'],
       'preco': (body['preco'] as num).toDouble(),
-      'produtos_padrao': (body['produtos_padrao'] as List? ?? const [])
-          .map((e) {
-            final linha = e as Map<String, dynamic>;
-            final item = _itemPorId(linha['item_estoque_id'] as String);
-            return {
-              'item_estoque_id': item['id'],
-              'nome': item['nome'],
-              'quantidade': (linha['quantidade'] as num).toDouble(),
-              'unidade': item['unidade'],
-            };
-          })
-          .toList(),
+      'produtos_padrao':
+          (body['produtos_padrao'] as List? ?? const []).map((e) {
+        final linha = e as Map<String, dynamic>;
+        final item = _itemPorId(linha['item_estoque_id'] as String);
+        return {
+          'item_estoque_id': item['id'],
+          'nome': item['nome'],
+          'quantidade': (linha['quantidade'] as num).toDouble(),
+          'unidade': item['unidade'],
+        };
+      }).toList(),
     });
     return envelope(const {});
   }
@@ -860,6 +863,12 @@ class DemoDatabase {
     final maisRealizados = ranking.values.toList()
       ..sort((a, b) => (b['total_receita'] as double)
           .compareTo(a['total_receita'] as double));
+    for (final servico in maisRealizados) {
+      final receita = servico['total_receita'] as double;
+      final custoRateado =
+          totalServicos == 0 ? 0.0 : totalInsumos * (receita / totalServicos);
+      servico['lucro'] = receita - custoRateado;
+    }
 
     final vendas = _kitVendas
         .where((e) => _noMes(DateTime.parse(e['data'] as String), ano, mes))
@@ -902,12 +911,31 @@ class DemoDatabase {
         ? _saldoDoMes(mes == 1 ? ano - 1 : ano, mes == 1 ? 12 : mes - 1)
         : 0.0;
 
+    final historico = comparar
+        ? List.generate(6, (index) {
+            final periodo = DateTime(ano, mes - (5 - index));
+            final resumo = _resumo(
+              periodo.year,
+              periodo.month,
+              comparar: false,
+            );
+            return {
+              'ano': periodo.year,
+              'mes': periodo.month,
+              'receitas': resumo['entrou'],
+              'despesas': resumo['saiu'],
+            };
+          })
+        : const <Map<String, dynamic>>[];
+
     return {
       'ano': ano,
       'mes': mes,
       'saldo_final': saldoFinal,
       'entrou': entrou,
       'saiu': saiu,
+      'historico_seis_meses': historico,
+      'meta_faturamento_mensal': 9000.0,
       'receita': {
         'total_servicos': totalServicos,
         'total_insumos': totalInsumos,
@@ -927,7 +955,8 @@ class DemoDatabase {
         // Kit não é atendimento e diluiria o ticket que ela usa para precificar.
         'ticket_medio':
             finalizados.isEmpty ? 0.0 : totalServicos / finalizados.length,
-        'margem_lucro_percentual': entrou == 0 ? 0.0 : saldoFinal / entrou * 100,
+        'margem_lucro_percentual':
+            entrou == 0 ? 0.0 : saldoFinal / entrou * 100,
         'variacao_percentual_mes_anterior': anterior == 0
             ? 0.0
             : (saldoFinal - anterior) / anterior.abs() * 100,

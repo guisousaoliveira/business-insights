@@ -38,6 +38,12 @@ class AppFonts {
         color: AppColors.text1,
       );
 
+  static TextStyle sectionTitle(BuildContext context) => const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: AppColors.text1,
+      );
+
   /// Título da app bar mobile.
   static TextStyle appBarTitle(BuildContext context) => const TextStyle(
         fontSize: 14,

@@ -62,8 +62,7 @@ class EstoqueFaltanteModel {
   }
 
   /// "pedi 2 un., tenho 0 un." — o par que ela precisa ver junto.
-  String get resumo =>
-      '${AppUtils.quantityToString(quantidadeSolicitada)} '
+  String get resumo => '${AppUtils.quantityToString(quantidadeSolicitada)} '
       '${AppUtils.unidadeEstoqueToString(unidade)} · '
       '${AppUtils.quantityToString(quantidadeDisponivel)} '
       '${AppUtils.unidadeEstoqueToString(unidade)}';

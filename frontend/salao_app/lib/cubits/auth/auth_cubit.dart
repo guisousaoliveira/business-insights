@@ -30,7 +30,8 @@ class AuthCubit extends Cubit<AuthState> {
       // reaja com a sessão já consistente — o route guard lê o token na hora.
       await AppStorage.write(AppStorage.bearerToken, response.token);
       await AppStorage.write(AppStorage.refreshToken, response.refreshToken);
-      await AppStorage.write(AppStorage.userInfoKey, response.usuario.toStorage);
+      await AppStorage.write(
+          AppStorage.userInfoKey, response.usuario.toStorage);
       await AppStorage.write(AppStorage.salonInfoKey, response.salaoNome);
 
       emit(state.copyWith(loginSubState: BlocSubState.completed(response)));

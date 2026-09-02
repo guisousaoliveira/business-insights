@@ -16,21 +16,19 @@ void main() {
           .cast<Map<String, dynamic>>()
           .firstWhere((e) => e['nome'] == nome);
 
-  String idDoAtendimentoAgendado() =>
-      ((db.getAtendimentos(
+  String idDoAtendimentoAgendado() => ((db.getAtendimentos(
         DateTime(2000),
         DateTime(2100),
       )['result']['atendimentos'] as List)
-              .cast<Map<String, dynamic>>()
-              .firstWhere((e) => e['status'] == 'agendado'))['id'] as String;
+          .cast<Map<String, dynamic>>()
+          .firstWhere((e) => e['status'] == 'agendado'))['id'] as String;
 
   String? codigoDe(Object erro) =>
       ((erro as DioException).response!.data as Map)['codigo'] as String?;
 
-  Map<String, dynamic> oKit() =>
-      (db.getKits()['result']['kits'] as List)
-          .cast<Map<String, dynamic>>()
-          .first;
+  Map<String, dynamic> oKit() => (db.getKits()['result']['kits'] as List)
+      .cast<Map<String, dynamic>>()
+      .first;
 
   group('estoque', () {
     test('status separa negativo de crítico', () {
@@ -78,7 +76,8 @@ void main() {
       final removedor = itemChamado('Removedor de cola');
       expect(
         () => db.deleteItem(removedor['id'] as String),
-        throwsA(predicate<Object>((e) => codigoDe(e) == AppErrorCodes.itemInUse)),
+        throwsA(
+            predicate<Object>((e) => codigoDe(e) == AppErrorCodes.itemInUse)),
       );
     });
   });
@@ -281,6 +280,16 @@ void main() {
         (receita['total_servicos'] as double) /
             (receita['quantidade_atendimentos'] as int),
       );
+    });
+
+    test('entrega seis meses, lucro por serviço e meta para o novo painel', () {
+      final r = resumo();
+      final receita = r['receita'] as Map<String, dynamic>;
+      final ranking = receita['servicos_mais_realizados'] as List;
+
+      expect(r['historico_seis_meses'], hasLength(6));
+      expect(r['meta_faturamento_mensal'], 9000.0);
+      expect((ranking.first as Map)['lucro'], isA<double>());
     });
 
     test('vender kit aumenta o que entrou no mês', () {

@@ -13,7 +13,8 @@ class AppErrorRetry extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
-  const AppErrorRetry({super.key, required this.message, required this.onRetry});
+  const AppErrorRetry(
+      {super.key, required this.message, required this.onRetry});
 
   @override
   Widget build(BuildContext context) => Padding(

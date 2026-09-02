@@ -44,12 +44,18 @@ create table if not exists perfil_salao (
   telefone             text not null default '',   -- E.164 sem '+': 5511999990000
   email                text not null default '',
   foto_url             text,
+  meta_faturamento_mensal numeric(12, 2) not null default 9000,
   notificacoes_ativas  boolean not null default true,
   criado_em            timestamptz not null default now(),
   atualizado_em        timestamptz not null default now()
 );
 
 alter table perfil_salao add column if not exists foto_url text;
+alter table perfil_salao add column if not exists meta_faturamento_mensal numeric(12, 2) not null default 9000;
+
+-- Congela o custo padrão do serviço no atendimento. Sem snapshot, alterar a
+-- composição hoje reescreveria o lucro dos meses passados no novo ranking.
+alter table atendimento_servicos add column if not exists custo_insumos_snapshot numeric(12, 2) not null default 0;
 
 drop trigger if exists trg_perfil_salao_atualizado on perfil_salao;
 create trigger trg_perfil_salao_atualizado

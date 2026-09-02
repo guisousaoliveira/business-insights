@@ -45,8 +45,7 @@ class AppDropdownController {
   void setItems(List<DropdownModel> value, {bool keepSelection = true}) {
     if (_isDisposed) return;
     items = value;
-    if (!keepSelection ||
-        !value.any((item) => item.value == selectedValue)) {
+    if (!keepSelection || !value.any((item) => item.value == selectedValue)) {
       selectedValue = null;
     }
     onValueChangedSetState?.call();

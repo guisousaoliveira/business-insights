@@ -81,6 +81,10 @@ GET    /resumo/mensal?ano&mes           <- ALTERAR: hoje é GET /relatorio/mensa
 POST   /precificacao/calcular           <- EXISTE, fica como está
 ```
 
+O payload mensal também entrega `historico_seis_meses`,
+`meta_faturamento_mensal` e `servicos_mais_realizados[].lucro`; são os dados novos
+do painel redesenhado. A meta é lida e atualizada pelo `GET/PUT /perfil`.
+
 ### `estoque` — 6 · todas novas
 
 ```

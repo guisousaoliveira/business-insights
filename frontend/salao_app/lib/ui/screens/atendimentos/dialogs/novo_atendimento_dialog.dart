@@ -150,7 +150,8 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
           _servicoController.items = servicos
               .map(
                 (servico) => DropdownModel(
-                  key: '${servico.nome} · ${AppUtils.numToMoney(servico.preco)}',
+                  key:
+                      '${servico.nome} · ${AppUtils.numToMoney(servico.preco)}',
                   value: servico,
                 ),
               )

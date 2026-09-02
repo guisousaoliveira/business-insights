@@ -62,7 +62,8 @@ void main() {
     const estado = GastosState();
     final novo = estado.copyWith(getGastosSubState: loading);
 
-    expect(identical(estado.getGastosSubState, novo.getGastosSubState), isFalse);
+    expect(
+        identical(estado.getGastosSubState, novo.getGastosSubState), isFalse);
     expect(
       identical(estado.createGastoSubState, novo.createGastoSubState),
       isTrue,
@@ -132,7 +133,8 @@ void main() {
     const estado = PerfilState();
     final novo = estado.copyWith(getPerfilSubState: loading);
 
-    expect(identical(estado.getPerfilSubState, novo.getPerfilSubState), isFalse);
+    expect(
+        identical(estado.getPerfilSubState, novo.getPerfilSubState), isFalse);
     expect(
       identical(estado.updatePerfilSubState, novo.updatePerfilSubState),
       isTrue,
@@ -176,7 +178,7 @@ void main() {
   });
 
   test('AlertasState', () {
-    const estado = AlertasState();
+    const estado = AlertasState(badgeCount: 3);
     final novo = estado.copyWith(getAlertasSubState: loading);
 
     expect(
@@ -194,5 +196,6 @@ void main() {
       ),
       isTrue,
     );
+    expect(novo.badgeCount, 3);
   });
 }

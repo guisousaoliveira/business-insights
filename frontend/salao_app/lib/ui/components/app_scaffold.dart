@@ -39,6 +39,9 @@ class AppScaffold extends StatelessWidget {
 
   /// Seletor de período do cabeçalho de Resumo.
   final Widget? headerTrailing;
+  final Widget? narrowHeaderLeading;
+  final Widget? narrowHeaderTitle;
+  final Widget? wideHeaderTitle;
 
   final int alertCount;
   final bool isScrollable;
@@ -55,6 +58,9 @@ class AppScaffold extends StatelessWidget {
     this.trailingIcon,
     this.onTrailingAction,
     this.headerTrailing,
+    this.narrowHeaderLeading,
+    this.narrowHeaderTitle,
+    this.wideHeaderTitle,
     this.alertCount = 0,
     this.isScrollable = true,
     this.isPadded = true,
@@ -104,7 +110,10 @@ class AppScaffold extends StatelessWidget {
 
   Widget _buildWideHeader(BuildContext context) => Row(
         children: [
-          Expanded(child: Text(title, style: AppFonts.pageTitle(context))),
+          Expanded(
+            child: wideHeaderTitle ??
+                Text(title, style: AppFonts.pageTitle(context)),
+          ),
           if (trailingIcon != null) ...[
             AppTappable(
               onTap: onTrailingAction,
@@ -141,9 +150,8 @@ class AppScaffold extends StatelessWidget {
                 child: Stack(
                   children: [
                     Padding(
-                      padding: isPadded
-                          ? const EdgeInsets.all(12)
-                          : EdgeInsets.zero,
+                      padding:
+                          isPadded ? const EdgeInsets.all(12) : EdgeInsets.zero,
                       child: isScrollable
                           ? SingleChildScrollView(
                               // Espaço para o FAB não cobrir o último item.
@@ -186,7 +194,14 @@ class AppScaffold extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 14, 8, 10),
         child: Row(
           children: [
-            Expanded(child: Text(title, style: AppFonts.appBarTitle(context))),
+            if (narrowHeaderLeading != null) ...[
+              narrowHeaderLeading!,
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: narrowHeaderTitle ??
+                  Text(title, style: AppFonts.appBarTitle(context)),
+            ),
             if (trailingIcon != null)
               AppTappable(
                 onTap: onTrailingAction,
@@ -241,8 +256,8 @@ class _Fab extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 label,
-                style: AppFonts.button(context)
-                    .copyWith(color: AppColors.white),
+                style:
+                    AppFonts.button(context).copyWith(color: AppColors.white),
               ),
             ],
           ),

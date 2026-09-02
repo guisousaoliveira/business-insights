@@ -26,6 +26,12 @@ class AppNavItem {
 
   static List<AppNavItem> all() => [
         AppNavItem(
+          page: AppCurrentRoute.resumo,
+          icon: AppAssets.resumo,
+          activeIcon: AppAssets.resumoActive,
+          label: (context) => context.l10n.navSummary,
+        ),
+        AppNavItem(
           page: AppCurrentRoute.atendimentos,
           icon: AppAssets.atendimentos,
           activeIcon: AppAssets.atendimentosActive,
@@ -36,12 +42,6 @@ class AppNavItem {
           icon: AppAssets.gastos,
           activeIcon: AppAssets.gastosActive,
           label: (context) => context.l10n.navExpenses,
-        ),
-        AppNavItem(
-          page: AppCurrentRoute.resumo,
-          icon: AppAssets.resumo,
-          activeIcon: AppAssets.resumoActive,
-          label: (context) => context.l10n.navSummary,
         ),
         AppNavItem(
           page: AppCurrentRoute.estoque,
@@ -115,6 +115,8 @@ class AppBadge extends StatelessWidget {
 
 /// Barra inferior — casca mobile (≤1024).
 class AppBottomNav extends StatelessWidget {
+  static const _animationDuration = Duration(milliseconds: 220);
+
   final AppCurrentRoute currentPage;
   final int alertCount;
 
@@ -135,50 +137,95 @@ class AppBottomNav extends StatelessWidget {
         child: SafeArea(
           top: false,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: AppNavItem.all().map((item) {
-                final isActive = item.page == currentPage;
-                final icon = AppIcon(
-                  isActive ? item.activeIcon : item.icon,
-                  size: 21,
-                  color: isActive ? AppColors.primary : AppColors.text3,
-                );
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: AppNavItem.all().map((item) {
+                  final isActive = item.page == currentPage;
+                  final label = item.label(context);
+                  final icon = AppIcon(
+                    isActive ? item.activeIcon : item.icon,
+                    size: 22,
+                    color: isActive ? AppColors.primaryDark : AppColors.text3,
+                  );
 
-                return Expanded(
-                  child: AppTappable(
-                    onTap: isActive
-                        ? null
-                        : () => AppRoutes.replace(AppRoutes.routeOf(item.page)),
-                    borderRadius: BorderRadius.circular(10),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (item.page == AppCurrentRoute.estoque)
-                          AppBadge(count: alertCount, child: icon)
-                        else
-                          icon,
-                        const SizedBox(height: 3),
-                        Text(
-                          item.label(context),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight:
-                                isActive ? FontWeight.w600 : FontWeight.w400,
-                            color: isActive
-                                ? AppColors.primary
-                                : AppColors.text3,
-                          ),
+                  return Expanded(
+                    child: AppTappable(
+                      onTap: isActive
+                          ? null
+                          : () =>
+                              AppRoutes.replace(AppRoutes.routeOf(item.page)),
+                      borderRadius: BorderRadius.circular(12),
+                      child: AnimatedContainer(
+                        duration: _animationDuration,
+                        curve: Curves.easeOutCubic,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: AppColors.transparent,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
+                        padding: const EdgeInsets.fromLTRB(2, 7, 2, 5),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 26,
+                              child: Center(
+                                child: AnimatedScale(
+                                  scale: isActive ? 1.08 : 1,
+                                  duration: _animationDuration,
+                                  curve: Curves.easeOutBack,
+                                  child: item.page == AppCurrentRoute.estoque
+                                      ? AppBadge(
+                                          count: alertCount,
+                                          child: icon,
+                                        )
+                                      : icon,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            SizedBox(
+                              height: 14,
+                              child: AnimatedSwitcher(
+                                duration: _animationDuration,
+                                switchInCurve: Curves.easeOut,
+                                switchOutCurve: Curves.easeIn,
+                                transitionBuilder: (child, animation) =>
+                                    FadeTransition(
+                                  opacity: animation,
+                                  child: SizeTransition(
+                                    sizeFactor: animation,
+                                    axis: Axis.horizontal,
+                                    child: child,
+                                  ),
+                                ),
+                                child: isActive
+                                    ? Text(
+                                        label,
+                                        key: ValueKey(item.page),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                      )
+                                    : SizedBox(
+                                        key: ValueKey('${item.page}-inactive'),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
@@ -297,7 +344,7 @@ class _SideMenuItem extends StatelessWidget {
         minSize: 38,
         child: Container(
           decoration: BoxDecoration(
-            color: isActive ? AppColors.primaryLight : AppColors.transparent,
+            color: AppColors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
@@ -313,8 +360,7 @@ class _SideMenuItem extends StatelessWidget {
                   style: AppFonts.caption(context).copyWith(
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    color:
-                        isActive ? AppColors.primaryDark : AppColors.text2,
+                    color: isActive ? AppColors.primaryDark : AppColors.text2,
                   ),
                 ),
               ),

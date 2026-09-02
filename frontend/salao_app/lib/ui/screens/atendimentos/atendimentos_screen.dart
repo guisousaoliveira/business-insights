@@ -108,7 +108,7 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
           ),
         ],
         child: BlocBuilder<AlertasCubit, AlertasState>(
-          buildWhen: (p, c) => p.getAlertasSubState != c.getAlertasSubState,
+          buildWhen: (p, c) => p.badgeCount != c.badgeCount,
           builder: (context, alertasState) =>
               BlocBuilder<AtendimentosCubit, AtendimentosState>(
             buildWhen: (p, c) =>

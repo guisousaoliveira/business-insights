@@ -28,7 +28,8 @@ class GetAlertasResponseModel extends ResponseModel {
   int get badgeCount => totalCritico + totalAlerta;
 
   factory GetAlertasResponseModel.fromResponse(Map<String, dynamic> map) {
-    final result = map[ResponseModel.resultKey] as Map<String, dynamic>? ?? const {};
+    final result =
+        map[ResponseModel.resultKey] as Map<String, dynamic>? ?? const {};
     final resumo = result[_resumoKey] as Map<String, dynamic>? ?? const {};
 
     return GetAlertasResponseModel(

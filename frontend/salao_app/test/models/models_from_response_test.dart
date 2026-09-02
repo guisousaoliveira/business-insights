@@ -71,7 +71,11 @@ void main() {
               'data': '2026-08-31T10:00:00-03:00',
               'status': 'finalizado',
               'servicos': [
-                {'servico_id': 's1', 'nome': 'Extensão de cílios', 'preco': 180},
+                {
+                  'servico_id': 's1',
+                  'nome': 'Extensão de cílios',
+                  'preco': 180
+                },
               ],
               'materiais': [
                 {
@@ -190,8 +194,18 @@ void main() {
             'quantidade_kits_vendidos': 3,
             'custo_kits_vendidos': 51.0,
             'servicos_mais_realizados': [
-              {'nome': 'Extensão de cílios', 'quantidade': 2, 'total_receita': 360.0},
-              {'nome': 'Limpeza de pele', 'quantidade': 1, 'total_receita': 150.0},
+              {
+                'nome': 'Extensão de cílios',
+                'quantidade': 2,
+                'total_receita': 360.0,
+                'lucro': 290.0,
+              },
+              {
+                'nome': 'Limpeza de pele',
+                'quantidade': 1,
+                'total_receita': 150.0,
+                'lucro': 115.0,
+              },
             ],
           },
           'gastos': {
@@ -203,9 +217,16 @@ void main() {
             'ticket_medio': 165.0,
             'margem_lucro_percentual': 41.5,
             'variacao_percentual_mes_anterior': 18.0,
-            'servico_mais_lucrativo': {'nome': 'Extensão de cílios', 'lucro': 290.0},
+            'servico_mais_lucrativo': {
+              'nome': 'Extensão de cílios',
+              'lucro': 290.0
+            },
           },
           'alerta_zero_a_zero': false,
+          'meta_faturamento_mensal': 9000.0,
+          'historico_seis_meses': [
+            {'ano': 2026, 'mes': 8, 'receitas': 2985.0, 'despesas': 1745.0},
+          ],
         },
       });
 
@@ -213,7 +234,10 @@ void main() {
       expect(model.ticketMedio, 165.0);
       expect(model.servicoMaisLucrativo, 'Extensão de cílios');
       expect(model.servicosMaisRealizados, hasLength(2));
-      expect(model.maiorReceitaDoRanking, 360.0);
+      expect(model.maiorReceitaDoRanking, 290.0);
+      expect(model.servicosMaisRealizados.first.lucro, 290.0);
+      expect(model.metaFaturamentoMensal, 9000.0);
+      expect(model.historicoSeisMeses.single.receitas, 2985.0);
       expect(model.isPositivo, isTrue);
       expect(model.totalKits, 135.0);
       expect(model.quantidadeKitsVendidos, 3);
@@ -338,7 +362,8 @@ void main() {
       expect(faltantes.first.unidade, UnidadeEstoque.un);
     });
 
-    test('faltantes em formato inesperado devolve lista vazia, não exceção', () {
+    test('faltantes em formato inesperado devolve lista vazia, não exceção',
+        () {
       expect(EstoqueFaltanteModel.listFrom(null), isEmpty);
       expect(EstoqueFaltanteModel.listFrom({'faltantes': 'nada'}), isEmpty);
     });
@@ -386,8 +411,18 @@ void main() {
               'quantidade_montavel': 7,
               'disponivel': true,
               'itens': [
-                {'item_estoque_id': 'e1', 'nome': 'Removedor', 'quantidade': 1, 'unidade': 'un'},
-                {'item_estoque_id': 'e2', 'nome': 'Fita micropore', 'quantidade': 2, 'unidade': 'cx'},
+                {
+                  'item_estoque_id': 'e1',
+                  'nome': 'Removedor',
+                  'quantidade': 1,
+                  'unidade': 'un'
+                },
+                {
+                  'item_estoque_id': 'e2',
+                  'nome': 'Fita micropore',
+                  'quantidade': 2,
+                  'unidade': 'cx'
+                },
               ],
             },
           ],

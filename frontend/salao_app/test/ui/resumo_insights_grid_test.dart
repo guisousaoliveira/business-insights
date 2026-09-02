@@ -39,6 +39,17 @@ void main() {
   testWidgets('renderiza dentro de uma tela que rola, na web', (tester) async {
     await tester.pumpWidget(montar(const Size(1400, 900)));
     expect(tester.takeException(), isNull);
+
+    final equalizer = find.byType(IntrinsicHeight).first;
+    final row = tester.widget<Row>(
+      find.descendant(of: equalizer, matching: find.byType(Row)).first,
+    );
+    final alturas = row.children
+        .whereType<Expanded>()
+        .map((item) => tester.getSize(find.byWidget(item)).height)
+        .toSet();
+    expect(alturas, hasLength(1),
+        reason: 'os cinco indicadores devem ser iguais');
   });
 
   testWidgets('os dois cartões de uma linha têm a mesma altura', (
@@ -52,13 +63,17 @@ void main() {
     expect(cartoes, hasLength(2), reason: 'duas linhas de dois cartões');
 
     for (final linha in find.byType(IntrinsicHeight).evaluate()) {
-      final alturas = find
-          .descendant(
-            of: find.byWidget(linha.widget),
-            matching: find.byType(Expanded),
-          )
-          .evaluate()
-          .map((e) => tester.getSize(find.byWidget(e.widget)).height)
+      final row = tester.widget<Row>(
+        find
+            .descendant(
+              of: find.byWidget(linha.widget),
+              matching: find.byType(Row),
+            )
+            .first,
+      );
+      final alturas = row.children
+          .whereType<Expanded>()
+          .map((e) => tester.getSize(find.byWidget(e)).height)
           .toSet();
       expect(alturas, hasLength(1));
     }

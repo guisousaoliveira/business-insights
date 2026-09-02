@@ -53,7 +53,8 @@ class ErrorModel {
 
     final statusCode = e!.response!.statusCode!;
     final data = e.response!.data;
-    final code = data is Map ? data[ResponseModel.errorCodeKey] as String? : null;
+    final code =
+        data is Map ? data[ResponseModel.errorCodeKey] as String? : null;
     final result = data is Map ? data[ResponseModel.resultKey] : null;
 
     // 1. código de negócio conhecido → mensagem traduzida do app

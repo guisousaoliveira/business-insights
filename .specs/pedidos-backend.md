@@ -281,6 +281,11 @@ representa um consumo que de fato aconteceu.
 
 ### `GET /resumo/mensal?ano&mes` — renomear e estender
 
+Além dos totais já descritos, entregar seis meses de receitas/despesas em ordem
+cronológica, a meta mensal do perfil e o lucro por serviço calculado a partir do
+snapshot de custo do atendimento. Esses campos alimentam diretamente o novo painel;
+não devem ser recalculados no Flutter.
+
 Existe como `GET /relatorio/mensal`. Muda de nome e ganha `saldo_final`, `entrou`, `saiu`,
 o bloco `insights` inteiro e os três campos de kit.
 

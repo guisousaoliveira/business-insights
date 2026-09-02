@@ -45,6 +45,13 @@ class AppAssets {
   static const trendingUp = Icons.trending_up; // ti-trending-up
   static const trendingDown = Icons.trending_down;
   static const star = Icons.star_border; // ti-star
+  static const crown = Icons.workspace_premium_outlined; // ti-crown
+  static const sparkles = Icons.auto_awesome_outlined;
+  static const target = Icons.adjust_outlined;
+  static const people = Icons.people_outline;
+  static const lightbulb = Icons.lightbulb_outline;
+  static const box = Icons.inventory_2_outlined;
+  static const wallet = Icons.account_balance_wallet_outlined;
   static const scissors = Icons.content_cut; // ti-cut
   static const alert = Icons.notifications_outlined;
   static const alertActive = Icons.notifications;

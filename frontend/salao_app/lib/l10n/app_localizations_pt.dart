@@ -265,6 +265,107 @@ class AppLocalizationsPt extends AppLocalizations {
   String get summaryTitle => 'Resumo';
 
   @override
+  String helloUser(String name) {
+    return 'Olá, $name';
+  }
+
+  @override
+  String get userFallbackName => 'Thamires';
+
+  @override
+  String summaryOfPeriod(String period) {
+    return 'Resumo de $period';
+  }
+
+  @override
+  String get monthProfit => 'Lucro do mês';
+
+  @override
+  String get monthLoss => 'Prejuízo do mês';
+
+  @override
+  String get noPreviousComparison => 'Sem comparação com o mês anterior';
+
+  @override
+  String get revenueLabel => 'Faturamento';
+
+  @override
+  String get expensesLabel => 'Gastos';
+
+  @override
+  String get appointmentsLabel => 'Atendimentos';
+
+  @override
+  String get finalizedInMonth => 'finalizados no mês';
+
+  @override
+  String get revenuesAndExpenses => 'Receitas e despesas';
+
+  @override
+  String get lastSixMonths => 'Últimos 6 meses';
+
+  @override
+  String get revenuesLabel => 'Receitas';
+
+  @override
+  String get mostProfitableService => 'Serviço mais lucrativo';
+
+  @override
+  String profitableServiceDetail(int count, String value) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count atendimentos',
+      one: '1 atendimento',
+    );
+    return '$_temp0 • lucro de $value';
+  }
+
+  @override
+  String mostProfitableInsight(String service) {
+    return '$service foi o serviço mais lucrativo do mês.';
+  }
+
+  @override
+  String get forYouToKnow => 'Para você saber';
+
+  @override
+  String get generatedFromYourNumbers => 'Gerado a partir dos seus números';
+
+  @override
+  String restockProductsInsight(int count) {
+    return '$count produtos precisam de reposição.';
+  }
+
+  @override
+  String revenueGoalInsight(String percent, String value) {
+    return 'Você alcançou $percent% da meta de faturamento de $value.';
+  }
+
+  @override
+  String get upcomingExpenses => 'Próximos gastos a vencer';
+
+  @override
+  String get viewAll => 'Ver todos';
+
+  @override
+  String dueOn(String date) {
+    return 'Vence em $date';
+  }
+
+  @override
+  String get overdueLabel => 'Vencido';
+
+  @override
+  String get stockToRestock => 'Estoque para repor';
+
+  @override
+  String get viewStock => 'Ver estoque';
+
+  @override
+  String get scheduleAppointmentLong => 'Agendar atendimento';
+
+  @override
   String get monthBalance => 'Saldo do mês';
 
   @override

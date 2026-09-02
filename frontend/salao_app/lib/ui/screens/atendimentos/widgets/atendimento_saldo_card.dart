@@ -47,7 +47,8 @@ class AtendimentoSaldoCard extends StatelessWidget {
 
     final count = Text(
       context.l10n.appointmentsCount(quantidade),
-      style: TextStyle(fontSize: isWideLayout(context) ? 12 : 11, color: foreground),
+      style: TextStyle(
+          fontSize: isWideLayout(context) ? 12 : 11, color: foreground),
     );
 
     return AppCard.tinted(

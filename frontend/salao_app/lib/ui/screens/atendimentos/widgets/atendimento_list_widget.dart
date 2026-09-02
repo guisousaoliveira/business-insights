@@ -92,12 +92,10 @@ class _Row extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppFonts.rowTitle(context).copyWith(
-                            color: isCancelado
-                                ? AppColors.text3
-                                : AppColors.text1,
-                            decoration: isCancelado
-                                ? TextDecoration.lineThrough
-                                : null,
+                            color:
+                                isCancelado ? AppColors.text3 : AppColors.text1,
+                            decoration:
+                                isCancelado ? TextDecoration.lineThrough : null,
                           ),
                         ),
                       ),

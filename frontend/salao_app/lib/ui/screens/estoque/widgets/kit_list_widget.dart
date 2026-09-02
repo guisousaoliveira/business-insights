@@ -75,8 +75,8 @@ class _Row extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 AppUtils.numToMoney(kit.precoVenda),
-                style:
-                    AppFonts.rowValue(context).copyWith(color: AppColors.success),
+                style: AppFonts.rowValue(context)
+                    .copyWith(color: AppColors.success),
               ),
             ],
           ),
@@ -86,8 +86,8 @@ class _Row extends StatelessWidget {
           Row(
             children: [
               Text(
-                context.l10n
-                    .assembledQuantity(AppUtils.quantityToString(kit.quantidadeMontada)),
+                context.l10n.assembledQuantity(
+                    AppUtils.quantityToString(kit.quantidadeMontada)),
                 style: AppFonts.captionSmall(context).copyWith(
                   color: kit.podeVender ? AppColors.success : AppColors.text3,
                 ),

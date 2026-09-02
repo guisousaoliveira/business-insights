@@ -568,6 +568,168 @@ abstract class AppLocalizations {
   /// **'Resumo'**
   String get summaryTitle;
 
+  /// No description provided for @helloUser.
+  ///
+  /// In pt, this message translates to:
+  /// **'Olá, {name}'**
+  String helloUser(String name);
+
+  /// No description provided for @userFallbackName.
+  ///
+  /// In pt, this message translates to:
+  /// **'Thamires'**
+  String get userFallbackName;
+
+  /// No description provided for @summaryOfPeriod.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resumo de {period}'**
+  String summaryOfPeriod(String period);
+
+  /// No description provided for @monthProfit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lucro do mês'**
+  String get monthProfit;
+
+  /// No description provided for @monthLoss.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prejuízo do mês'**
+  String get monthLoss;
+
+  /// No description provided for @noPreviousComparison.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem comparação com o mês anterior'**
+  String get noPreviousComparison;
+
+  /// No description provided for @revenueLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faturamento'**
+  String get revenueLabel;
+
+  /// No description provided for @expensesLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gastos'**
+  String get expensesLabel;
+
+  /// No description provided for @appointmentsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atendimentos'**
+  String get appointmentsLabel;
+
+  /// No description provided for @finalizedInMonth.
+  ///
+  /// In pt, this message translates to:
+  /// **'finalizados no mês'**
+  String get finalizedInMonth;
+
+  /// No description provided for @revenuesAndExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receitas e despesas'**
+  String get revenuesAndExpenses;
+
+  /// No description provided for @lastSixMonths.
+  ///
+  /// In pt, this message translates to:
+  /// **'Últimos 6 meses'**
+  String get lastSixMonths;
+
+  /// No description provided for @revenuesLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receitas'**
+  String get revenuesLabel;
+
+  /// No description provided for @mostProfitableService.
+  ///
+  /// In pt, this message translates to:
+  /// **'Serviço mais lucrativo'**
+  String get mostProfitableService;
+
+  /// No description provided for @profitableServiceDetail.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 atendimento} other{{count} atendimentos}} • lucro de {value}'**
+  String profitableServiceDetail(int count, String value);
+
+  /// No description provided for @mostProfitableInsight.
+  ///
+  /// In pt, this message translates to:
+  /// **'{service} foi o serviço mais lucrativo do mês.'**
+  String mostProfitableInsight(String service);
+
+  /// No description provided for @forYouToKnow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para você saber'**
+  String get forYouToKnow;
+
+  /// No description provided for @generatedFromYourNumbers.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerado a partir dos seus números'**
+  String get generatedFromYourNumbers;
+
+  /// No description provided for @restockProductsInsight.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} produtos precisam de reposição.'**
+  String restockProductsInsight(int count);
+
+  /// No description provided for @revenueGoalInsight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você alcançou {percent}% da meta de faturamento de {value}.'**
+  String revenueGoalInsight(String percent, String value);
+
+  /// No description provided for @upcomingExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximos gastos a vencer'**
+  String get upcomingExpenses;
+
+  /// No description provided for @viewAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todos'**
+  String get viewAll;
+
+  /// No description provided for @dueOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vence em {date}'**
+  String dueOn(String date);
+
+  /// No description provided for @overdueLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vencido'**
+  String get overdueLabel;
+
+  /// No description provided for @stockToRestock.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estoque para repor'**
+  String get stockToRestock;
+
+  /// No description provided for @viewStock.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver estoque'**
+  String get viewStock;
+
+  /// No description provided for @scheduleAppointmentLong.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agendar atendimento'**
+  String get scheduleAppointmentLong;
+
   /// No description provided for @monthBalance.
   ///
   /// In pt, this message translates to:

@@ -3,7 +3,8 @@ import '../models/gastos/get_gastos_response_model.dart';
 import '../settings/app_api.dart';
 
 abstract interface class GastosRepository {
-  Future<GetGastosResponseModel> getGastos({required int ano, required int mes});
+  Future<GetGastosResponseModel> getGastos(
+      {required int ano, required int mes});
   Future<void> createGasto(CreateGastoRequestModel model);
   Future<void> pagarGasto(String id);
   Future<void> deleteGasto(String id);

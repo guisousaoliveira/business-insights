@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../models/alertas/get_alertas_response_model.dart';
 import '../../models/error_model.dart';
 import '../../repositories/app_repositories.dart';
 import '../../repositories/alertas_repository.dart';
@@ -29,6 +28,9 @@ class AlertasCubit extends Cubit<AlertasState> {
           await _repository.getAlertas(apenasNaoLidos: apenasNaoLidos);
       emit(state.copyWith(
         getAlertasSubState: BlocSubState.completed(response),
+        // Loading e erro preservam este valor; só uma resposta válida pode
+        // alterar o número exibido na casca.
+        badgeCount: response.badgeCount,
       ));
     } on DioException catch (e) {
       emit(state.copyWith(

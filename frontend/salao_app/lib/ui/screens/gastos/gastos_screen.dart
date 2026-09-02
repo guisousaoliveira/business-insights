@@ -70,7 +70,7 @@ class _GastosScreenState extends State<GastosScreen> {
           ),
         ],
         child: BlocBuilder<AlertasCubit, AlertasState>(
-          buildWhen: (p, c) => p.getAlertasSubState != c.getAlertasSubState,
+          buildWhen: (p, c) => p.badgeCount != c.badgeCount,
           builder: (context, alertasState) =>
               BlocBuilder<GastosCubit, GastosState>(
             buildWhen: (p, c) => p.getGastosSubState != c.getGastosSubState,

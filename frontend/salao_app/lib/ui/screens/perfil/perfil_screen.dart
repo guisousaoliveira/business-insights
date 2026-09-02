@@ -116,7 +116,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           ),
         ],
         child: BlocBuilder<AlertasCubit, AlertasState>(
-          buildWhen: (p, c) => p.getAlertasSubState != c.getAlertasSubState,
+          buildWhen: (p, c) => p.badgeCount != c.badgeCount,
           builder: (context, alertasState) => AppScaffold(
             currentPage: AppCurrentRoute.perfil,
             title: context.l10n.profileTitle,
@@ -151,8 +151,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   Widget _buildPerfilCard(BuildContext context) =>
       BlocBuilder<PerfilCubit, PerfilState>(
         buildWhen: (p, c) => p.getPerfilSubState != c.getPerfilSubState,
-        builder: (context, state) =>
-            AppSubStateBuilder<GetPerfilResponseModel>(
+        builder: (context, state) => AppSubStateBuilder<GetPerfilResponseModel>(
           subState: state.getPerfilSubState,
           onData: (data) => ConstrainedBox(
             constraints: BoxConstraints(
@@ -192,7 +191,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                           data.perfil.proprietaria.isEmpty
                               ? context.l10n.ownerLabel
                               : data.perfil.proprietaria,
-                          style: AppFonts.caption(context).copyWith(fontSize: 12),
+                          style:
+                              AppFonts.caption(context).copyWith(fontSize: 12),
                         ),
                       ],
                     ),

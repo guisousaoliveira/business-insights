@@ -1,5 +1,6 @@
 import '../response_model.dart';
 import 'servico_ranking_model.dart';
+import 'resumo_historico_model.dart';
 
 /// Consolidação do mês. Substitui o `RelatorioMensal` plano do app antigo — o
 /// contrato aninhado da API vence, estendido com os insights do protótipo.
@@ -13,6 +14,8 @@ class GetResumoMensalResponseModel extends ResponseModel {
   static const _gastosKey = 'gastos';
   static const _insightsKey = 'insights';
   static const _alertaZeroAZeroKey = 'alerta_zero_a_zero';
+  static const _historicoKey = 'historico_seis_meses';
+  static const _metaFaturamentoKey = 'meta_faturamento_mensal';
 
   static const _totalServicosKey = 'total_servicos';
   static const _totalInsumosKey = 'total_insumos';
@@ -60,6 +63,8 @@ class GetResumoMensalResponseModel extends ResponseModel {
   final String? servicoMaisLucrativo;
 
   final bool alertaZeroAZero;
+  final List<ResumoHistoricoModel> historicoSeisMeses;
+  final double metaFaturamentoMensal;
 
   const GetResumoMensalResponseModel({
     required super.total,
@@ -84,6 +89,8 @@ class GetResumoMensalResponseModel extends ResponseModel {
     required this.variacaoPercentualMesAnterior,
     this.servicoMaisLucrativo,
     required this.alertaZeroAZero,
+    this.historicoSeisMeses = const [],
+    this.metaFaturamentoMensal = 0,
   });
 
   bool get isPositivo => saldoFinal >= 0;
@@ -102,7 +109,7 @@ class GetResumoMensalResponseModel extends ResponseModel {
   double get maiorReceitaDoRanking => servicosMaisRealizados.isEmpty
       ? 0
       : servicosMaisRealizados
-          .map((e) => e.totalReceita)
+          .map((e) => e.lucro)
           .reduce((a, b) => a > b ? a : b);
 
   factory GetResumoMensalResponseModel.fromResponse(Map<String, dynamic> map) {
@@ -148,6 +155,13 @@ class GetResumoMensalResponseModel extends ResponseModel {
           (insights[_variacaoMesAnteriorKey] as num?)?.toDouble() ?? 0,
       servicoMaisLucrativo: maisLucrativo?[_nomeKey] as String?,
       alertaZeroAZero: result[_alertaZeroAZeroKey] as bool? ?? false,
+      historicoSeisMeses: (result[_historicoKey] as List? ?? const [])
+          .map((e) => ResumoHistoricoModel.fromResponse(
+                e as Map<String, dynamic>,
+              ))
+          .toList(),
+      metaFaturamentoMensal:
+          (result[_metaFaturamentoKey] as num?)?.toDouble() ?? 0,
     );
   }
 }

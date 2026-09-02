@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart' show showDatePicker, DatePickerThemeData, Theme;
+import 'package:flutter/material.dart'
+    show showDatePicker, DatePickerThemeData, Theme;
 import 'package:flutter/widgets.dart';
 
 import '../../settings/app_assets.dart';
@@ -124,7 +125,8 @@ class _AppDatePickerState extends State<AppDatePicker> {
               color: AppColors.surface2,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: controller.hasError ? AppColors.danger : AppColors.border,
+                color:
+                    controller.hasError ? AppColors.danger : AppColors.border,
                 width: 0.5,
               ),
             ),

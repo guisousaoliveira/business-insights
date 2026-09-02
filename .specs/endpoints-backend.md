@@ -322,6 +322,11 @@ Existe como `GET /relatorio/mensal`. Muda de nome (alinha com o módulo do app) 
   "saldo_final": 1240.00,
   "entrou": 2985.00,
   "saiu": 1745.00,
+  "meta_faturamento_mensal": 9000.00,
+  "historico_seis_meses": [
+    { "ano": 2026, "mes": 3, "receitas": 2100.00, "despesas": 1700.00 },
+    { "ano": 2026, "mes": 8, "receitas": 2985.00, "despesas": 1745.00 }
+  ],
   "receita": {
     "total_servicos": 2985.00,
     "total_insumos": 397.00,
@@ -331,7 +336,7 @@ Existe como `GET /relatorio/mensal`. Muda de nome (alinha com o módulo do app) 
     "quantidade_kits_vendidos": 3,
     "custo_kits_vendidos": 64.50,
     "servicos_mais_realizados": [
-      { "nome": "Extensão de cílios", "quantidade": 2, "total_receita": 360.00 }
+      { "nome": "Extensão de cílios", "quantidade": 2, "total_receita": 360.00, "lucro": 290.00 }
     ]
   },
   "gastos": {
@@ -351,7 +356,16 @@ Existe como `GET /relatorio/mensal`. Muda de nome (alinha com o módulo do app) 
 ```
 
 Campos novos em relação ao que a API devolve hoje: `saldo_final` no topo, `entrou`,
-`saiu`, o bloco `insights` inteiro e os três campos de kit dentro de `receita`.
+`saiu`, `meta_faturamento_mensal`, `historico_seis_meses`, o bloco `insights` inteiro,
+`lucro` em cada item de `servicos_mais_realizados` e os três campos de kit dentro de
+`receita`. O histórico sempre contém seis posições em ordem cronológica, inclusive
+meses sem movimento (valores zero), para o gráfico não deslocar os rótulos.
+
+`servicos_mais_realizados[].lucro = total_receita - soma(custo_insumos_snapshot)`.
+Ao finalizar o atendimento, o servidor calcula e congela
+`atendimento_servicos.custo_insumos_snapshot` usando a composição padrão e o
+`custo_medio` vigente. Alterar preço, composição ou custo depois não reescreve meses
+fechados.
 
 **Onde a venda de kit entra na conta** (§6): `entrou = total_servicos + total_kits`. O
 custo do kit **não** entra em `saiu` — ele já saiu quando o insumo foi comprado, e contar
@@ -578,10 +592,12 @@ já aconteceu.
 ```json
 { "salao": { "id": "uuid", "nome": "Thamires Borges Beauty",
              "proprietaria": "Thamires Borges", "foto_url": null,
-             "telefone_whatsapp": "+5511999999999" } }
+             "telefone_whatsapp": "+5511999999999",
+             "meta_faturamento_mensal": 9000.00 } }
 ```
 
-O `telefone_whatsapp` e o `limite_gasto_alerta` que hoje vivem no mock do ApiService
+`PUT /perfil` aceita `meta_faturamento_mensal`; o Resumo usa essa meta para calcular
+o percentual alcançado. O `telefone_whatsapp` e o `limite_gasto_alerta` que hoje vivem no mock do ApiService
 migram: o telefone fica aqui, o limite vai para as **preferências de alerta** (§8).
 
 ### `GET /perfil/custos-fixos` — `NOVO`

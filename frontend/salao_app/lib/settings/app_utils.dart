@@ -53,6 +53,18 @@ class AppUtils {
   static String dateToMonthYear(DateTime date) =>
       DateFormat('MMM/yyyy', _locale).format(date);
 
+  static String dateToMonthName(DateTime date) =>
+      _capitalize(DateFormat('MMMM', _locale).format(date));
+
+  static String dateToMonthYearLong(DateTime date) =>
+      _capitalize(DateFormat("MMMM 'de' yyyy", _locale).format(date));
+
+  static String dateToMonthShort(DateTime date) =>
+      DateFormat('MMM', _locale).format(date).replaceAll('.', '');
+
+  static String _capitalize(String value) =>
+      value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';
+
   /// Data por extenso do jeito que o protótipo escreve: "2 dias atrás",
   /// "amanhã", "hoje". Cai para `dd/MM` acima de 30 dias.
   static String dateToRelative(DateTime date) {
@@ -263,7 +275,11 @@ class AppUtils {
         TipoAlerta.estoqueCritico ||
         TipoAlerta.estoqueBaixo =>
           AppRoutes.estoqueRoute,
-        TipoAlerta.gastoAVencer || TipoAlerta.gastoVencido => AppRoutes.gastosRoute,
-        TipoAlerta.saldoNegativo || TipoAlerta.zeroAZero => AppRoutes.resumoRoute,
+        TipoAlerta.gastoAVencer ||
+        TipoAlerta.gastoVencido =>
+          AppRoutes.gastosRoute,
+        TipoAlerta.saldoNegativo ||
+        TipoAlerta.zeroAZero =>
+          AppRoutes.resumoRoute,
       };
 }
