@@ -88,6 +88,7 @@ class AppApi {
   static const postCustoFixoPath = '/perfil/custos-fixos';
   static const editCustoFixoPath = '/perfil/custos-fixos';
   static const deleteCustoFixoPath = '/perfil/custos-fixos';
+  static const payCustoFixoPath = '/perfil/custos-fixos';
 
   // ── servicos ───────────────────────────────────────────────────────────────
   static const getServicosPath = '/servicos';

@@ -19,6 +19,11 @@ enum AppCurrentRoute { atendimentos, gastos, resumo, estoque, perfil, alertas }
 
 enum StatusAtendimento { agendado, finalizado, cancelado }
 
+/// A janela que a lista de atendimentos mostra. Mora aqui, e não na tela,
+/// porque o intervalo de datas de cada uma é regra (`AppUtils.rangeDoPeriodo`),
+/// não rótulo.
+enum PeriodoAtendimentos { esteMes, mesPassado, ultimosTresMeses, todos }
+
 // ── Gastos ───────────────────────────────────────────────────────────────────
 
 enum FormaPagamento { aVista, credito, debito, pix }
@@ -46,6 +51,8 @@ enum TipoAlerta {
   estoqueBaixo,
   gastoAVencer,
   gastoVencido,
+  custoFixoAVencer,
+  custoFixoVencido,
   saldoNegativo,
   zeroAZero,
 }

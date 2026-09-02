@@ -170,6 +170,47 @@ void main() {
     });
   });
 
+  group('editar atendimento', () {
+    Map<String, dynamic> atendimentoDe(String id) =>
+        (db.getAtendimentos(DateTime(2000), DateTime(2100))['result']
+                ['atendimentos'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((e) => e['id'] == id);
+
+    Map<String, dynamic> corpo({String nome = 'Cliente Renomeado'}) => {
+          'cliente_nome': nome,
+          'cliente_telefone': '11988887777',
+          'data': DateTime(2026, 9, 20, 15).toIso8601String(),
+          'servicos': [
+            {'nome': 'Serviço avulso', 'preco': 90.0},
+          ],
+        };
+
+    test('reescreve cliente, data e serviços do agendado', () {
+      final id = idDoAtendimentoAgendado();
+      db.editAtendimento(id, corpo());
+
+      final atendimento = atendimentoDe(id);
+      expect(atendimento['cliente_nome'], 'Cliente Renomeado');
+      expect(atendimento['total_servicos'], 90.0);
+      expect(atendimento['status'], 'agendado');
+    });
+
+    test('cancelado recusa: registro fora das contas não se reescreve', () {
+      final id = idDoAtendimentoAgendado();
+      db.cancelarAtendimento(id);
+
+      Object? capturado;
+      try {
+        db.editAtendimento(id, corpo());
+      } catch (e) {
+        capturado = e;
+      }
+
+      expect(codigoDe(capturado!), AppErrorCodes.appointmentInvalidStatus);
+    });
+  });
+
   group('kits (A7)', () {
     test('montado e montável são fatos diferentes', () {
       final kit = oKit();
@@ -327,6 +368,331 @@ void main() {
       expect(
         (db.getAlertas(null)['result'] as Map)['total_nao_lidos'],
         0,
+      );
+    });
+  });
+  group('vencimentos avisam com uma semana', () {
+    test(
+        'dia 31 em mês curto cai no último dia, não escorrega para o mês que vem',
+        () {
+      expect(
+        DemoDatabase.diasAteVencer(31, referencia: DateTime(2026, 2, 1)),
+        27,
+        reason: 'fevereiro de 2026 acaba no dia 28',
+      );
+      expect(
+        DemoDatabase.diasAteVencer(5, referencia: DateTime(2026, 3, 30)),
+        -25,
+        reason:
+            'em aberto, o vencimento que conta é o deste mês — e ele passou',
+      );
+      expect(
+        DemoDatabase.diasAteVencer(
+          5,
+          referencia: DateTime(2026, 3, 30),
+          pagoNoMes: true,
+        ),
+        6,
+        reason: 'pago o mês, o alvo passa a ser o do mês seguinte',
+      );
+      expect(
+          DemoDatabase.diasAteVencer(10, referencia: DateTime(2026, 3, 10)), 0);
+    });
+
+    test('custo fixo vira alerta dentro da janela de sete dias, e só nela', () {
+      final hoje = DateTime.now();
+      final longe = List.generate(31, (index) => index + 1).firstWhere(
+        (dia) =>
+            DemoDatabase.diasAteVencer(dia) >
+            DemoDatabase.diasAntecedenciaVencimento,
+      );
+
+      db.createCustoFixo(
+        {'descricao': 'Contador', 'valor': 200.0, 'dia_vencimento': hoje.day},
+      );
+      db.createCustoFixo(
+        {
+          'descricao': 'Domínio do site',
+          'valor': 60.0,
+          'dia_vencimento': longe
+        },
+      );
+
+      final titulos = (db.getAlertas(null)['result']['alertas'] as List)
+          .cast<Map<String, dynamic>>()
+          .where((e) => e['tipo'] == 'custo_fixo_a_vencer')
+          .map((e) => e['titulo'] as String)
+          .toList();
+
+      expect(titulos.any((e) => e.contains('Contador')), isTrue);
+      expect(titulos.any((e) => e.contains('Domínio do site')), isFalse);
+    });
+  });
+
+  group('serviços e produtos padrão', () {
+    List<Map<String, dynamic>> servicos() =>
+        (db.getServicos()['result']['servicos'] as List)
+            .cast<Map<String, dynamic>>();
+
+    test('editar resolve nome e unidade do item, não confia no corpo', () {
+      final servico = servicos().first;
+      final item = itemChamado('Fita micropore');
+
+      db.editServico(servico['id'] as String, {
+        'nome': 'Manicure completa',
+        'preco': 60.0,
+        'produtos_padrao': [
+          {'item_estoque_id': item['id'], 'quantidade': 2.0},
+        ],
+      });
+
+      final depois = servicos().firstWhere((e) => e['id'] == servico['id']);
+      expect(depois['nome'], 'Manicure completa');
+      expect(depois['preco'], 60.0);
+
+      final produtos =
+          (depois['produtos_padrao'] as List).cast<Map<String, dynamic>>();
+      expect(produtos, hasLength(1));
+      expect(produtos.first['nome'], item['nome']);
+      expect(produtos.first['unidade'], item['unidade']);
+      expect(produtos.first['quantidade'], 2.0);
+    });
+
+    test('vincular item inexistente é 404, não vira baixa fantasma', () {
+      final servico = servicos().first;
+      final antes = servico['produtos_padrao'];
+
+      expect(
+        () => db.editServico(servico['id'] as String, {
+          'nome': servico['nome'],
+          'preco': servico['preco'],
+          'produtos_padrao': [
+            {'item_estoque_id': 'item-que-nao-existe', 'quantidade': 1.0},
+          ],
+        }),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.data['codigo'],
+            'codigo',
+            AppErrorCodes.notFound,
+          ),
+        ),
+      );
+      expect(servicos().first['produtos_padrao'], antes);
+    });
+
+    test('material repetido é recusado: baixa dobrada ninguém confere', () {
+      final servico = servicos().first;
+      final item = itemChamado('Fita micropore');
+
+      expect(
+        () => db.editServico(servico['id'] as String, {
+          'nome': servico['nome'],
+          'preco': servico['preco'],
+          'produtos_padrao': [
+            {'item_estoque_id': item['id'], 'quantidade': 1.0},
+            {'item_estoque_id': item['id'], 'quantidade': 2.0},
+          ],
+        }),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.data['codigo'],
+            'codigo',
+            AppErrorCodes.invalidValidation,
+          ),
+        ),
+      );
+    });
+
+    test('editar serviço inexistente é 404', () {
+      expect(
+        () => db.editServico(
+          'servico-que-nao-existe',
+          {'nome': 'x', 'preco': 1.0, 'produtos_padrao': const []},
+        ),
+        throwsA(isA<DioException>()),
+      );
+    });
+  });
+
+  group('custos fixos', () {
+    List<Map<String, dynamic>> custos() =>
+        (db.getCustosFixos()['result']['custos'] as List)
+            .cast<Map<String, dynamic>>();
+
+    String competenciaAtual() =>
+        db.getCustosFixos()['result']['custos'].first['competencia'] as String;
+
+    List<Map<String, dynamic>> alertasDeCustoFixo() =>
+        (db.getAlertas(null)['result']['alertas'] as List)
+            .cast<Map<String, dynamic>>()
+            .where((e) => (e['tipo'] as String).startsWith('custo_fixo'))
+            .toList();
+
+    test('pagar vale só para a competência marcada', () {
+      final aluguel = custos().firstWhere((e) => e['descricao'] == 'Aluguel');
+      expect(aluguel['pago'], isFalse);
+
+      db.pagarCustoFixo(
+        aluguel['id'] as String,
+        {'competencia': competenciaAtual(), 'pago': true},
+      );
+
+      final depois = custos().firstWhere((e) => e['id'] == aluguel['id']);
+      expect(depois['pago'], isTrue);
+      expect(depois['pago_em'], isNotNull);
+      expect(
+        db.getCustosFixos()['result']['total_pago'],
+        1200.0,
+        reason: 'o servidor soma o pago e o pendente; o app só exibe',
+      );
+
+      // O mês que vem nasce em aberto: é o ponto todo de guardar o pagamento
+      // por competência em vez de dentro do cadastro.
+      db.pagarCustoFixo(
+        aluguel['id'] as String,
+        {'competencia': '2099-12', 'pago': false},
+      );
+      expect(
+        custos().firstWhere((e) => e['id'] == aluguel['id'])['pago'],
+        isTrue,
+        reason: 'desmarcar outra competência não mexe na corrente',
+      );
+    });
+
+    test('desmarcar devolve o custo para pendente', () {
+      final id = custos().first['id'] as String;
+      final competencia = competenciaAtual();
+
+      db.pagarCustoFixo(id, {'competencia': competencia, 'pago': true});
+      db.pagarCustoFixo(id, {'competencia': competencia, 'pago': false});
+
+      final depois = custos().firstWhere((e) => e['id'] == id);
+      expect(depois['pago'], isFalse);
+      expect(depois['pago_em'], isNull);
+      expect(
+        db.getCustosFixos()['result']['total_pendente'],
+        db.getCustosFixos()['result']['total_mensal'],
+      );
+    });
+
+    test('competência fora do formato AAAA-MM é 422', () {
+      expect(
+        () => db.pagarCustoFixo(
+          custos().first['id'] as String,
+          {'competencia': '2026-13', 'pago': true},
+        ),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.data['codigo'],
+            'codigo',
+            AppErrorCodes.invalidValidation,
+          ),
+        ),
+      );
+    });
+
+    test('pagar cala o alerta do mês; vencido só existe em aberto', () {
+      final id = custos().first['id'] as String;
+      final vencidoOntem = DateTime.now().subtract(const Duration(days: 1));
+      db.editCustoFixo(id, {
+        'descricao': 'Contabilidade',
+        'valor': 300.0,
+        'dia_vencimento': vencidoOntem.day,
+      });
+
+      final antes =
+          alertasDeCustoFixo().where((e) => e['referencia_id'] == id).toList();
+      expect(antes, hasLength(1));
+      expect(
+        antes.first['tipo'],
+        vencidoOntem.month == DateTime.now().month
+            ? 'custo_fixo_vencido'
+            : 'custo_fixo_a_vencer',
+        reason: 'passou do dia e ninguém pagou: isso é vencido, não a vencer',
+      );
+
+      db.pagarCustoFixo(id, {'competencia': competenciaAtual(), 'pago': true});
+      expect(
+        alertasDeCustoFixo().where((e) => e['referencia_id'] == id),
+        isEmpty,
+      );
+    });
+
+    test('excluir leva junto o histórico de pagamento', () {
+      final id = custos().first['id'] as String;
+      db.pagarCustoFixo(id, {'competencia': competenciaAtual(), 'pago': true});
+      db.deleteCustoFixo(id);
+
+      expect(
+        () => db.pagarCustoFixo(
+          id,
+          {'competencia': competenciaAtual(), 'pago': true},
+        ),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('editar troca os três campos e mantém o total mensal coerente', () {
+      final aluguel = custos().firstWhere((e) => e['descricao'] == 'Aluguel');
+      expect(aluguel['dia_vencimento'], 5);
+
+      db.editCustoFixo(aluguel['id'] as String, {
+        'descricao': 'Aluguel da sala',
+        'valor': 1300.0,
+        'dia_vencimento': 10,
+      });
+
+      final depois = custos().firstWhere((e) => e['id'] == aluguel['id']);
+      expect(depois['descricao'], 'Aluguel da sala');
+      expect(depois['valor'], 1300.0);
+      expect(depois['dia_vencimento'], 10);
+      expect(
+        db.getCustosFixos()['result']['total_mensal'],
+        custos().fold<double>(0, (soma, e) => soma + (e['valor'] as double)),
+        reason: 'o total vem do servidor; o app não soma lista',
+      );
+    });
+
+    test('dia fora de 1..31 é recusado, na criação e na edição', () {
+      expect(
+        () => db.createCustoFixo(
+          {'descricao': 'Luz', 'valor': 180.0, 'dia_vencimento': 40},
+        ),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.data['codigo'],
+            'codigo',
+            AppErrorCodes.invalidValidation,
+          ),
+        ),
+      );
+
+      final id = custos().first['id'] as String;
+      expect(
+        () => db.editCustoFixo(
+          id,
+          {'descricao': 'Luz', 'valor': 180.0, 'dia_vencimento': 0},
+        ),
+        throwsA(isA<DioException>()),
+      );
+      expect(custos().first['descricao'], isNot('Luz'),
+          reason: 'recusa não grava metade');
+    });
+
+    test('editar id inexistente é 404', () {
+      expect(
+        () => db.editCustoFixo(
+          'custo-que-nao-existe',
+          {'descricao': 'x', 'valor': 1.0, 'dia_vencimento': 1},
+        ),
+        throwsA(
+          isA<DioException>().having(
+            (e) => e.response?.data['codigo'],
+            'codigo',
+            AppErrorCodes.notFound,
+          ),
+        ),
       );
     });
   });

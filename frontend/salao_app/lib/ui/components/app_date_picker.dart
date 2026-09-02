@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart'
-    show showDatePicker, DatePickerThemeData, Theme;
+    show
+        DatePickerThemeData,
+        Theme,
+        TimeOfDay,
+        TimePickerThemeData,
+        showDatePicker,
+        showTimePicker;
 import 'package:flutter/widgets.dart';
 
 import '../../settings/app_assets.dart';
@@ -55,11 +61,17 @@ class AppDatePicker extends StatefulWidget {
   final String label;
   final String? hint;
 
+  /// Encadeia o relógio na sequência do calendário. Um atendimento acontece a
+  /// uma hora, não num dia: sem isso todo agendamento nasce meia-noite e o
+  /// cartao mostra `00:00` para todo mundo.
+  final bool withTime;
+
   const AppDatePicker({
     super.key,
     required this.controller,
     required this.label,
     this.hint,
+    this.withTime = false,
   });
 
   @override
@@ -96,9 +108,46 @@ class _AppDatePickerState extends State<AppDatePicker> {
       ),
     );
 
-    if (picked != null) controller.select(picked);
+    if (picked == null || !mounted) return;
+
+    if (!widget.withTime) {
+      controller.select(picked);
+      return;
+    }
+
+    final current = controller.selectedDate ?? now;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          timePickerTheme: const TimePickerThemeData(
+            backgroundColor: AppColors.surface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    // Cancelar o relógio não desfaz a data: fica a hora que já estava.
+    controller.select(
+      DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        time?.hour ?? current.hour,
+        time?.minute ?? current.minute,
+      ),
+    );
   }
 
+  String _format(DateTime date) => widget.withTime
+      ? globals.l10n?.appointmentAtDate(
+            AppUtils.dateToFull(date),
+            AppUtils.timeToShort(date),
+          ) ??
+          AppUtils.dateToFull(date)
+      : AppUtils.dateToFull(date);
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
@@ -134,9 +183,7 @@ class _AppDatePickerState extends State<AppDatePicker> {
               children: [
                 Expanded(
                   child: Text(
-                    date != null
-                        ? AppUtils.dateToFull(date)
-                        : (widget.hint ?? ''),
+                    date != null ? _format(date) : (widget.hint ?? ''),
                     style: AppFonts.input(context).copyWith(
                       color: date != null ? AppColors.text1 : AppColors.text3,
                     ),

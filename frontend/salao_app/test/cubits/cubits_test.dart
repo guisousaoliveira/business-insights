@@ -173,6 +173,7 @@ void main() {
           () => repository.getAtendimentos(
             inicio: any(named: 'inicio'),
             fim: any(named: 'fim'),
+            status: any(named: 'status'),
           ),
         ).thenAnswer((_) async => resposta);
         return AtendimentosCubit(repository: repository);
@@ -204,6 +205,7 @@ void main() {
           () => repository.getAtendimentos(
             inicio: any(named: 'inicio'),
             fim: any(named: 'fim'),
+            status: any(named: 'status'),
           ),
         ).thenThrow(_httpError());
         return AtendimentosCubit(repository: repository);

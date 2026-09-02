@@ -47,29 +47,34 @@ void main() {
         greaterThanOrEqualTo(72));
   });
 
-  testWidgets('troca o nome selecionado usando widgets animados',
-      (tester) async {
+  testWidgets('troca o nome selecionado no mesmo quadro', (tester) async {
     await pumpBottomNav(tester);
     await tester.pumpAndSettle();
 
     currentPage.value = AppCurrentRoute.estoque;
     await tester.pump();
 
-    expect(find.text('Estoque'), findsOneWidget);
-    expect(find.byType(AnimatedSwitcher), findsNWidgets(5));
-    expect(find.byType(AnimatedScale), findsNWidgets(5));
-
-    await tester.pumpAndSettle();
+    // Sem meio-termo: a troca de aba recria a barra, então um estado animado
+    // aqui seria um quadro intermediário que a usuária nunca chega a ver.
     expect(find.text('Resumo'), findsNothing);
     expect(find.text('Estoque'), findsOneWidget);
   });
 
-  test('rotas usam transição em vez de troca instantânea', () {
+  test('troca de aba não anima a rota, para a casca não deslizar junto', () {
     final route = AppRoutes.onGenerateRoute(
       const RouteSettings(name: AppRoutes.gastosRoute),
     ) as PageRouteBuilder<dynamic>;
 
+    expect(AppRoutes.isShellRoute(AppRoutes.gastosRoute), isTrue);
+    expect(route.transitionDuration, Duration.zero);
+  });
+
+  test('rota de fora da casca mantém a transição', () {
+    final route = AppRoutes.onGenerateRoute(
+      const RouteSettings(name: AppRoutes.loginRoute),
+    ) as PageRouteBuilder<dynamic>;
+
+    expect(AppRoutes.isShellRoute(AppRoutes.loginRoute), isFalse);
     expect(route.transitionDuration, AppRoutes.pageTransitionDuration);
-    expect(route.transitionDuration, isNot(Duration.zero));
   });
 }

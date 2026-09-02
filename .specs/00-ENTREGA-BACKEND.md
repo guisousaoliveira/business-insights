@@ -4,7 +4,7 @@ Ponto único de entrada. Tudo que o time de backend precisa está listado aqui; 
 outros arquivos são o detalhe de cada item.
 
 **Situação:** o app Flutter está pronto (web, Android e iOS). O backend responde
-**4 das 52 operações** que o app chama — apontado para a API real, o app abre no
+**4 das 53 operações** que o app chama — apontado para a API real, o app abre no
 login e para ali.
 
 Para ver as telas funcionando antes do backend existir, há um **modo demo**: um
@@ -30,8 +30,8 @@ Nesta ordem. Quem recebe lê nesta ordem.
 |---|---|---|
 | 1 | [`.specs/00-ENTREGA-BACKEND.md`](00-ENTREGA-BACKEND.md) | **este arquivo** — índice, lista das 52 rotas, regras que não se negociam |
 | 2 | [`.specs/pedidos-backend.md`](pedidos-backend.md) | **ordem de serviço**: o que implementar, em que ordem (L0→L7), e o critério de aceite de cada lote |
-| 3 | [`.specs/endpoints-backend.md`](endpoints-backend.md) | **contrato**: request e response de cada uma das 52 operações, envelope, códigos de erro |
-| 4 | [`database/migrations/001_v1_completo.sql`](../database/migrations/001_v1_completo.sql) | **schema**: 11 tabelas novas + ajustes. Idempotente, roda direto no SQL Editor do Supabase |
+| 3 | [`.specs/endpoints-backend.md`](endpoints-backend.md) | **contrato**: request e response de cada uma das 53 operações, envelope, códigos de erro |
+| 4 | [`database/migrations/001_v1_completo.sql`](../database/migrations/001_v1_completo.sql) | **schema**: 12 tabelas novas + ajustes. Idempotente, roda direto no SQL Editor do Supabase |
 | 5 | [`database/migrations/002_seed_teste.sql`](../database/migrations/002_seed_teste.sql) | dados de teste. **Só dev/homolog** |
 
 Contexto opcional, se a pessoa for mexer no app também:
@@ -39,7 +39,7 @@ Contexto opcional, se a pessoa for mexer no app também:
 
 ---
 
-## 2. As 52 operações
+## 2. As 53 operações
 
 Prefixo de todas: **`/v1`**. `EXISTE` = já implementado hoje.
 
@@ -107,14 +107,15 @@ POST   /kits/{id}/montar                <- consome insumo, duas passadas (regra 
 POST   /kits/{id}/vender                <- baixa do montado, sem segunda passada
 ```
 
-### `perfil` — 6 · todas novas
+### `perfil` — 7 · todas novas
 
 ```
 GET    /perfil
 PUT    /perfil
-GET    /perfil/custos-fixos             <- devolve total_mensal somado
+GET    /perfil/custos-fixos             <- total_mensal / total_pago / total_pendente
 POST   /perfil/custos-fixos
 PATCH  /perfil/custos-fixos/{id}
+PATCH  /perfil/custos-fixos/{id}/pagar  <- marca a competência, não o cadastro
 DELETE /perfil/custos-fixos/{id}
 ```
 

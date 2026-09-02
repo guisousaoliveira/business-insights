@@ -18,6 +18,7 @@ import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_card.dart';
+import '../../components/app_checkbox.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
 import '../../components/app_icon.dart';
@@ -51,22 +52,26 @@ class _PerfilScreenState extends State<PerfilScreen> {
     BlocProvider.of<ServicosCubit>(context).getServicos();
   }
 
-  Future<void> _openNovoCustoFixo() async {
+  Future<void> _openCustoFixo([CustoFixoModel? custoFixo]) async {
     final reload = await AppDialog.show<bool>(
       context: context,
-      title: context.l10n.newFixedCostTitle,
-      child: const NovoCustoFixoDialog(),
+      title: custoFixo == null
+          ? context.l10n.newFixedCostTitle
+          : context.l10n.editFixedCostTitle,
+      child: NovoCustoFixoDialog(custoFixo: custoFixo),
     );
     if ((reload ?? false) && mounted) {
       BlocProvider.of<PerfilCubit>(context).getCustosFixos();
     }
   }
 
-  Future<void> _openNovoServico() async {
+  Future<void> _openServico([ServicoModel? servico]) async {
     final reload = await AppDialog.show<bool>(
       context: context,
-      title: context.l10n.newServiceTitle,
-      child: const NovoServicoDialog(),
+      title: servico == null
+          ? context.l10n.newServiceTitle
+          : context.l10n.editServiceTitle,
+      child: NovoServicoDialog(servico: servico),
     );
     if ((reload ?? false) && mounted) {
       BlocProvider.of<ServicosCubit>(context).getServicos();
@@ -105,12 +110,57 @@ class _PerfilScreenState extends State<PerfilScreen> {
               () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
             ),
           ),
+          BlocListener<PerfilCubit, PerfilState>(
+            listenWhen: (p, c) =>
+                p.editCustoFixoSubState != c.editCustoFixoSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.editCustoFixoSubState,
+              () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
+            ),
+          ),
+          BlocListener<PerfilCubit, PerfilState>(
+            listenWhen: (p, c) =>
+                p.pagarCustoFixoSubState != c.pagarCustoFixoSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.pagarCustoFixoSubState,
+              () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
+            ),
+          ),
+          BlocListener<PerfilCubit, PerfilState>(
+            listenWhen: (p, c) =>
+                p.deleteCustoFixoSubState != c.deleteCustoFixoSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.deleteCustoFixoSubState,
+              () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
+            ),
+          ),
           BlocListener<ServicosCubit, ServicosState>(
             listenWhen: (p, c) =>
                 p.createServicoSubState != c.createServicoSubState,
             listener: (context, state) => _handleWrite(
               context,
               state.createServicoSubState,
+              () => BlocProvider.of<ServicosCubit>(context).getServicos(),
+            ),
+          ),
+          BlocListener<ServicosCubit, ServicosState>(
+            listenWhen: (p, c) =>
+                p.editServicoSubState != c.editServicoSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.editServicoSubState,
+              () => BlocProvider.of<ServicosCubit>(context).getServicos(),
+            ),
+          ),
+          BlocListener<ServicosCubit, ServicosState>(
+            listenWhen: (p, c) =>
+                p.deleteServicoSubState != c.deleteServicoSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.deleteServicoSubState,
               () => BlocProvider.of<ServicosCubit>(context).getServicos(),
             ),
           ),
@@ -214,7 +264,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           children: [
             AppSectionLabel(
               context.l10n.monthlyFixedCosts,
-              trailing: _AddAction(onTap: _openNovoCustoFixo),
+              trailing: _AddAction(onTap: _openCustoFixo),
             ),
             const SizedBox(height: 8),
             AppSubStateBuilder<GetCustosFixosResponseModel>(
@@ -226,17 +276,20 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         children: [
                           ...List.generate(
                             data.custos.length,
-                            (index) => _KeyValueRow(
-                              label: data.custos[index].descricao,
-                              value: AppUtils.numToMoney(
-                                data.custos[index].valor,
-                              ),
+                            (index) => _buildCustoFixoRow(
+                              context,
+                              data.custos[index],
                               isFirst: index == 0,
                             ),
                           ),
                           _KeyValueRow(
                             label: context.l10n.monthlyTotal,
                             value: AppUtils.numToMoney(data.totalMensal),
+                            isTotal: true,
+                          ),
+                          _KeyValueRow(
+                            label: context.l10n.monthlyPending,
+                            value: AppUtils.numToMoney(data.totalPendente),
                             isTotal: true,
                           ),
                         ],
@@ -247,6 +300,43 @@ class _PerfilScreenState extends State<PerfilScreen> {
         ),
       );
 
+  /// A linha de um custo fixo do mês corrente.
+  ///
+  /// O check é de duas vias, diferente do gasto: lá o pagamento é um fato
+  /// lançado, aqui é uma marcação do mês. Um toque errado no celular não pode
+  /// calar o alerta do aluguel até a virada do mês.
+  Widget _buildCustoFixoRow(
+    BuildContext context,
+    CustoFixoModel custo, {
+    required bool isFirst,
+  }) {
+    final pagoEm = custo.pagoEm;
+
+    return _KeyValueRow(
+      label: custo.descricao,
+      leading: AppCheckBox(
+        value: custo.pago,
+        onChanged: (marcado) =>
+            BlocProvider.of<PerfilCubit>(context).pagarCustoFixo(
+          id: custo.id,
+          competencia: custo.competencia,
+          pago: marcado,
+        ),
+      ),
+      caption: switch ((custo.pago, custo.isVencido)) {
+        (true, _) when pagoEm != null =>
+          context.l10n.paidOnShort(AppUtils.dateToShort(pagoEm)),
+        (true, _) => context.l10n.paidThisMonthLabel,
+        (_, true) => context.l10n.overdueDayShort(custo.diaVencimento),
+        _ => context.l10n.dueDayShort(custo.diaVencimento),
+      },
+      captionColor: custo.isVencido ? AppColors.danger : null,
+      value: AppUtils.numToMoney(custo.valor),
+      isFirst: isFirst,
+      onTap: () => _openCustoFixo(custo),
+    );
+  }
+
   Widget _buildServicos(BuildContext context) =>
       BlocBuilder<ServicosCubit, ServicosState>(
         buildWhen: (p, c) => p.getServicosSubState != c.getServicosSubState,
@@ -255,7 +345,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           children: [
             AppSectionLabel(
               context.l10n.serviceTable,
-              trailing: _AddAction(onTap: _openNovoServico),
+              trailing: _AddAction(onTap: _openServico),
             ),
             const SizedBox(height: 8),
             AppSubStateBuilder<GetServicosResponseModel>(
@@ -268,39 +358,69 @@ class _PerfilScreenState extends State<PerfilScreen> {
                           data.servicos.length,
                           (index) => AppCardRow(
                             isFirst: index == 0,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryLight,
-                                    borderRadius: BorderRadius.circular(7),
+                            child: AppTappable(
+                              minSize: 0,
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () => _openServico(data.servicos[index]),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(7),
+                                    ),
+                                    child: const AppIcon(
+                                      AppAssets.scissors,
+                                      size: 15,
+                                      color: AppColors.primaryDark,
+                                    ),
                                   ),
-                                  child: const AppIcon(
-                                    AppAssets.scissors,
-                                    size: 15,
-                                    color: AppColors.primaryDark,
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          data.servicos[index].nome,
+                                          style: AppFonts.rowTitle(context)
+                                              .copyWith(
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        // O que ele consome é o que explica a
+                                        // margem: fica na linha, não escondido
+                                        // dentro da edição.
+                                        Text(
+                                          context.l10n.materialsCount(
+                                            data.servicos[index].produtosPadrao
+                                                .length,
+                                          ),
+                                          style: AppFonts.captionSmall(context),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    data.servicos[index].nome,
-                                    style: AppFonts.rowTitle(context)
-                                        .copyWith(fontWeight: FontWeight.w400),
+                                  Text(
+                                    AppUtils.numToMoney(
+                                      data.servicos[index].preco,
+                                    ),
+                                    style: AppFonts.rowValue(context).copyWith(
+                                      color: AppColors.primaryDark,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  AppUtils.numToMoney(
-                                    data.servicos[index].preco,
+                                  const SizedBox(width: 6),
+                                  const AppIcon(
+                                    AppAssets.chevronRight,
+                                    size: 16,
                                   ),
-                                  style: AppFonts.rowValue(context).copyWith(
-                                    color: AppColors.primaryDark,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -354,40 +474,94 @@ class _AddAction extends StatelessWidget {
 
 class _KeyValueRow extends StatelessWidget {
   final String label;
+
+  /// Segunda linha do rótulo — hoje o "vence dia 5" do custo fixo.
+  final String? caption;
+  final Color? captionColor;
   final String value;
   final bool isFirst;
   final bool isTotal;
 
+  /// Fica fora da área de toque da linha: marcar como pago e abrir a edição
+  /// são coisas diferentes, e o check é o alvo menor dos dois.
+  final Widget? leading;
+
+  /// Quando existe, a linha inteira abre a edição. É a linha toda que é o alvo
+  /// de toque: um lápis de 16px ao lado do valor não se acerta com o polegar.
+  final VoidCallback? onTap;
+
   const _KeyValueRow({
     required this.label,
     required this.value,
+    this.caption,
+    this.captionColor,
+    this.leading,
     this.isFirst = false,
     this.isTotal = false,
+    this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) => AppCardRow(
-        isFirst: isFirst,
-        background: isTotal ? AppColors.surface2 : null,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: AppFonts.rowTitle(context).copyWith(
-                fontWeight: isTotal ? FontWeight.w500 : FontWeight.w400,
-                color: isTotal ? AppColors.text2 : AppColors.text1,
+  Widget build(BuildContext context) {
+    final row = Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: AppFonts.rowTitle(context).copyWith(
+                  fontWeight: isTotal ? FontWeight.w500 : FontWeight.w400,
+                  color: isTotal ? AppColors.text2 : AppColors.text1,
+                ),
               ),
-            ),
-            Text(
-              value,
-              style: AppFonts.rowValue(context).copyWith(
-                fontSize: isTotal ? 15 : 13,
-                fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
-                color: AppColors.danger,
-              ),
-            ),
-          ],
+              if (caption != null)
+                Text(
+                  caption!,
+                  style: AppFonts.captionSmall(context)
+                      .copyWith(color: captionColor),
+                ),
+            ],
+          ),
         ),
-      );
+        const SizedBox(width: 10),
+        Text(
+          value,
+          style: AppFonts.rowValue(context).copyWith(
+            fontSize: isTotal ? 15 : 13,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.w500,
+            color: AppColors.danger,
+          ),
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 6),
+          const AppIcon(AppAssets.chevronRight, size: 16),
+        ],
+      ],
+    );
+
+    final conteudo = onTap == null
+        ? row
+        : AppTappable(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(6),
+            child: row,
+          );
+
+    return AppCardRow(
+      isFirst: isFirst,
+      background: isTotal ? AppColors.surface2 : null,
+      child: leading == null
+          ? conteudo
+          : Row(
+              children: [
+                leading!,
+                const SizedBox(width: 10),
+                Expanded(child: conteudo),
+              ],
+            ),
+    );
+  }
 }

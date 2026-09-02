@@ -7,7 +7,16 @@ abstract interface class PerfilRepository {
   Future<void> updatePerfil(PerfilModel model);
   Future<GetCustosFixosResponseModel> getCustosFixos();
   Future<void> createCustoFixo(CustoFixoModel model);
+  Future<void> editCustoFixo(CustoFixoModel model);
   Future<void> deleteCustoFixo(String id);
+
+  /// Marca (ou desmarca) o pagamento de **uma competência** do custo fixo.
+  /// O cadastro é o mesmo todo mês; o que muda de estado é a ocorrência.
+  Future<void> pagarCustoFixo({
+    required String id,
+    required String competencia,
+    required bool pago,
+  });
 }
 
 class PerfilRepositoryImpl implements PerfilRepository {
@@ -40,7 +49,25 @@ class PerfilRepositoryImpl implements PerfilRepository {
   }
 
   @override
+  Future<void> editCustoFixo(CustoFixoModel model) async {
+    await AppApi.patch('${AppApi.editCustoFixoPath}/${model.id}',
+        data: model.toBody);
+  }
+
+  @override
   Future<void> deleteCustoFixo(String id) async {
     await AppApi.delete('${AppApi.deleteCustoFixoPath}/$id');
+  }
+
+  @override
+  Future<void> pagarCustoFixo({
+    required String id,
+    required String competencia,
+    required bool pago,
+  }) async {
+    await AppApi.patch(
+      '${AppApi.payCustoFixoPath}/$id/pagar',
+      data: {'competencia': competencia, 'pago': pago},
+    );
   }
 }

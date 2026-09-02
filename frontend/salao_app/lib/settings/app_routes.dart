@@ -67,6 +67,17 @@ class AppRoutes {
     alertasRoute: AppCurrentRoute.alertas,
   };
 
+  /// As rotas que dividem a casca do [AppScaffold]. Entre elas o menu lateral
+  /// e a barra inferior são os mesmos pixels no mesmo lugar.
+  ///
+  /// Por isso a troca de aba **não** anima a rota: como `pushReplacement`
+  /// mantém a página velha pintada embaixo durante a transição, animar a
+  /// página inteira fazia as duas cascas deslizarem juntas e se sobreporem
+  /// meio transparentes — era isso que dava a sensação de travado. Sem
+  /// transição, a casca parece fixa; quem anima é só o conteúdo, dentro do
+  /// `AppScaffold`.
+  static bool isShellRoute(String path) => routeToCurrentPage.containsKey(path);
+
   static String routeOf(AppCurrentRoute page) => switch (page) {
         AppCurrentRoute.atendimentos => atendimentosRoute,
         AppCurrentRoute.gastos => gastosRoute,
@@ -80,15 +91,19 @@ class AppRoutes {
     final name = settings.name ?? defaultRoute;
     final uri = Uri.parse(name);
     final builder = routeList[uri.path];
+    final isShell = isShellRoute(uri.path);
 
     return PageRouteBuilder<dynamic>(
       settings: settings,
       // 404 não quebra o app: cai na rota padrão.
       pageBuilder: (context, _, __) =>
           (builder ?? routeList[defaultRoute]!).call(context),
-      transitionDuration: pageTransitionDuration,
-      reverseTransitionDuration: pageTransitionDuration,
+      transitionDuration: isShell ? Duration.zero : pageTransitionDuration,
+      reverseTransitionDuration:
+          isShell ? Duration.zero : pageTransitionDuration,
       transitionsBuilder: (context, animation, secondary, child) {
+        if (isShell) return child;
+
         final curved = CurvedAnimation(
           parent: animation,
           curve: Curves.easeOutCubic,

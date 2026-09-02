@@ -20,7 +20,7 @@ class EstoqueCubit extends Cubit<EstoqueState> {
   final EstoqueRepository _repository;
 
   Future<void> getItens() async {
-    emit(state.copyWith(getItensSubState: BlocSubState.loading));
+    emit(state.copyWith(getItensSubState: state.getItensSubState.toLoading()));
 
     try {
       final response = await _repository.getItens();
@@ -109,7 +109,8 @@ class EstoqueCubit extends Cubit<EstoqueState> {
   }
 
   Future<void> getMovimentacoes({String? itemId}) async {
-    emit(state.copyWith(getMovimentacoesSubState: BlocSubState.loading));
+    emit(state.copyWith(
+        getMovimentacoesSubState: state.getMovimentacoesSubState.toLoading()));
 
     try {
       final response = await _repository.getMovimentacoes(itemId: itemId);

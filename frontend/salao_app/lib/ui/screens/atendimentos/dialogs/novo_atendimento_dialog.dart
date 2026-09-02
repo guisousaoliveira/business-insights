@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../cubits/atendimentos/atendimentos_cubit.dart';
 import '../../../../cubits/servicos/servicos_cubit.dart';
+import '../../../../models/atendimentos/atendimento_model.dart';
 import '../../../../models/atendimentos/servico_atendimento_model.dart';
 import '../../../../models/dropdown_model.dart';
 import '../../../../models/servicos/servico_model.dart';
@@ -20,10 +21,17 @@ import '../../../components/app_icon.dart';
 import '../../../components/app_input.dart';
 import '../../../components/app_tappable.dart';
 
-/// Formulário de agendamento. Devolve `true` quando algo mudou; quem abriu
-/// recarrega a lista (padrão de diálogo do capítulo 07).
+/// Formulário de agendamento **e** de edição. Devolve `true` quando algo
+/// mudou; quem abriu recarrega a lista (padrão de diálogo do capítulo 07).
+///
+/// É um formulário só porque os campos são os mesmos: cliente, data e
+/// serviços. O que muda é o verbo — sem [atendimento] chama `createAtendimento`,
+/// com ele chama `editAtendimento`.
 class NovoAtendimentoDialog extends StatefulWidget {
-  const NovoAtendimentoDialog({super.key});
+  /// O atendimento sendo editado, ou `null` para um novo.
+  final AtendimentoModel? atendimento;
+
+  const NovoAtendimentoDialog({super.key, this.atendimento});
 
   @override
   State<NovoAtendimentoDialog> createState() => _NovoAtendimentoDialogState();
@@ -35,17 +43,27 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
   late final AppDatePickerController _dataController;
   late final AppDropdownController _servicoController;
 
-  final List<ServicoModel> _servicosEscolhidos = [];
+  final List<ServicoAtendimentoModel> _servicosEscolhidos = [];
+
+  AtendimentoModel? get _atendimento => widget.atendimento;
+
+  bool get _isEdicao => _atendimento != null;
 
   @override
   void initState() {
     super.initState();
-    _nomeController = AppInputController();
+    _nomeController = AppInputController(
+      initialValue: _atendimento?.clienteNome,
+    );
     _telefoneController = AppInputController(
       isRequired: false,
+      initialValue: _atendimento?.clienteTelefone,
       validator: AppValidators.validatePhone,
     );
-    _dataController = AppDatePickerController(selectedDate: DateTime.now());
+    _dataController = AppDatePickerController(
+      selectedDate: _atendimento?.data ?? DateTime.now(),
+    );
+    _servicosEscolhidos.addAll(_atendimento?.servicos ?? const []);
     _servicoController = AppDropdownController(
       isRequired: false,
       onValueSelected: _addServico,
@@ -61,9 +79,19 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
     super.dispose();
   }
 
+  /// O catálogo entra como referência (`servicoId`), não como cópia de preço:
+  /// quem congela o valor é o servidor, no momento da escrita.
   void _addServico(Object? value) {
     if (value is! ServicoModel) return;
-    setState(() => _servicosEscolhidos.add(value));
+    setState(
+      () => _servicosEscolhidos.add(
+        ServicoAtendimentoModel(
+          servicoId: value.id,
+          nome: value.nome,
+          preco: value.preco,
+        ),
+      ),
+    );
     _servicoController.selectedValue = null;
   }
 
@@ -84,20 +112,27 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
       return;
     }
 
-    BlocProvider.of<AtendimentosCubit>(context).createAtendimento(
-      clienteNome: _nomeController.text.trim(),
-      clienteTelefone: _telefoneController.text.trim(),
-      data: _dataController.selectedDate!,
-      servicos: _servicosEscolhidos
-          .map(
-            (servico) => ServicoAtendimentoModel(
-              servicoId: servico.id,
-              nome: servico.nome,
-              preco: servico.preco,
-            ),
-          )
-          .toList(),
-    );
+    final cubit = BlocProvider.of<AtendimentosCubit>(context);
+    final nome = _nomeController.text.trim();
+    final telefone = _telefoneController.text.trim();
+    final data = _dataController.selectedDate!;
+
+    if (_isEdicao) {
+      cubit.editAtendimento(
+        id: _atendimento!.id,
+        clienteNome: nome,
+        clienteTelefone: telefone,
+        data: data,
+        servicos: _servicosEscolhidos,
+      );
+    } else {
+      cubit.createAtendimento(
+        clienteNome: nome,
+        clienteTelefone: telefone,
+        data: data,
+        servicos: _servicosEscolhidos,
+      );
+    }
 
     Navigator.of(context).pop(true);
   }
@@ -122,6 +157,7 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
           AppDatePicker(
             controller: _dataController,
             label: context.l10n.dateLabel,
+            withTime: true,
           ),
           const SizedBox(height: 14),
           _buildServicoPicker(context),
@@ -131,7 +167,9 @@ class _NovoAtendimentoDialogState extends State<NovoAtendimentoDialog> {
           ],
           const SizedBox(height: 20),
           AppButton(
-            label: context.l10n.scheduleButton,
+            label: _isEdicao
+                ? context.l10n.saveChanges
+                : context.l10n.scheduleButton,
             isExpanded: true,
             onPressed: _submit,
           ),

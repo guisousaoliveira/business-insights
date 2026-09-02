@@ -1,11 +1,14 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/auth/auth_cubit.dart';
 import '../../settings/app_assets.dart';
 import '../../settings/app_colors.dart';
 import '../../settings/app_enums.dart';
 import '../../settings/app_extensions.dart';
 import '../../settings/app_fonts.dart';
 import '../../settings/app_routes.dart';
+import 'app_dialog.dart';
 import 'app_icon.dart';
 import 'app_tappable.dart';
 
@@ -58,8 +61,12 @@ class AppNavItem {
       ];
 }
 
-/// Contador vermelho sobre um ícone. Zero não desenha nada — badge com "0" é
+/// Contador roxo sobre um ícone. Zero não desenha nada — badge com "0" é
 /// ruído que treina a usuária a ignorar o badge.
+///
+/// A cor é a identidade (`primaryAccent`), não `danger`: vermelho neste app
+/// significa dinheiro saindo ou saldo negativo, e um contador de avisos não é
+/// prejuízo — misturar os dois ensina a usuária a ler vermelho como ruído.
 class AppBadge extends StatelessWidget {
   final Widget child;
   final int count;
@@ -91,7 +98,7 @@ class AppBadge extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               constraints: const BoxConstraints(minWidth: 15),
               decoration: BoxDecoration(
-                color: AppColors.danger,
+                color: AppColors.primaryAccent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppColors.surface, width: 1.5),
               ),
@@ -114,9 +121,13 @@ class AppBadge extends StatelessWidget {
 }
 
 /// Barra inferior — casca mobile (≤1024).
+///
+/// O item ativo troca **sem** animação, de propósito: a troca de aba recria a
+/// rota inteira, então esta barra é um widget novo a cada toque e qualquer
+/// `Animated*` aqui nasceria já no valor final, animando nada. Quem se move é
+/// o conteúdo da página (`_PageEnter`, em `app_scaffold.dart`) — a barra
+/// parada é o que faz a casca parecer fixa.
 class AppBottomNav extends StatelessWidget {
-  static const _animationDuration = Duration(milliseconds: 220);
-
   final AppCurrentRoute currentPage;
   final int alertCount;
 
@@ -158,14 +169,8 @@ class AppBottomNav extends StatelessWidget {
                           : () =>
                               AppRoutes.replace(AppRoutes.routeOf(item.page)),
                       borderRadius: BorderRadius.circular(12),
-                      child: AnimatedContainer(
-                        duration: _animationDuration,
-                        curve: Curves.easeOutCubic,
+                      child: Container(
                         height: 60,
-                        decoration: BoxDecoration(
-                          color: AppColors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
                         padding: const EdgeInsets.fromLTRB(2, 7, 2, 5),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -173,10 +178,8 @@ class AppBottomNav extends StatelessWidget {
                             SizedBox(
                               height: 26,
                               child: Center(
-                                child: AnimatedScale(
+                                child: Transform.scale(
                                   scale: isActive ? 1.08 : 1,
-                                  duration: _animationDuration,
-                                  curve: Curves.easeOutBack,
                                   child: item.page == AppCurrentRoute.estoque
                                       ? AppBadge(
                                           count: alertCount,
@@ -189,35 +192,18 @@ class AppBottomNav extends StatelessWidget {
                             const SizedBox(height: 3),
                             SizedBox(
                               height: 14,
-                              child: AnimatedSwitcher(
-                                duration: _animationDuration,
-                                switchInCurve: Curves.easeOut,
-                                switchOutCurve: Curves.easeIn,
-                                transitionBuilder: (child, animation) =>
-                                    FadeTransition(
-                                  opacity: animation,
-                                  child: SizeTransition(
-                                    sizeFactor: animation,
-                                    axis: Axis.horizontal,
-                                    child: child,
-                                  ),
-                                ),
-                                child: isActive
-                                    ? Text(
-                                        label,
-                                        key: ValueKey(item.page),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primaryDark,
-                                        ),
-                                      )
-                                    : SizedBox(
-                                        key: ValueKey('${item.page}-inactive'),
+                              child: isActive
+                                  ? Text(
+                                      label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primaryDark,
                                       ),
-                              ),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ],
                         ),
@@ -293,43 +279,70 @@ class AppSideMenu extends StatelessWidget {
             ),
             ...AppNavItem.all().map(
               (item) => _SideMenuItem(
-                item: item,
+                icon: item.page == currentPage ? item.activeIcon : item.icon,
+                label: item.label(context),
                 isActive: item.page == currentPage,
                 badgeCount:
                     item.page == AppCurrentRoute.estoque ? alertCount : 0,
+                onTap: item.page == currentPage
+                    ? null
+                    : () => AppRoutes.replace(AppRoutes.routeOf(item.page)),
               ),
             ),
             const Spacer(),
+            // Sair fecha a lista, no lugar onde estavam os alertas: na web eles
+            // já moram no sino do cabeçalho, e tê-los duas vezes gastava o
+            // único lugar do menu que ainda não tinha dono.
             _SideMenuItem(
-              item: AppNavItem(
-                page: AppCurrentRoute.alertas,
-                icon: AppAssets.alert,
-                activeIcon: AppAssets.alertActive,
-                label: (context) => context.l10n.navAlerts,
-              ),
-              isActive: currentPage == AppCurrentRoute.alertas,
-              badgeCount: alertCount,
+              icon: AppAssets.logout,
+              label: context.l10n.logout,
+              isActive: false,
+              onTap: () => _confirmLogout(context),
             ),
           ],
         ),
       );
+
+  /// A mesma confirmação do Perfil — sair é irreversível o bastante para não
+  /// acontecer por um clique perdido no canto do menu.
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await AppDialog.confirm(
+      context: context,
+      title: context.l10n.logout,
+      message: context.l10n.logoutQuestion,
+      confirmLabel: context.l10n.logout,
+    );
+
+    if (!confirmed || !context.mounted) return;
+
+    // Aqui se espera o cubit em vez de ouvir o estado: o menu vive em todas as
+    // telas da casca, e nenhuma delas escuta `logoutSubState`.
+    await BlocProvider.of<AuthCubit>(context).logout();
+    await AppRoutes.push(AppRoutes.loginRoute, removeUntil: (_) => false);
+  }
 }
 
+/// Uma linha do menu lateral. Recebe ícone, rótulo e ação prontos porque nem
+/// toda linha é um destino: a última é o logout.
 class _SideMenuItem extends StatelessWidget {
-  final AppNavItem item;
+  final IconData icon;
+  final String label;
   final bool isActive;
   final int badgeCount;
+  final VoidCallback? onTap;
 
   const _SideMenuItem({
-    required this.item,
+    required this.icon,
+    required this.label,
     required this.isActive,
+    this.onTap,
     this.badgeCount = 0,
   });
 
   @override
   Widget build(BuildContext context) {
-    final icon = AppIcon(
-      isActive ? item.activeIcon : item.icon,
+    final iconWidget = AppIcon(
+      icon,
       size: 17,
       color: isActive ? AppColors.primaryDark : AppColors.text2,
     );
@@ -337,9 +350,7 @@ class _SideMenuItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: AppTappable(
-        onTap: isActive
-            ? null
-            : () => AppRoutes.replace(AppRoutes.routeOf(item.page)),
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         minSize: 38,
         child: Container(
@@ -350,11 +361,11 @@ class _SideMenuItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           child: Row(
             children: [
-              AppBadge(count: badgeCount, child: icon),
+              AppBadge(count: badgeCount, child: iconWidget),
               const SizedBox(width: 9),
               Expanded(
                 child: Text(
-                  item.label(context),
+                  label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.caption(context).copyWith(

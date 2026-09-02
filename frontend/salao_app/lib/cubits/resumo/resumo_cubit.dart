@@ -20,7 +20,7 @@ class ResumoCubit extends Cubit<ResumoState> {
     final target = periodo ?? state.periodo;
 
     emit(state.copyWith(
-      getResumoMensalSubState: BlocSubState.loading,
+      getResumoMensalSubState: state.getResumoMensalSubState.toLoading(),
       periodo: target,
     ));
 

@@ -5,14 +5,18 @@ class PerfilState {
   final BlocSubState updatePerfilSubState;
   final BlocSubState getCustosFixosSubState;
   final BlocSubState createCustoFixoSubState;
+  final BlocSubState editCustoFixoSubState;
   final BlocSubState deleteCustoFixoSubState;
+  final BlocSubState pagarCustoFixoSubState;
 
   const PerfilState({
     this.getPerfilSubState = const BlocSubState(),
     this.updatePerfilSubState = const BlocSubState(),
     this.getCustosFixosSubState = const BlocSubState(),
     this.createCustoFixoSubState = const BlocSubState(),
+    this.editCustoFixoSubState = const BlocSubState(),
     this.deleteCustoFixoSubState = const BlocSubState(),
+    this.pagarCustoFixoSubState = const BlocSubState(),
   });
 
   PerfilState copyWith({
@@ -20,7 +24,9 @@ class PerfilState {
     BlocSubState? updatePerfilSubState,
     BlocSubState? getCustosFixosSubState,
     BlocSubState? createCustoFixoSubState,
+    BlocSubState? editCustoFixoSubState,
     BlocSubState? deleteCustoFixoSubState,
+    BlocSubState? pagarCustoFixoSubState,
   }) =>
       PerfilState(
         getPerfilSubState: getPerfilSubState ?? this.getPerfilSubState,
@@ -29,7 +35,11 @@ class PerfilState {
             getCustosFixosSubState ?? this.getCustosFixosSubState,
         createCustoFixoSubState:
             createCustoFixoSubState ?? this.createCustoFixoSubState,
+        editCustoFixoSubState:
+            editCustoFixoSubState ?? this.editCustoFixoSubState,
         deleteCustoFixoSubState:
             deleteCustoFixoSubState ?? this.deleteCustoFixoSubState,
+        pagarCustoFixoSubState:
+            pagarCustoFixoSubState ?? this.pagarCustoFixoSubState,
       );
 }

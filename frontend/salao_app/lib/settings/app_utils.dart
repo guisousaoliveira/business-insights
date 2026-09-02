@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:intl/intl.dart';
 
 import 'app_enums.dart';
@@ -50,6 +52,11 @@ class AppUtils {
   static String dateToFull(DateTime date) =>
       DateFormat('dd/MM/yyyy', _locale).format(date);
 
+  /// Hora do atendimento: `13:00`. A data completa vem de [dateToFull]; quem
+  /// junta as duas é o ARB (`appointmentAtDate`), não o util.
+  static String timeToShort(DateTime date) =>
+      DateFormat('HH:mm', _locale).format(date);
+
   static String dateToMonthYear(DateTime date) =>
       DateFormat('MMM/yyyy', _locale).format(date);
 
@@ -87,6 +94,18 @@ class AppUtils {
   static String dateToApi(DateTime date) =>
       DateFormat('yyyy-MM-dd').format(date);
 
+  /// `2026-09` — a competência de uma data. É a chave do pagamento de custo
+  /// fixo: o que se paga é o mês, não o cadastro.
+  static String dateToCompetencia(DateTime date) =>
+      DateFormat('yyyy-MM').format(date);
+
+  /// Dia do mês resolvido em data real. Dia 31 em fevereiro é o último dia de
+  /// fevereiro, não 3 de março: guardar "todo dia 31" e resolver a data só na
+  /// hora de cobrar é o que mantém a intenção dela intacta em mês curto.
+  static DateTime vencimentoNoMes(int diaVencimento, int ano, int mes) =>
+      DateTime(
+          ano, mes, math.min(diaVencimento, DateTime(ano, mes + 1, 0).day));
+
   // ── Sessão ─────────────────────────────────────────────────────────────────
 
   /// Um `clear()` derruba sessão e caches. Chamado pelo menu e pelo
@@ -111,6 +130,36 @@ class AppUtils {
         StatusAtendimento.finalizado => 'finalizado',
         StatusAtendimento.cancelado => 'cancelado',
       };
+
+  /// O intervalo que cada filtro de período cobre.
+  ///
+  /// `todos` não vira "sem filtro": vira uma janela larga (cinco anos para
+  /// trás, um ano para frente). O contrato de `GET /atendimentos` exige
+  /// `inicio` e `fim`, e um intervalo aberto obrigaria a mudar o endpoint só
+  /// para servir um rótulo de tela.
+  static (DateTime, DateTime) rangeDoPeriodo(PeriodoAtendimentos periodo) {
+    final now = DateTime.now();
+
+    return switch (periodo) {
+      // Dia 0 do mês seguinte é o último deste mês — evita assumir 30 dias.
+      PeriodoAtendimentos.esteMes => (
+          DateTime(now.year, now.month),
+          DateTime(now.year, now.month + 1, 0),
+        ),
+      PeriodoAtendimentos.mesPassado => (
+          DateTime(now.year, now.month - 1),
+          DateTime(now.year, now.month, 0),
+        ),
+      PeriodoAtendimentos.ultimosTresMeses => (
+          DateTime(now.year, now.month - 2),
+          DateTime(now.year, now.month + 1, 0),
+        ),
+      PeriodoAtendimentos.todos => (
+          DateTime(now.year - 5, 1),
+          DateTime(now.year + 1, 12, 31),
+        ),
+    };
+  }
 
   static String statusAtendimentoToString(StatusAtendimento status) {
     final l10n = globals.l10n;
@@ -257,6 +306,8 @@ class AppUtils {
         'estoque_baixo' => TipoAlerta.estoqueBaixo,
         'gasto_a_vencer' => TipoAlerta.gastoAVencer,
         'gasto_vencido' => TipoAlerta.gastoVencido,
+        'custo_fixo_a_vencer' => TipoAlerta.custoFixoAVencer,
+        'custo_fixo_vencido' => TipoAlerta.custoFixoVencido,
         'saldo_negativo' => TipoAlerta.saldoNegativo,
         _ => TipoAlerta.zeroAZero,
       };
@@ -278,6 +329,11 @@ class AppUtils {
         TipoAlerta.gastoAVencer ||
         TipoAlerta.gastoVencido =>
           AppRoutes.gastosRoute,
+        // Custo fixo não é um gasto lançado: mora no Perfil, e é lá que ela
+        // conserta o valor ou o dia.
+        TipoAlerta.custoFixoAVencer ||
+        TipoAlerta.custoFixoVencido =>
+          AppRoutes.perfilRoute,
         TipoAlerta.saldoNegativo ||
         TipoAlerta.zeroAZero =>
           AppRoutes.resumoRoute,

@@ -218,6 +218,54 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get appointmentsSubtitle => 'Agenda, valores e lucro de cada cliente';
+
+  @override
+  String appointmentAtDate(String date, String time) {
+    return '$date às $time';
+  }
+
+  @override
+  String get chargedLabel => 'Cobrado';
+
+  @override
+  String get costLabel => 'Custo';
+
+  @override
+  String get profitLabel => 'Lucro';
+
+  @override
+  String get filterThisMonth => 'Este mês';
+
+  @override
+  String get filterLastMonth => 'Mês passado';
+
+  @override
+  String get filterLastThreeMonths => 'Últimos 3 meses';
+
+  @override
+  String get filterAllPeriod => 'Todo o período';
+
+  @override
+  String get filterAllStatus => 'Todos os status';
+
+  @override
+  String get periodLabel => 'Período';
+
+  @override
+  String get noAppointmentsInFilter => 'Nenhum atendimento com esses filtros.';
+
+  @override
+  String get editAppointmentTitle => 'Editar atendimento';
+
+  @override
+  String get saveChanges => 'Salvar alterações';
+
+  @override
+  String get canceledAppointmentHint =>
+      'Atendimento cancelado — fora das contas do mês.';
+
+  @override
   String get expensesTitle => 'Gastos';
 
   @override
@@ -620,7 +668,99 @@ class AppLocalizationsPt extends AppLocalizations {
   String get newFixedCostTitle => 'Novo custo fixo';
 
   @override
+  String get editFixedCostTitle => 'Editar custo fixo';
+
+  @override
+  String get dueDayLabel => 'Vence todo dia';
+
+  @override
+  String dueDayOption(int day) {
+    return 'Dia $day';
+  }
+
+  @override
+  String dueDayShort(int day) {
+    return 'vence dia $day';
+  }
+
+  @override
+  String overdueDayShort(int day) {
+    return 'venceu dia $day';
+  }
+
+  @override
+  String paidOnShort(String date) {
+    return 'pago em $date';
+  }
+
+  @override
+  String get fixedCostPaidTooltip => 'Marcar como pago neste mês';
+
+  @override
+  String get monthlyPending => 'Falta pagar';
+
+  @override
+  String deleteFixedCostQuestion(String description) {
+    return 'Excluir $description dos custos fixos?';
+  }
+
+  @override
   String get newServiceTitle => 'Novo serviço';
+
+  @override
+  String get editServiceTitle => 'Editar serviço';
+
+  @override
+  String deleteServiceQuestion(String name) {
+    return 'Excluir $name da tabela de preços?';
+  }
+
+  @override
+  String get defaultProductsLabel => 'Materiais que este serviço consome';
+
+  @override
+  String get defaultProductsHint =>
+      'Toda vez que este serviço for realizado, esta é a baixa que aparece pronta na finalização.';
+
+  @override
+  String get noDefaultProducts => 'Nenhum material vinculado.';
+
+  @override
+  String get linkProductAction => 'Vincular material';
+
+  @override
+  String get stockItemLabel => 'Item do estoque';
+
+  @override
+  String materialsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count materiais',
+      one: '1 material',
+      zero: 'sem materiais',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String quantityWithUnit(String quantity, String unit) {
+    return '$quantity $unit';
+  }
+
+  @override
+  String get confirmConsumptionTitle => 'Confirmar consumo';
+
+  @override
+  String get confirmConsumptionHint =>
+      'Veio pronto do serviço. Ajuste o que saiu a mais ou a menos antes de finalizar.';
+
+  @override
+  String get addMaterialAction => 'Adicionar material';
+
+  @override
+  String get noStockItemsToLink =>
+      'Cadastre um item no estoque para poder vincular.';
 
   @override
   String get consumedLabel => 'Consumido no atendimento';

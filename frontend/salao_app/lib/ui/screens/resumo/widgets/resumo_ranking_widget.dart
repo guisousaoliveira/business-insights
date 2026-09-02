@@ -65,6 +65,7 @@ class ResumoRankingWidget extends StatelessWidget {
             )),
           ]),
         ),
+        const SizedBox(height: 5),
         ...List.generate(servicos.length - 1, (offset) {
           final index = offset + 1;
           final servico = servicos[index];

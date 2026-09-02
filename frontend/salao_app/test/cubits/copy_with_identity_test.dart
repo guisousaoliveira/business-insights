@@ -151,10 +151,18 @@ void main() {
       isTrue,
     );
     expect(
+      identical(estado.editCustoFixoSubState, novo.editCustoFixoSubState),
+      isTrue,
+    );
+    expect(
       identical(
         estado.deleteCustoFixoSubState,
         novo.deleteCustoFixoSubState,
       ),
+      isTrue,
+    );
+    expect(
+      identical(estado.pagarCustoFixoSubState, novo.pagarCustoFixoSubState),
       isTrue,
     );
   });
@@ -169,6 +177,10 @@ void main() {
     );
     expect(
       identical(estado.createServicoSubState, novo.createServicoSubState),
+      isTrue,
+    );
+    expect(
+      identical(estado.editServicoSubState, novo.editServicoSubState),
       isTrue,
     );
     expect(

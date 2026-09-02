@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../models/atendimentos/create_atendimento_request_model.dart';
+import '../../models/atendimentos/edit_atendimento_request_model.dart';
 import '../../models/atendimentos/finalizar_atendimento_request_model.dart';
 import '../../models/atendimentos/material_atendimento_model.dart';
 import '../../models/atendimentos/servico_atendimento_model.dart';
 import '../../models/error_model.dart';
 import '../../repositories/app_repositories.dart';
 import '../../repositories/atendimentos_repository.dart';
+import '../../settings/app_enums.dart';
 import '../../settings/app_logger.dart';
 import '../bloc_substate.dart';
 
@@ -23,12 +25,17 @@ class AtendimentosCubit extends Cubit<AtendimentosState> {
   Future<void> getAtendimentos({
     required DateTime inicio,
     required DateTime fim,
+    List<StatusAtendimento> status = const [],
   }) async {
-    emit(state.copyWith(getAtendimentosSubState: BlocSubState.loading));
+    emit(state.copyWith(
+        getAtendimentosSubState: state.getAtendimentosSubState.toLoading()));
 
     try {
-      final response =
-          await _repository.getAtendimentos(inicio: inicio, fim: fim);
+      final response = await _repository.getAtendimentos(
+        inicio: inicio,
+        fim: fim,
+        status: status,
+      );
       emit(state.copyWith(
         getAtendimentosSubState: BlocSubState.completed(response),
       ));
@@ -74,6 +81,44 @@ class AtendimentosCubit extends Cubit<AtendimentosState> {
       AppLogger.error('Falha inesperada ao criar atendimento', e, s);
       emit(state.copyWith(
         createAtendimentoSubState: BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
+  /// Edita cliente, data e serviços. O servidor recusa em **cancelado**
+  /// (`409 ATENDIMENTO_STATUS_INVALIDO`) — quem esconde o botão nesse caso é a
+  /// tela, mas a regra continua sendo do servidor.
+  Future<void> editAtendimento({
+    required String id,
+    required String clienteNome,
+    required String clienteTelefone,
+    required DateTime data,
+    required List<ServicoAtendimentoModel> servicos,
+  }) async {
+    emit(state.copyWith(editAtendimentoSubState: BlocSubState.loading));
+
+    try {
+      await _repository.editAtendimento(
+        EditAtendimentoRequestModel(
+          id: id,
+          clienteNome: clienteNome,
+          clienteTelefone: clienteTelefone,
+          data: data,
+          servicos: servicos,
+        ),
+      );
+      emit(state.copyWith(
+        editAtendimentoSubState: BlocSubState.completed(null),
+      ));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        editAtendimentoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao editar atendimento', e, s);
+      emit(state.copyWith(
+        editAtendimentoSubState: BlocSubState.completed(ErrorModel.generic()),
       ));
     }
   }

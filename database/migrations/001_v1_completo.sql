@@ -53,6 +53,39 @@ create table if not exists perfil_salao (
 alter table perfil_salao add column if not exists foto_url text;
 alter table perfil_salao add column if not exists meta_faturamento_mensal numeric(12, 2) not null default 9000;
 
+-- Dia do mês em que o custo fixo vence (§7 do mapa). Sem ele um custo fixo é
+-- só uma parcela do total: não dá para avisar que o aluguel vence amanhã nem
+-- para ordenar o mês. Guarda o dia literal — 31 continua 31 em fevereiro, e
+-- quem agenda o aviso resolve o mês curto. Default 1 para o dado que já existe.
+alter table custos_fixos add column if not exists dia_vencimento smallint not null default 1;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'custos_fixos_dia_vencimento_check'
+  ) then
+    alter table custos_fixos
+      add constraint custos_fixos_dia_vencimento_check
+      check (dia_vencimento between 1 and 31);
+  end if;
+end $$;
+
+-- Custo fixo não se paga uma vez: ele volta todo mês. O que se marca como pago
+-- é a OCORRÊNCIA do mês, não o cadastro — por isso o pagamento mora numa tabela
+-- própria, com a competência na chave. Guardar um `pago` booleano dentro de
+-- `custos_fixos` faria o aluguel pago em setembro nascer pago em outubro.
+create table if not exists custos_fixos_pagamentos (
+  id             uuid primary key default uuid_generate_v4(),
+  custo_fixo_id  uuid not null references custos_fixos(id) on delete cascade,
+  user_id        uuid not null references auth.users(id) on delete cascade,
+  -- Primeiro dia da competência: 2026-09-01 é "setembro de 2026".
+  competencia    date not null,
+  pago_em        timestamptz not null default now(),
+  criado_em      timestamptz not null default now(),
+  -- Idempotência: pagar duas vezes o mesmo mês não duplica nada.
+  unique (custo_fixo_id, competencia)
+);
+
 -- Congela o custo padrão do serviço no atendimento. Sem snapshot, alterar a
 -- composição hoje reescreveria o lucro dos meses passados no novo ranking.
 alter table atendimento_servicos add column if not exists custo_insumos_snapshot numeric(12, 2) not null default 0;
@@ -378,6 +411,24 @@ create table if not exists alertas (
   criado_em        timestamptz not null default now()
 );
 
+-- Renomeia a preferência de antecedência para um banco que já rodou a versão
+-- anterior desta migração: a janela deixou de valer só para gasto e passou a
+-- valer também para custo fixo, com sete dias em vez de três.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'alerta_preferencias'
+      and column_name = 'dias_antecedencia_gasto'
+  ) then
+    alter table alerta_preferencias
+      rename column dias_antecedencia_gasto to dias_antecedencia_vencimento;
+    alter table alerta_preferencias
+      alter column dias_antecedencia_vencimento set default 7;
+  end if;
+end $$;
+
+
 create unique index if not exists idx_alertas_dedupe
   on alertas (user_id, chave_dedupe)
   where resolvido_em is null;
@@ -386,7 +437,10 @@ create unique index if not exists idx_alertas_dedupe
 create table if not exists alerta_preferencias (
   user_id                  uuid primary key references auth.users(id) on delete cascade,
   limite_saldo_alerta      numeric(10, 2) not null default 0,
-  dias_antecedencia_gasto  integer not null default 3 check (dias_antecedencia_gasto >= 0),
+  -- Uma semana para tudo que vence: gasto pendente e custo fixo. É o prazo que
+  -- dá tempo de fazer alguma coisa; avisar no dia é só informar que já era tarde.
+  dias_antecedencia_vencimento integer not null default 7
+    check (dias_antecedencia_vencimento >= 0),
 
   canal_in_app             boolean not null default true,
   canal_push               boolean not null default true,
@@ -482,6 +536,7 @@ alter table kits                    enable row level security;
 alter table kit_itens               enable row level security;
 alter table kit_vendas              enable row level security;
 alter table servico_produtos_padrao enable row level security;
+alter table custos_fixos_pagamentos enable row level security;
 alter table alertas                 enable row level security;
 alter table alerta_preferencias     enable row level security;
 alter table dispositivos            enable row level security;
@@ -496,7 +551,7 @@ begin
   foreach t in array array[
     'estoque_itens', 'estoque_movimentacoes', 'kits', 'kit_vendas',
     'alertas', 'dispositivos', 'refresh_tokens', 'perfil_salao',
-    'alerta_preferencias'
+    'alerta_preferencias', 'custos_fixos_pagamentos'
   ] loop
     execute format('drop policy if exists "usuario acessa proprios %1$s" on %1$I', t);
     execute format(
@@ -548,6 +603,10 @@ create index if not exists idx_kit_itens_kit
 
 create index if not exists idx_kit_vendas_user_data
   on kit_vendas (user_id, data);
+
+-- Alimenta o GET de custos fixos: um custo, uma competência.
+create index if not exists idx_custos_fixos_pagamentos_competencia
+  on custos_fixos_pagamentos (user_id, competencia);
 
 create index if not exists idx_alertas_nao_lidos
   on alertas (user_id, criado_em desc)

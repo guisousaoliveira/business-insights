@@ -19,7 +19,8 @@ class PerfilCubit extends Cubit<PerfilState> {
   final PerfilRepository _repository;
 
   Future<void> getPerfil() async {
-    emit(state.copyWith(getPerfilSubState: BlocSubState.loading));
+    emit(
+        state.copyWith(getPerfilSubState: state.getPerfilSubState.toLoading()));
 
     try {
       final response = await _repository.getPerfil();
@@ -38,7 +39,8 @@ class PerfilCubit extends Cubit<PerfilState> {
   }
 
   Future<void> getCustosFixos() async {
-    emit(state.copyWith(getCustosFixosSubState: BlocSubState.loading));
+    emit(state.copyWith(
+        getCustosFixosSubState: state.getCustosFixosSubState.toLoading()));
 
     try {
       final response = await _repository.getCustosFixos();
@@ -61,12 +63,18 @@ class PerfilCubit extends Cubit<PerfilState> {
   Future<void> createCustoFixo({
     required String descricao,
     required double valor,
+    required int diaVencimento,
   }) async {
     emit(state.copyWith(createCustoFixoSubState: BlocSubState.loading));
 
     try {
       await _repository.createCustoFixo(
-        CustoFixoModel(id: '', descricao: descricao, valor: valor),
+        CustoFixoModel(
+          id: '',
+          descricao: descricao,
+          valor: valor,
+          diaVencimento: diaVencimento,
+        ),
       );
       emit(state.copyWith(
         createCustoFixoSubState: BlocSubState.completed(null),
@@ -80,6 +88,37 @@ class PerfilCubit extends Cubit<PerfilState> {
       AppLogger.error('Falha inesperada ao criar custo fixo', e, s);
       emit(state.copyWith(
         createCustoFixoSubState: BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
+  Future<void> editCustoFixo({
+    required String id,
+    required String descricao,
+    required double valor,
+    required int diaVencimento,
+  }) async {
+    emit(state.copyWith(editCustoFixoSubState: BlocSubState.loading));
+
+    try {
+      await _repository.editCustoFixo(
+        CustoFixoModel(
+          id: id,
+          descricao: descricao,
+          valor: valor,
+          diaVencimento: diaVencimento,
+        ),
+      );
+      emit(state.copyWith(editCustoFixoSubState: BlocSubState.completed(null)));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        editCustoFixoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao editar custo fixo', e, s);
+      emit(state.copyWith(
+        editCustoFixoSubState: BlocSubState.completed(ErrorModel.generic()),
       ));
     }
   }
@@ -101,6 +140,37 @@ class PerfilCubit extends Cubit<PerfilState> {
       AppLogger.error('Falha inesperada ao excluir custo fixo', e, s);
       emit(state.copyWith(
         deleteCustoFixoSubState: BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
+  /// Pagar não lança gasto: custo fixo já está no cálculo do mês pelo perfil.
+  /// O que este toque muda é só se ela ainda deve ou não — e, com isso, se o
+  /// alerta de vencimento continua de pé.
+  Future<void> pagarCustoFixo({
+    required String id,
+    required String competencia,
+    required bool pago,
+  }) async {
+    emit(state.copyWith(pagarCustoFixoSubState: BlocSubState.loading));
+
+    try {
+      await _repository.pagarCustoFixo(
+        id: id,
+        competencia: competencia,
+        pago: pago,
+      );
+      emit(
+          state.copyWith(pagarCustoFixoSubState: BlocSubState.completed(null)));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        pagarCustoFixoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao pagar custo fixo', e, s);
+      emit(state.copyWith(
+        pagarCustoFixoSubState: BlocSubState.completed(ErrorModel.generic()),
       ));
     }
   }

@@ -8,9 +8,10 @@ import 'app_loading.dart';
 /// Loading / dado / erro / vazio a partir de um [BlocSubState], sem o ternário
 /// triplo em toda tela e sem `as` espalhado.
 ///
-/// A ordem importa: enquanto não completou, é loading; completou com [T], é
-/// dado; completou com `ErrorModel`, é erro; completou com outra coisa (ou
-/// `null`), é vazio.
+/// A ordem importa: tendo [T], é dado — **mesmo carregando**, para uma recarga
+/// não apagar a tela (ver `BlocSubState.toLoading`); sem dado e sem ter
+/// completado, é loading; completou com `ErrorModel`, é erro; completou com
+/// outra coisa (ou `null`), é vazio.
 class AppSubStateBuilder<T> extends StatelessWidget {
   final BlocSubState subState;
   final Widget Function(T data) onData;
@@ -29,10 +30,10 @@ class AppSubStateBuilder<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!subState.isCompleted) return onLoading ?? const AppLoading();
-
     final data = subState.value<T>();
     if (data != null) return onData(data);
+
+    if (!subState.isCompleted) return onLoading ?? const AppLoading();
 
     if (subState.hasError && onError != null) return onError!(subState.error!);
 

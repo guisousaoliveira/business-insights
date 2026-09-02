@@ -20,13 +20,13 @@ business-insights/
 │   ├── 00-ENTREGA-BACKEND.md      # índice único do que entregar ao backend — comece aqui
 │   ├── padrao-de-projeto-flutter/ # o padrão arquitetural (15 docs) — fonte da verdade
 │   ├── padrao-flutter-salao.md    # divergências deste projeto em relação ao padrão
-│   ├── endpoints-backend.md       # contrato: 52 operações que o FastAPI deve expor
+│   ├── endpoints-backend.md       # contrato: 53 operações que o FastAPI deve expor
 │   └── pedidos-backend.md         # ordens de serviço da F4, em lotes L0–L7
 ├── api/                           # FastAPI — o ÚNICO backend que o app enxerga
 ├── database/
 │   ├── schema.sql                 # Supabase/Postgres (estado antes da V1)
 │   └── migrations/
-│       ├── 001_v1_completo.sql    # idempotente: 11 tabelas novas + ajustes
+│       ├── 001_v1_completo.sql    # idempotente: 12 tabelas novas + ajustes
 │       └── 002_seed_teste.sql     # dados de teste (NÃO rodar em produção)
 ├── frontend/salao_app/            # Flutter (web + mobile)
 └── n8n/                           # automações (WhatsApp, cron, resumos)
@@ -250,7 +250,7 @@ flutter run -d chrome --dart-define-from-file=env/demo.json
   (`api/app/routers/relatorio.py`). Com A1 isso vira falha de segurança de verdade, não
   simplificação: qualquer um forja um `sub`. É o lote **L0.2** de
   `pedidos-backend.md`, marcado 🔴 — validar com o `SUPABASE_JWT_SECRET`.
-- **4 de 52 endpoints existem.** O app está inteiro; o backend, não. `pedidos-backend.md`
+- **4 de 53 endpoints existem.** O app está inteiro; o backend, não. `pedidos-backend.md`
   é a lista do que falta, em ordem de dependência.
 
 ## Convenções de trabalho

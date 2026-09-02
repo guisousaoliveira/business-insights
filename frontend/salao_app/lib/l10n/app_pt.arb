@@ -78,6 +78,24 @@
   "@cancelAppointmentQuestion": {
     "placeholders": { "client": { "type": "String" } }
   },
+  "appointmentsSubtitle": "Agenda, valores e lucro de cada cliente",
+  "appointmentAtDate": "{date} às {time}",
+  "@appointmentAtDate": {
+    "placeholders": { "date": { "type": "String" }, "time": { "type": "String" } }
+  },
+  "chargedLabel": "Cobrado",
+  "costLabel": "Custo",
+  "profitLabel": "Lucro",
+  "filterThisMonth": "Este mês",
+  "filterLastMonth": "Mês passado",
+  "filterLastThreeMonths": "Últimos 3 meses",
+  "filterAllPeriod": "Todo o período",
+  "filterAllStatus": "Todos os status",
+  "periodLabel": "Período",
+  "noAppointmentsInFilter": "Nenhum atendimento com esses filtros.",
+  "editAppointmentTitle": "Editar atendimento",
+  "saveChanges": "Salvar alterações",
+  "canceledAppointmentHint": "Atendimento cancelado — fora das contas do mês.",
 
   "expensesTitle": "Gastos",
   "pendingLabel": "Pendente",
@@ -251,7 +269,56 @@
   "ownerNameLabel": "Proprietária",
   "materialsUsedLabel": "Materiais usados",
   "newFixedCostTitle": "Novo custo fixo",
+  "editFixedCostTitle": "Editar custo fixo",
+  "dueDayLabel": "Vence todo dia",
+  "dueDayOption": "Dia {day}",
+  "@dueDayOption": {
+    "placeholders": { "day": { "type": "int" } }
+  },
+  "dueDayShort": "vence dia {day}",
+  "@dueDayShort": {
+    "placeholders": { "day": { "type": "int" } }
+  },
+  "overdueDayShort": "venceu dia {day}",
+  "@overdueDayShort": {
+    "placeholders": { "day": { "type": "int" } }
+  },
+  "paidOnShort": "pago em {date}",
+  "@paidOnShort": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "fixedCostPaidTooltip": "Marcar como pago neste mês",
+  "monthlyPending": "Falta pagar",
+  "deleteFixedCostQuestion": "Excluir {description} dos custos fixos?",
+  "@deleteFixedCostQuestion": {
+    "placeholders": { "description": { "type": "String" } }
+  },
   "newServiceTitle": "Novo serviço",
+  "editServiceTitle": "Editar serviço",
+  "deleteServiceQuestion": "Excluir {name} da tabela de preços?",
+  "@deleteServiceQuestion": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "defaultProductsLabel": "Materiais que este serviço consome",
+  "defaultProductsHint": "Toda vez que este serviço for realizado, esta é a baixa que aparece pronta na finalização.",
+  "noDefaultProducts": "Nenhum material vinculado.",
+  "linkProductAction": "Vincular material",
+  "stockItemLabel": "Item do estoque",
+  "materialsCount": "{count, plural, =0{sem materiais} =1{1 material} other{{count} materiais}}",
+  "@materialsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "quantityWithUnit": "{quantity} {unit}",
+  "@quantityWithUnit": {
+    "placeholders": {
+      "quantity": { "type": "String" },
+      "unit": { "type": "String" }
+    }
+  },
+  "confirmConsumptionTitle": "Confirmar consumo",
+  "confirmConsumptionHint": "Veio pronto do serviço. Ajuste o que saiu a mais ou a menos antes de finalizar.",
+  "addMaterialAction": "Adicionar material",
+  "noStockItemsToLink": "Cadastre um item no estoque para poder vincular.",
   "consumedLabel": "Consumido no atendimento",
   "logoutQuestion": "Deseja sair da sua conta?",
   "noAlerts": "Nenhum alerta no momento."

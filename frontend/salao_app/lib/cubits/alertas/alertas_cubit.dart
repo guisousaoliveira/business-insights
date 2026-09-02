@@ -21,7 +21,8 @@ class AlertasCubit extends Cubit<AlertasState> {
   final AlertasRepository _repository;
 
   Future<void> getAlertas({bool? apenasNaoLidos}) async {
-    emit(state.copyWith(getAlertasSubState: BlocSubState.loading));
+    emit(state.copyWith(
+        getAlertasSubState: state.getAlertasSubState.toLoading()));
 
     try {
       final response =

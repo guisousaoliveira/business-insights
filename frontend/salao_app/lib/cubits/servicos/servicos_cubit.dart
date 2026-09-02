@@ -20,7 +20,8 @@ class ServicosCubit extends Cubit<ServicosState> {
   final ServicosRepository _repository;
 
   Future<void> getServicos() async {
-    emit(state.copyWith(getServicosSubState: BlocSubState.loading));
+    emit(state.copyWith(
+        getServicosSubState: state.getServicosSubState.toLoading()));
 
     try {
       final response = await _repository.getServicos();
@@ -66,6 +67,37 @@ class ServicosCubit extends Cubit<ServicosState> {
       AppLogger.error('Falha inesperada ao criar serviço', e, s);
       emit(state.copyWith(
         createServicoSubState: BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
+  Future<void> editServico({
+    required String id,
+    required String nome,
+    required double preco,
+    List<ProdutoPadraoModel> produtosPadrao = const [],
+  }) async {
+    emit(state.copyWith(editServicoSubState: BlocSubState.loading));
+
+    try {
+      await _repository.editServico(
+        ServicoModel(
+          id: id,
+          nome: nome,
+          preco: preco,
+          produtosPadrao: produtosPadrao,
+        ),
+      );
+      emit(state.copyWith(editServicoSubState: BlocSubState.completed(null)));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        editServicoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao editar serviço', e, s);
+      emit(state.copyWith(
+        editServicoSubState: BlocSubState.completed(ErrorModel.generic()),
       ));
     }
   }

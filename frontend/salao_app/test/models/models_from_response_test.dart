@@ -486,7 +486,12 @@ void main() {
         'result': {
           'total_mensal': 1348.0,
           'custos': [
-            {'id': 'c1', 'descricao': 'Aluguel', 'valor': 1200.0},
+            {
+              'id': 'c1',
+              'descricao': 'Aluguel',
+              'valor': 1200.0,
+              'dia_vencimento': 5,
+            },
             {'id': 'c2', 'descricao': 'Internet', 'valor': 99.0},
             {'id': 'c3', 'descricao': 'App de agendamento', 'valor': 49.0},
           ],
@@ -495,6 +500,11 @@ void main() {
 
       expect(model.totalMensal, 1348.0);
       expect(model.custos, hasLength(3));
+      expect(model.custos.first.diaVencimento, 5);
+      // Custo cadastrado antes de o campo existir: dia 1, nunca nulo — a tela
+      // e o alerta contam com um dia sempre presente.
+      expect(model.custos[1].diaVencimento, CustoFixoModel.diaVencimentoPadrao);
+      expect(model.custos.first.toBody['dia_vencimento'], 5);
     });
 
     test('serviço traz os produtos padrão que pré-preenchem a finalização', () {

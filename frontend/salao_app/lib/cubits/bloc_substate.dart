@@ -31,6 +31,18 @@ class BlocSubState {
   /// Açúcar para os três `emit` que todo método de cubit faz.
   static const loading = BlocSubState(state: BlocDataState.loading);
 
+  /// Recarga que **preserva** o que já está na tela.
+  ///
+  /// `loading` puro zera o [data], e como cada troca de aba refaz o fetch no
+  /// `initState`, voltar para uma aba já visitada apagava o conteúdo e piscava
+  /// um spinner de página inteira. Com isto o dado antigo fica no lugar até o
+  /// novo chegar. Erro **não** se preserva: se a chamada anterior falhou, a
+  /// próxima começa limpa.
+  BlocSubState toLoading() => BlocSubState(
+        state: BlocDataState.loading,
+        data: hasError ? null : data,
+      );
+
   static BlocSubState completed(Object? data) =>
       BlocSubState(state: BlocDataState.completed, data: data);
 }

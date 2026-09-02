@@ -17,8 +17,9 @@ import 'app_tappable.dart';
 /// A casca de toda tela, nas **duas** formas (S3):
 ///
 /// - ≤1024: app bar, barra inferior de 5 itens, FAB para a ação primária;
-/// - \>1024: menu lateral de 172px, cabeçalho com título e a ação primária
-///   virando botão — sem barra inferior e sem FAB.
+/// - \>1024: menu lateral de 172px, cabeçalho com título, a ação primária
+///   virando botão e o sino de alertas à direita dele — sem barra inferior e
+///   sem FAB.
 ///
 /// A tela não sabe em qual está: descreve título, ação primária e conteúdo.
 class AppScaffold extends StatelessWidget {
@@ -85,21 +86,23 @@ class AppScaffold extends StatelessWidget {
                 alertCount: alertCount,
               ),
               Expanded(
-                child: Padding(
-                  padding: isPadded
-                      ? const EdgeInsets.fromLTRB(26, 22, 26, 22)
-                      : EdgeInsets.zero,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildWideHeader(context),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: isScrollable
-                            ? SingleChildScrollView(child: child)
-                            : child,
-                      ),
-                    ],
+                child: _PageEnter(
+                  child: Padding(
+                    padding: isPadded
+                        ? const EdgeInsets.fromLTRB(26, 22, 26, 22)
+                        : EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildWideHeader(context),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: isScrollable
+                              ? SingleChildScrollView(child: child)
+                              : child,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -133,6 +136,8 @@ class AppScaffold extends StatelessWidget {
               onPressed: onPrimaryAction,
             ),
           ],
+          const SizedBox(width: 14),
+          _AlertBell(count: alertCount),
         ],
       );
 
@@ -142,40 +147,43 @@ class AppScaffold extends StatelessWidget {
         backgroundColor: AppColors.scaffold,
         body: SafeArea(
           bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildAppBar(context),
-              Expanded(
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding:
-                          isPadded ? const EdgeInsets.all(12) : EdgeInsets.zero,
-                      child: isScrollable
-                          ? SingleChildScrollView(
-                              // Espaço para o FAB não cobrir o último item.
-                              padding: EdgeInsets.only(
-                                bottom: primaryActionLabel != null ? 64 : 0,
-                              ),
-                              child: child,
-                            )
-                          : child,
-                    ),
-                    if (primaryActionLabel != null)
-                      Positioned(
-                        right: 14,
-                        bottom: 14,
-                        child: _Fab(
-                          label: primaryActionLabel!,
-                          icon: primaryActionIcon,
-                          onTap: onPrimaryAction,
-                        ),
+          child: _PageEnter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildAppBar(context),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: isPadded
+                            ? const EdgeInsets.all(12)
+                            : EdgeInsets.zero,
+                        child: isScrollable
+                            ? SingleChildScrollView(
+                                // Espaço para o FAB não cobrir o último item.
+                                padding: EdgeInsets.only(
+                                  bottom: primaryActionLabel != null ? 64 : 0,
+                                ),
+                                child: child,
+                              )
+                            : child,
                       ),
-                  ],
+                      if (primaryActionLabel != null)
+                        Positioned(
+                          right: 14,
+                          bottom: 14,
+                          child: _Fab(
+                            label: primaryActionLabel!,
+                            icon: primaryActionIcon,
+                            onTap: onPrimaryAction,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         bottomNavigationBar: AppBottomNav(
@@ -221,6 +229,76 @@ class AppScaffold extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      );
+}
+
+/// A entrada do conteúdo da página: ~230ms subindo 10px enquanto aparece.
+///
+/// É a **única** animação da troca de aba. A rota entre telas da casca troca
+/// sem transição (ver `AppRoutes.isShellRoute`), então o menu lateral e a
+/// barra inferior ficam imóveis, como se fossem uma casca só; o movimento
+/// acontece daqui para dentro. Cada rota constrói um `_PageEnter` novo — que é
+/// exatamente uma vez por troca de aba.
+class _PageEnter extends StatefulWidget {
+  final Widget child;
+
+  const _PageEnter({required this.child});
+
+  @override
+  State<_PageEnter> createState() => _PageEnterState();
+}
+
+class _PageEnterState extends State<_PageEnter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 230),
+  )..forward();
+
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutCubic,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: _curve,
+        child: AnimatedBuilder(
+          animation: _curve,
+          // O filho fica fora do builder: ele não depende do valor, e assim a
+          // página inteira não reconstrói a 60fps durante a animação.
+          child: widget.child,
+          builder: (context, child) => Transform.translate(
+            offset: Offset(0, 10 * (1 - _curve.value)),
+            child: child,
+          ),
+        ),
+      );
+}
+
+/// O sino de alertas do cabeçalho web, à direita da ação primária. É o mesmo
+/// alvo e o mesmo badge da app bar mobile — muda só onde ele mora.
+class _AlertBell extends StatelessWidget {
+  final int count;
+
+  const _AlertBell({required this.count});
+
+  @override
+  Widget build(BuildContext context) => AppTappable(
+        onTap: () => AppRoutes.push(AppRoutes.alertasRoute),
+        minSize: 38,
+        borderRadius: BorderRadius.circular(19),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: AppBadge(
+          count: count,
+          child: const AppIcon(AppAssets.alert, size: 20),
         ),
       );
 }

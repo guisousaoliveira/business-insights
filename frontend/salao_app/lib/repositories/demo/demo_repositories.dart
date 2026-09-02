@@ -1,5 +1,6 @@
 import '../../models/alertas/get_alertas_response_model.dart';
 import '../../models/atendimentos/create_atendimento_request_model.dart';
+import '../../models/atendimentos/edit_atendimento_request_model.dart';
 import '../../models/atendimentos/finalizar_atendimento_request_model.dart';
 import '../../models/atendimentos/get_atendimentos_response_model.dart';
 import '../../models/auth/login_request_model.dart';
@@ -63,10 +64,15 @@ class DemoAtendimentosRepository implements AtendimentosRepository {
   Future<GetAtendimentosResponseModel> getAtendimentos({
     required DateTime inicio,
     required DateTime fim,
+    List<StatusAtendimento> status = const [],
   }) async {
     await _latencia();
     return GetAtendimentosResponseModel.fromResponse(
-      _db.getAtendimentos(inicio, fim),
+      _db.getAtendimentos(
+        inicio,
+        fim,
+        status: status.map(AppUtils.statusAtendimentoToApi).toList(),
+      ),
     );
   }
 
@@ -74,6 +80,12 @@ class DemoAtendimentosRepository implements AtendimentosRepository {
   Future<void> createAtendimento(CreateAtendimentoRequestModel model) async {
     await _latencia();
     _db.createAtendimento(model.toBody);
+  }
+
+  @override
+  Future<void> editAtendimento(EditAtendimentoRequestModel model) async {
+    await _latencia();
+    _db.editAtendimento(model.id, model.toBody);
   }
 
   @override
@@ -261,9 +273,25 @@ class DemoPerfilRepository implements PerfilRepository {
   }
 
   @override
+  Future<void> editCustoFixo(CustoFixoModel model) async {
+    await _latencia();
+    _db.editCustoFixo(model.id, model.toBody);
+  }
+
+  @override
   Future<void> deleteCustoFixo(String id) async {
     await _latencia();
     _db.deleteCustoFixo(id);
+  }
+
+  @override
+  Future<void> pagarCustoFixo({
+    required String id,
+    required String competencia,
+    required bool pago,
+  }) async {
+    await _latencia();
+    _db.pagarCustoFixo(id, {'competencia': competencia, 'pago': pago});
   }
 }
 
@@ -280,6 +308,12 @@ class DemoServicosRepository implements ServicosRepository {
   Future<void> createServico(ServicoModel model) async {
     await _latencia();
     _db.createServico(model.toBody);
+  }
+
+  @override
+  Future<void> editServico(ServicoModel model) async {
+    await _latencia();
+    _db.editServico(model.id, model.toBody);
   }
 
   @override

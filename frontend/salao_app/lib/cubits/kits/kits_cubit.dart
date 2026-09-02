@@ -22,7 +22,7 @@ class KitsCubit extends Cubit<KitsState> {
   final KitsRepository _repository;
 
   Future<void> getKits() async {
-    emit(state.copyWith(getKitsSubState: BlocSubState.loading));
+    emit(state.copyWith(getKitsSubState: state.getKitsSubState.toLoading()));
 
     try {
       final response = await _repository.getKits();

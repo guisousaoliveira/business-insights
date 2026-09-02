@@ -478,6 +478,96 @@ abstract class AppLocalizations {
   /// **'Cancelar o atendimento de {client}?'**
   String cancelAppointmentQuestion(String client);
 
+  /// No description provided for @appointmentsSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agenda, valores e lucro de cada cliente'**
+  String get appointmentsSubtitle;
+
+  /// No description provided for @appointmentAtDate.
+  ///
+  /// In pt, this message translates to:
+  /// **'{date} às {time}'**
+  String appointmentAtDate(String date, String time);
+
+  /// No description provided for @chargedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cobrado'**
+  String get chargedLabel;
+
+  /// No description provided for @costLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Custo'**
+  String get costLabel;
+
+  /// No description provided for @profitLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lucro'**
+  String get profitLabel;
+
+  /// No description provided for @filterThisMonth.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este mês'**
+  String get filterThisMonth;
+
+  /// No description provided for @filterLastMonth.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mês passado'**
+  String get filterLastMonth;
+
+  /// No description provided for @filterLastThreeMonths.
+  ///
+  /// In pt, this message translates to:
+  /// **'Últimos 3 meses'**
+  String get filterLastThreeMonths;
+
+  /// No description provided for @filterAllPeriod.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todo o período'**
+  String get filterAllPeriod;
+
+  /// No description provided for @filterAllStatus.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos os status'**
+  String get filterAllStatus;
+
+  /// No description provided for @periodLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Período'**
+  String get periodLabel;
+
+  /// No description provided for @noAppointmentsInFilter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum atendimento com esses filtros.'**
+  String get noAppointmentsInFilter;
+
+  /// No description provided for @editAppointmentTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar atendimento'**
+  String get editAppointmentTitle;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar alterações'**
+  String get saveChanges;
+
+  /// No description provided for @canceledAppointmentHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atendimento cancelado — fora das contas do mês.'**
+  String get canceledAppointmentHint;
+
   /// No description provided for @expensesTitle.
   ///
   /// In pt, this message translates to:
@@ -1168,11 +1258,143 @@ abstract class AppLocalizations {
   /// **'Novo custo fixo'**
   String get newFixedCostTitle;
 
+  /// No description provided for @editFixedCostTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar custo fixo'**
+  String get editFixedCostTitle;
+
+  /// No description provided for @dueDayLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vence todo dia'**
+  String get dueDayLabel;
+
+  /// No description provided for @dueDayOption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dia {day}'**
+  String dueDayOption(int day);
+
+  /// No description provided for @dueDayShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'vence dia {day}'**
+  String dueDayShort(int day);
+
+  /// No description provided for @overdueDayShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'venceu dia {day}'**
+  String overdueDayShort(int day);
+
+  /// No description provided for @paidOnShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'pago em {date}'**
+  String paidOnShort(String date);
+
+  /// No description provided for @fixedCostPaidTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar como pago neste mês'**
+  String get fixedCostPaidTooltip;
+
+  /// No description provided for @monthlyPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falta pagar'**
+  String get monthlyPending;
+
+  /// No description provided for @deleteFixedCostQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir {description} dos custos fixos?'**
+  String deleteFixedCostQuestion(String description);
+
   /// No description provided for @newServiceTitle.
   ///
   /// In pt, this message translates to:
   /// **'Novo serviço'**
   String get newServiceTitle;
+
+  /// No description provided for @editServiceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar serviço'**
+  String get editServiceTitle;
+
+  /// No description provided for @deleteServiceQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir {name} da tabela de preços?'**
+  String deleteServiceQuestion(String name);
+
+  /// No description provided for @defaultProductsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais que este serviço consome'**
+  String get defaultProductsLabel;
+
+  /// No description provided for @defaultProductsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Toda vez que este serviço for realizado, esta é a baixa que aparece pronta na finalização.'**
+  String get defaultProductsHint;
+
+  /// No description provided for @noDefaultProducts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum material vinculado.'**
+  String get noDefaultProducts;
+
+  /// No description provided for @linkProductAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vincular material'**
+  String get linkProductAction;
+
+  /// No description provided for @stockItemLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Item do estoque'**
+  String get stockItemLabel;
+
+  /// No description provided for @materialsCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{sem materiais} =1{1 material} other{{count} materiais}}'**
+  String materialsCount(int count);
+
+  /// No description provided for @quantityWithUnit.
+  ///
+  /// In pt, this message translates to:
+  /// **'{quantity} {unit}'**
+  String quantityWithUnit(String quantity, String unit);
+
+  /// No description provided for @confirmConsumptionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar consumo'**
+  String get confirmConsumptionTitle;
+
+  /// No description provided for @confirmConsumptionHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veio pronto do serviço. Ajuste o que saiu a mais ou a menos antes de finalizar.'**
+  String get confirmConsumptionHint;
+
+  /// No description provided for @addMaterialAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar material'**
+  String get addMaterialAction;
+
+  /// No description provided for @noStockItemsToLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre um item no estoque para poder vincular.'**
+  String get noStockItemsToLink;
 
   /// No description provided for @consumedLabel.
   ///

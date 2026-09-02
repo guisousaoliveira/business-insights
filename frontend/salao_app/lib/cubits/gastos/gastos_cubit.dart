@@ -20,7 +20,8 @@ class GastosCubit extends Cubit<GastosState> {
   final GastosRepository _repository;
 
   Future<void> getGastos({required int ano, required int mes}) async {
-    emit(state.copyWith(getGastosSubState: BlocSubState.loading));
+    emit(
+        state.copyWith(getGastosSubState: state.getGastosSubState.toLoading()));
 
     try {
       final response = await _repository.getGastos(ano: ano, mes: mes);

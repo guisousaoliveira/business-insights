@@ -45,6 +45,12 @@ class AppTag extends StatelessWidget {
       : background = AppColors.primaryLight,
         foreground = AppColors.primaryDark;
 
+  /// Identidade com mais peso: o roxo cheio do protótipo, para o status que
+  /// ainda vai acontecer. Continua sendo identidade, não resultado.
+  const AppTag.accent(this.label, {super.key, this.icon, this.borderColor})
+      : background = AppColors.accentTint,
+        foreground = AppColors.primaryAccent;
+
   /// Inerte: cancelado, inativo.
   const AppTag.neutral(this.label, {super.key, this.icon, this.borderColor})
       : background = AppColors.surface2,
@@ -57,10 +63,13 @@ class AppTag extends StatelessWidget {
         StatusEstoque.ok => AppTag.success(label),
       };
 
+  /// Agendado é **roxo**, não âmbar: âmbar no app significa prazo apertado
+  /// (gasto a vencer, estoque em alerta), e um horário marcado não é risco.
+  /// Finalizado segue verde porque é a linha que entrou no caixa.
   factory AppTag.statusAtendimento(StatusAtendimento status, String label) =>
       switch (status) {
         StatusAtendimento.finalizado => AppTag.success(label),
-        StatusAtendimento.agendado => AppTag.warning(label),
+        StatusAtendimento.agendado => AppTag.accent(label),
         StatusAtendimento.cancelado => AppTag.neutral(label),
       };
 

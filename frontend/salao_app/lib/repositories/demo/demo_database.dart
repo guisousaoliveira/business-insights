@@ -52,6 +52,14 @@ class DemoDatabase {
   final List<Map<String, dynamic>> _atendimentos = [];
   final List<Map<String, dynamic>> _gastos = [];
   final List<Map<String, dynamic>> _custosFixos = [];
+
+  /// `custo fixo → { competência: data em que foi pago }`.
+  ///
+  /// Tabela à parte de propósito: custo fixo não se paga uma vez, ele volta
+  /// todo mês. Guardar `pago` dentro do cadastro faria o aluguel pago em
+  /// setembro nascer pago em outubro.
+  final Map<String, Map<String, String>> _custosFixosPagos = {};
+
   final Set<String> _alertasLidos = {};
 
   Map<String, dynamic> _perfil = {};
@@ -109,6 +117,15 @@ class DemoDatabase {
 
   static DateTime _dias(int quantidade) =>
       _hoje().add(Duration(days: quantidade));
+
+  /// O dia do mês resolvido em data. Dia 31 em fevereiro é o último dia de
+  /// fevereiro — o dia guardado não muda, quem resolve é o cálculo.
+  static DateTime _vencimentoNoMes(int dia, int ano, int mes) =>
+      DateTime(ano, mes, math.min(dia, DateTime(ano, mes + 1, 0).day));
+
+  static String _competencia(DateTime data) =>
+      '${data.year.toString().padLeft(4, '0')}-'
+      '${data.month.toString().padLeft(2, '0')}';
 
   static bool _noMes(DateTime data, int ano, int mes) =>
       data.year == ano && data.month == mes;
@@ -331,12 +348,19 @@ class DemoDatabase {
 
   // ── atendimentos ───────────────────────────────────────────────────────────
 
-  Map<String, dynamic> getAtendimentos(DateTime inicio, DateTime fim) {
+  /// [status] é a query csv opcional de `GET /atendimentos`. Vazia significa
+  /// "todos" — o filtro da tela manda a lista, não o app inteiro.
+  Map<String, dynamic> getAtendimentos(
+    DateTime inicio,
+    DateTime fim, {
+    List<String> status = const [],
+  }) {
     final limite = DateTime(fim.year, fim.month, fim.day, 23, 59, 59);
     final lista = _atendimentos
         .where((e) {
           final data = DateTime.parse(e['data'] as String);
-          return !data.isBefore(inicio) && !data.isAfter(limite);
+          if (data.isBefore(inicio) || data.isAfter(limite)) return false;
+          return status.isEmpty || status.contains(e['status']);
         })
         .map(_atendimentoToApi)
         .toList()
@@ -356,29 +380,33 @@ class DemoDatabase {
     );
   }
 
-  Map<String, dynamic> createAtendimento(Map<String, dynamic> body) {
-    // Preço do catálogo é congelado aqui, no servidor: mudar a tabela de preços
-    // depois não pode reescrever o histórico financeiro.
-    final servicos = (body['servicos'] as List).map((e) {
-      final linha = e as Map<String, dynamic>;
-      final id = linha['servico_id'] as String?;
-      if (id == null) {
+  /// Preço do catálogo é congelado aqui, no servidor: mudar a tabela de preços
+  /// depois não pode reescrever o histórico financeiro. Serviço avulso chega
+  /// com nome e preço e passa direto.
+  List<Map<String, dynamic>> _congelarServicos(List servicos) =>
+      servicos.map((e) {
+        final linha = e as Map<String, dynamic>;
+        final id = linha['servico_id'] as String?;
+        if (id == null) {
+          return {
+            'servico_id': null,
+            'nome': linha['nome'],
+            'preco': (linha['preco'] as num).toDouble(),
+          };
+        }
+        final servico = _servicos.firstWhere(
+          (s) => s['id'] == id,
+          orElse: () => _naoEncontrado('Serviço'),
+        );
         return {
-          'servico_id': null,
-          'nome': linha['nome'],
-          'preco': (linha['preco'] as num).toDouble(),
+          'servico_id': servico['id'],
+          'nome': servico['nome'],
+          'preco': servico['preco'],
         };
-      }
-      final servico = _servicos.firstWhere(
-        (s) => s['id'] == id,
-        orElse: () => _naoEncontrado('Serviço'),
-      );
-      return {
-        'servico_id': servico['id'],
-        'nome': servico['nome'],
-        'preco': servico['preco'],
-      };
-    }).toList();
+      }).toList();
+
+  Map<String, dynamic> createAtendimento(Map<String, dynamic> body) {
+    final servicos = _congelarServicos(body['servicos'] as List);
 
     _atendimentos.add({
       'id': _novoId('atendimento'),
@@ -389,6 +417,29 @@ class DemoDatabase {
       'servicos': servicos,
       'materiais': <Map<String, dynamic>>[],
     });
+    return envelope(const {});
+  }
+
+  /// `PATCH /atendimentos/{id}`: cliente, data e serviços. Cancelado recusa —
+  /// registro fora das contas não se reescreve. Finalizado aceita, e o preço do
+  /// catálogo é congelado de novo, igual à criação.
+  Map<String, dynamic> editAtendimento(String id, Map<String, dynamic> body) {
+    final atendimento = _atendimentos.firstWhere(
+      (e) => e['id'] == id,
+      orElse: () => _naoEncontrado('Atendimento'),
+    );
+    if (atendimento['status'] == 'cancelado') {
+      _erro(
+        AppErrorCodes.appointmentInvalidStatus,
+        status: 409,
+        mensagem: 'Um atendimento cancelado não pode ser editado.',
+      );
+    }
+
+    atendimento['cliente_nome'] = body['cliente_nome'];
+    atendimento['cliente_telefone'] = body['cliente_telefone'];
+    atendimento['data'] = body['data'];
+    atendimento['servicos'] = _congelarServicos(body['servicos'] as List);
     return envelope(const {});
   }
 
@@ -766,28 +817,104 @@ class DemoDatabase {
     return envelope(const {});
   }
 
-  Map<String, dynamic> getCustosFixos() => envelope(
-        {
-          'total_mensal': _custosFixos.fold<double>(
-            0,
-            (soma, e) => soma + (e['valor'] as double),
-          ),
-          'custos': _custosFixos,
-        },
-        total: _custosFixos.length,
-      );
+  /// Devolve sempre a competência **corrente**: é o mês que ela está fechando.
+  /// O `pago` não sai do cadastro, sai da tabela de pagamentos — por isso o mês
+  /// que vira zera todo mundo sem ninguém precisar desmarcar nada.
+  Map<String, dynamic> getCustosFixos() {
+    final competencia = _competencia(_hoje());
+    var pago = 0.0;
+    var pendente = 0.0;
+    final custos = <Map<String, dynamic>>[];
+
+    for (final custo in _custosFixos) {
+      final valor = custo['valor'] as double;
+      final pagoEm = _custosFixosPagos[custo['id']]?[competencia];
+      pagoEm == null ? pendente += valor : pago += valor;
+
+      custos.add({
+        ...custo,
+        'competencia': competencia,
+        'pago': pagoEm != null,
+        'pago_em': pagoEm,
+      });
+    }
+
+    return envelope(
+      {
+        'total_mensal': pago + pendente,
+        'total_pago': pago,
+        'total_pendente': pendente,
+        'custos': custos,
+      },
+      total: custos.length,
+    );
+  }
 
   Map<String, dynamic> createCustoFixo(Map<String, dynamic> body) {
     _custosFixos.add({
       'id': _novoId('custo'),
       'descricao': body['descricao'],
       'valor': (body['valor'] as num).toDouble(),
+      'dia_vencimento': _diaVencimento(body),
     });
     return envelope(const {});
   }
 
+  Map<String, dynamic> editCustoFixo(String id, Map<String, dynamic> body) {
+    final index = _custosFixos.indexWhere((e) => e['id'] == id);
+    if (index < 0) _naoEncontrado('Custo fixo');
+
+    _custosFixos[index] = {
+      ..._custosFixos[index],
+      'descricao': body['descricao'],
+      'valor': (body['valor'] as num).toDouble(),
+      'dia_vencimento': _diaVencimento(body),
+    };
+    return envelope(const {});
+  }
+
+  /// O dia é obrigatório no contrato, mas quem manda fora da faixa 1..31 leva
+  /// 422 — deixar passar um "dia 40" é criar uma data que nunca chega.
+  int _diaVencimento(Map<String, dynamic> body) {
+    final dia = (body['dia_vencimento'] as num?)?.toInt();
+    if (dia == null || dia < 1 || dia > 31) {
+      _erro(
+        AppErrorCodes.invalidValidation,
+        status: 422,
+        mensagem: 'Dia de vencimento deve estar entre 1 e 31.',
+      );
+    }
+    return dia;
+  }
+
   Map<String, dynamic> deleteCustoFixo(String id) {
     _custosFixos.removeWhere((e) => e['id'] == id);
+    _custosFixosPagos.remove(id);
+    return envelope(const {});
+  }
+
+  /// Marca ou desmarca o pagamento de uma competência.
+  ///
+  /// Desmarcar é tão necessário quanto marcar: um toque errado no celular não
+  /// pode calar o alerta do aluguel pelo mês inteiro.
+  Map<String, dynamic> pagarCustoFixo(String id, Map<String, dynamic> body) {
+    if (!_custosFixos.any((e) => e['id'] == id)) _naoEncontrado('Custo fixo');
+
+    final competencia = body['competencia'] as String? ?? '';
+    if (!RegExp(r'^\d{4}-(0[1-9]|1[0-2])$').hasMatch(competencia)) {
+      _erro(
+        AppErrorCodes.invalidValidation,
+        status: 422,
+        mensagem: 'Competência deve estar no formato AAAA-MM.',
+      );
+    }
+
+    final pagamentos = _custosFixosPagos.putIfAbsent(id, () => {});
+    if (body['pago'] == false) {
+      pagamentos.remove(competencia);
+    } else {
+      pagamentos[competencia] = DateTime.now().toIso8601String();
+    }
     return envelope(const {});
   }
 
@@ -799,19 +926,53 @@ class DemoDatabase {
       'id': _novoId('servico'),
       'nome': body['nome'],
       'preco': (body['preco'] as num).toDouble(),
-      'produtos_padrao':
-          (body['produtos_padrao'] as List? ?? const []).map((e) {
-        final linha = e as Map<String, dynamic>;
-        final item = _itemPorId(linha['item_estoque_id'] as String);
-        return {
-          'item_estoque_id': item['id'],
-          'nome': item['nome'],
-          'quantidade': (linha['quantidade'] as num).toDouble(),
-          'unidade': item['unidade'],
-        };
-      }).toList(),
+      'produtos_padrao': _produtosPadrao(body),
     });
     return envelope(const {});
+  }
+
+  Map<String, dynamic> editServico(String id, Map<String, dynamic> body) {
+    final index = _servicos.indexWhere((e) => e['id'] == id);
+    if (index < 0) _naoEncontrado('Serviço');
+
+    _servicos[index] = {
+      ..._servicos[index],
+      'nome': body['nome'],
+      'preco': (body['preco'] as num).toDouble(),
+      'produtos_padrao': _produtosPadrao(body),
+    };
+    return envelope(const {});
+  }
+
+  /// O corpo manda só `item_estoque_id` + `quantidade`; nome e unidade são do
+  /// item, e o servidor devolve resolvidos — senão a tela de finalizar
+  /// atendimento teria que cruzar duas listas para escrever "2 cx".
+  ///
+  /// Id inexistente é 404 aqui mesmo: vincular material fantasma criaria uma
+  /// baixa de estoque que nunca fecha.
+  List<Map<String, dynamic>> _produtosPadrao(Map<String, dynamic> body) {
+    final linhas = (body['produtos_padrao'] as List? ?? const []).map((e) {
+      final linha = e as Map<String, dynamic>;
+      final item = _itemPorId(linha['item_estoque_id'] as String);
+      return {
+        'item_estoque_id': item['id'],
+        'nome': item['nome'],
+        'quantidade': (linha['quantidade'] as num).toDouble(),
+        'unidade': item['unidade'],
+      };
+    }).toList();
+
+    // Item repetido é erro, não soma: duas linhas do mesmo material viram duas
+    // baixas, e ninguém confere isso na hora de finalizar.
+    final ids = linhas.map((e) => e['item_estoque_id']).toSet();
+    if (ids.length != linhas.length) {
+      _erro(
+        AppErrorCodes.invalidValidation,
+        status: 422,
+        mensagem: 'Material repetido na lista do serviço.',
+      );
+    }
+    return linhas;
   }
 
   Map<String, dynamic> deleteServico(String id) {
@@ -975,6 +1136,35 @@ class DemoDatabase {
 
   // ── alertas ────────────────────────────────────────────────────────────────
 
+  /// Uma semana de antecedência para tudo que vence: gasto pendente e custo
+  /// fixo. É o prazo que dá tempo de fazer alguma coisa — avisar no dia é só
+  /// informar que já era tarde.
+  static const diasAntecedenciaVencimento = 7;
+
+  /// Dias até o vencimento em aberto — negativo quando o dia deste mês já
+  /// passou e ninguém marcou como pago.
+  ///
+  /// Custo fixo não tem data, tem dia. Enquanto a competência corrente estiver
+  /// em aberto, o vencimento que interessa é o **deste mês**, e ele fica para
+  /// trás: é o que torna o `custo_fixo_vencido` possível. Pago o mês, o alvo
+  /// passa a ser o mês que vem.
+  ///
+  /// Mês curto encurta o dia: "todo dia 31" vira 28 em fevereiro. O dia 31
+  /// continua guardado; quem resolve o mês é este cálculo, na hora de avisar.
+  static int diasAteVencer(
+    int diaVencimento, {
+    DateTime? referencia,
+    bool pagoNoMes = false,
+  }) {
+    final hoje = referencia ?? _hoje();
+    final desteMes = _vencimentoNoMes(diaVencimento, hoje.year, hoje.month);
+
+    final alvo = desteMes.isBefore(hoje) && pagoNoMes
+        ? _vencimentoNoMes(diaVencimento, hoje.year, hoje.month + 1)
+        : desteMes;
+    return alvo.difference(hoje).inDays;
+  }
+
   /// Em produção quem gera é o job do backend. Aqui os alertas são derivados do
   /// estado a cada leitura — por isso o id é estável (`tipo:referencia`): é o
   /// que faz "marcar como lido" continuar valendo quando a lista é refeita.
@@ -989,8 +1179,10 @@ class DemoDatabase {
       required String mensagem,
       String? referenciaTipo,
       String? referenciaId,
+      String? competencia,
     }) {
-      final id = '$tipo:${referenciaId ?? 'geral'}';
+      final id = '$tipo:${referenciaId ?? 'geral'}'
+          '${competencia == null ? '' : ':$competencia'}';
       lista.add({
         'id': id,
         'tipo': tipo,
@@ -1034,7 +1226,7 @@ class DemoDatabase {
       final dias = DateTime.parse(gasto['prazo_pagamento'] as String)
           .difference(_hoje())
           .inDays;
-      if (dias > 3) continue;
+      if (dias > diasAntecedenciaVencimento) continue;
       adicionar(
         tipo: dias < 0 ? 'gasto_vencido' : 'gasto_a_vencer',
         severidade: dias < 0 ? 'critico' : 'alerta',
@@ -1044,6 +1236,34 @@ class DemoDatabase {
         mensagem: 'Valor de ${gasto['valor']}.',
         referenciaTipo: 'gasto',
         referenciaId: gasto['id'] as String,
+      );
+    }
+
+    final competenciaAtual = _competencia(_hoje());
+    for (final custo in _custosFixos) {
+      // Pago o mês, não há o que avisar. E o alerta some sozinho quando ela
+      // marca — é o que dá sentido ao check na tela de perfil.
+      final pago =
+          _custosFixosPagos[custo['id']]?.containsKey(competenciaAtual) ??
+              false;
+      if (pago) continue;
+
+      final dias = diasAteVencer(custo['dia_vencimento'] as int);
+      if (dias > diasAntecedenciaVencimento) continue;
+      adicionar(
+        tipo: dias < 0 ? 'custo_fixo_vencido' : 'custo_fixo_a_vencer',
+        severidade: dias < 0 ? 'critico' : 'alerta',
+        titulo: switch (dias) {
+          < 0 => '${custo['descricao']} venceu',
+          0 => '${custo['descricao']} vence hoje',
+          _ => '${custo['descricao']} vence em $dias dia(s)',
+        },
+        mensagem: 'Valor de ${custo['valor']}.',
+        referenciaTipo: 'custo_fixo',
+        referenciaId: custo['id'] as String,
+        // A competência entra na chave de dedupe: o aluguel de setembro e o de
+        // outubro são dois avisos, e marcar um como lido não cala o outro.
+        competencia: competenciaAtual,
       );
     }
 
@@ -1197,12 +1417,23 @@ class DemoDatabase {
     ]);
 
     _custosFixos.addAll([
-      {'id': _novoId('custo'), 'descricao': 'Aluguel', 'valor': 1200.0},
-      {'id': _novoId('custo'), 'descricao': 'Internet', 'valor': 99.0},
+      {
+        'id': _novoId('custo'),
+        'descricao': 'Aluguel',
+        'valor': 1200.0,
+        'dia_vencimento': 5,
+      },
+      {
+        'id': _novoId('custo'),
+        'descricao': 'Internet',
+        'valor': 99.0,
+        'dia_vencimento': 12,
+      },
       {
         'id': _novoId('custo'),
         'descricao': 'App de agendamento',
         'valor': 49.0,
+        'dia_vencimento': 20,
       },
     ]);
 

@@ -9,15 +9,15 @@ O índice de tudo — quais arquivos entregar e as regras que o app já assume �
 [`00-ENTREGA-BACKEND.md`](00-ENTREGA-BACKEND.md).
 
 **Situação hoje:** o app Flutter está pronto e compila (web e mobile), mas fala com um
-backend que existe em 4 dos 52 endpoints. Ele não tem tela mockada nem modo demo — sem
+backend que existe em 4 dos 53 endpoints. Ele não tem tela mockada nem modo demo — sem
 API, abre no login e para ali.
 
 | Frente | Estado |
 |---|---|
 | App Flutter | ✅ pronto — web, Android e iOS, 46 testes, `analyze` limpo |
-| Contrato de API | ✅ especificado — 52 operações |
+| Contrato de API | ✅ especificado — 53 operações |
 | Schema do banco | ✅ escrito — falta **executar** |
-| FastAPI | ⛔ 4 de 52 endpoints |
+| FastAPI | ⛔ 4 de 53 endpoints |
 | Push (FCM) | ⛔ depende de projeto Firebase |
 
 ### O que o app já implementa e espera encontrar
@@ -64,10 +64,10 @@ L6 é o único que depende de coisa fora do nosso controle (Firebase).
 # 2) database/migrations/002_seed_teste.sql  (só em dev/homolog)
 ```
 
-O script é idempotente. Depois de rodar, confira que estas 11 tabelas existem:
+O script é idempotente. Depois de rodar, confira que estas 12 tabelas existem:
 `perfil_salao` · `estoque_itens` · `estoque_movimentacoes` · `kits` · `kit_itens` ·
-`kit_vendas` · `servico_produtos_padrao` · `alertas` · `alerta_preferencias` ·
-`dispositivos` · `refresh_tokens`.
+`kit_vendas` · `servico_produtos_padrao` · `custos_fixos_pagamentos` · `alertas` ·
+`alerta_preferencias` · `dispositivos` · `refresh_tokens`.
 
 ### L0.2 · Validar o JWT de verdade `🔴 segurança`
 
@@ -136,17 +136,53 @@ aparece no cabeçalho.
 
 - `GET` traz `produtos_padrao` de cada serviço (join com `servico_produtos_padrao`) — é
   o que a finalização de atendimento pré-preenche.
+- `POST` e `PATCH` recebem `produtos_padrao` como lista de
+  `{item_estoque_id, quantidade}` e o `PATCH` **substitui a lista inteira**: o app manda
+  o estado final da tela, não um diff. Grave `delete` + `insert` na tabela de vínculo,
+  na mesma transação.
+- Devolva `nome` e `unidade` **resolvidos do item**, nunca ecoando o corpo — a tela
+  escreve "2 cx" sem cruzar duas listas.
+- `item_estoque_id` inexistente ou inativo é `404` e não grava nada: material fantasma
+  vira baixa de estoque que nunca fecha. Item repetido no mesmo corpo é
+  `422 VALIDACAO_INVALIDA` — duas linhas do mesmo material viram duas baixas que
+  ninguém confere na hora de finalizar.
 - `DELETE` de serviço já usado em atendimento é **soft delete** (`ativo = false`), senão
   o histórico perde o vínculo. Se não tem uso, pode apagar de verdade.
 
-### L1.2 · `perfil` (6)
+### L1.2 · `perfil` (7)
 
-`GET · PUT /perfil` + CRUD de `/perfil/custos-fixos`.
+`GET · PUT /perfil` + CRUD de `/perfil/custos-fixos` + `PATCH
+/perfil/custos-fixos/{id}/pagar`.
 
-`GET /perfil/custos-fixos` devolve `total_mensal` já somado — o app não soma lista.
+`GET /perfil/custos-fixos` devolve `total_mensal`, `total_pago` e `total_pendente` já
+somados — o app não soma lista.
+
+Cada custo carrega `dia_vencimento`, inteiro de 1 a 31, **obrigatório** no `POST` e no
+`PATCH` (fora da faixa: `422 VALIDACAO_INVALIDA`). O `PATCH` deixou de ser opcional: a
+tela de Perfil abre a linha e edita descrição, valor e dia. Guarde o dia literal, não
+uma data — quem resolve fevereiro é o agendador do aviso, na hora de avisar. A coluna
+entra em `custos_fixos` com `default 1`, que é o que os registros antigos passam a
+devolver.
+
+**Pagamento é por competência, não por cadastro.** Custo fixo não se paga uma vez: ele
+volta todo mês. `PATCH /perfil/custos-fixos/{id}/pagar` recebe
+`{ "competencia": "2026-09", "pago": true }` e grava em `custos_fixos_pagamentos`
+(`unique (custo_fixo_id, competencia)`, idempotente). O `GET` resolve `pago`/`pago_em`
+para a competência pedida (`?competencia=`, default: mês corrente) — por isso o aluguel
+pago em setembro nasce em aberto em outubro sem ninguém desmarcar nada.
+
+- `pago: false` **remove** a marcação. Desmarcar é tão necessário quanto marcar: um
+  toque errado no celular não pode calar o alerta do aluguel pelo mês inteiro.
+- Competência fora de `AAAA-MM`: `422 VALIDACAO_INVALIDA`.
+- **Pagar não lança `gasto`.** Custo fixo já entra no resultado do mês pelo perfil;
+  criar um gasto aqui contaria o aluguel duas vezes.
+- `DELETE` do custo apaga o histórico junto (`on delete cascade`).
 
 **Aceite do lote:** tela de Perfil lista, cria, edita e apaga serviço e custo fixo; o
-total mensal bate.
+total mensal bate; o dia de vencimento sobrevive a um `PATCH` que só muda o valor;
+vincular dois materiais a um serviço e reabrir a edição traz os dois, com nome e
+unidade do estoque; marcar um custo fixo como pago zera o `total_pendente` na proporção
+certa e, virado o mês, o mesmo custo volta em aberto.
 
 ---
 
@@ -162,12 +198,23 @@ Regras que moram no servidor:
 1. **Snapshot de preço.** `atendimento_servicos.preco_snapshot` copia o preço do serviço
    no momento do agendamento. Mudar o preço na tabela depois não pode reescrever o
    passado.
-2. **Status.** `PATCH` comum só aceita atendimento `agendado`; finalizado ou cancelado
-   recusa com `409 ATENDIMENTO_STATUS_INVALIDO`.
-3. **Finalizar dá baixa no estoque** — ver L3.3, é o ponto mais delicado do sistema.
-4. **Cancelar um finalizado estorna** as movimentações (movimentação de `entrada`
+2. **Status.** `PATCH` comum aceita `agendado` **e `finalizado`** — corrigir o nome do
+   cliente ou o serviço lançado depois do atendimento é o caso comum. Só `cancelado`
+   recusa, com `409 ATENDIMENTO_STATUS_INVALIDO`: registro fora das contas do mês não
+   se reescreve. O corpo nunca traz materiais (isso é `/finalizar`), e o preço do
+   catálogo é congelado de novo, igual ao `POST`.
+3. **Filtro de status no `GET`.** O `status` csv da query deixou de ser opcional na
+   prática: é o filtro da tela de atendimentos. `saldo_liquido` e `quantidade` têm que
+   refletir o filtro, não o mês inteiro.
+4. **Finalizar dá baixa no estoque** — ver L3.3, é o ponto mais delicado do sistema. A
+   lista de materiais que chega no corpo é o **estado final** da confirmação de consumo:
+   o app abre o modal pré-preenchido pelos `produtos_padrao` dos serviços do atendimento
+   (somando quando dois serviços pedem o mesmo item) e ela ajusta para mais, para menos,
+   remove ou acrescenta. O servidor não deduz consumo a partir do serviço — ele grava o
+   que foi confirmado.
+5. **Cancelar um finalizado estorna** as movimentações (movimentação de `entrada`
    compensatória, não `delete` — histórico não se apaga).
-5. `DELETE` só de agendado. Finalizado se cancela.
+6. `DELETE` só de agendado. Finalizado se cancela.
 
 ### L2.2 · `gastos` (5)
 
@@ -324,10 +371,21 @@ Um job (cron a cada hora, ou trigger + recálculo) mantém a tabela `alertas` vi
 | `estoque_negativo` | `quantidade_atual < 0` |
 | `estoque_critico` | `quantidade_atual == 0` |
 | `estoque_baixo` | `quantidade_atual <= quantidade_minima` |
-| `gasto_a_vencer` | pendente vencendo em ≤ `dias_antecedencia_gasto` |
+| `gasto_a_vencer` | pendente vencendo em ≤ `dias_antecedencia_vencimento` (7) |
 | `gasto_vencido` | pendente com prazo passado |
+| `custo_fixo_a_vencer` | competência corrente **em aberto**, vencendo em ≤ `dias_antecedencia_vencimento` |
+| `custo_fixo_vencido` | competência corrente **em aberto** com o `dia_vencimento` já passado |
 | `saldo_negativo` | saldo do mês < 0 |
 | `zero_a_zero` | saldo do mês < `limite_saldo_alerta` |
+
+Os dois tipos de custo fixo são a razão de ele ter `dia_vencimento` (L1.2). O par
+"vencido" existe porque o servidor **sabe** se ela pagou: `custos_fixos_pagamentos`
+responde isso. Enquanto a competência corrente estiver em aberto, o vencimento que
+conta é o **deste mês**, e ele fica para trás — isso é `custo_fixo_vencido`. Marcada
+como paga, a competência para de gerar alerta (resolva os que já existem) e o próximo
+alvo é o mês seguinte; em mês curto, o dia 31 avisa no dia 28. A `chave_dedupe` tem que
+incluir a competência (`custo_fixo:{id}:{ano}-{mes}`), senão o aviso do mês que vem
+morre deduplicado contra o deste mês.
 
 **Deduplicação é obrigatória.** O índice único `idx_alertas_dedupe` já força um alerta
 vivo por `chave_dedupe`. Sem isso, um cron horário gera 24 avisos por dia do mesmo vidro

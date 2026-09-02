@@ -133,6 +133,10 @@ Cancelado **não** entra em nenhum cálculo financeiro.
 
 Query: `inicio` (date), `fim` (date), `status` (opcional, csv), `pagina`, `tamanho`.
 
+> O `status` **é consumido pelo app** desde o filtro da tela de atendimentos: ele não é
+> opcional na prática. Filtrar no servidor e não na lista já baixada é o que faz
+> `saldo_liquido` e `quantidade` baterem com os cartões na tela.
+
 ```json
 // result — o agregado vem junto porque o cabeçalho verde da tela precisa dele
 {
@@ -183,8 +187,24 @@ atendimento — mudar o preço no perfil não pode reescrever o histórico. Serv
 ### `GET /atendimentos/{id}` — `NOVO`
 ### `PATCH /atendimentos/{id}` — `NOVO`
 
-Edita cliente, data e serviços de um atendimento **agendado**. Finalizado ou cancelado
-recusa com `409` + `ATENDIMENTO_STATUS_INVALIDO`.
+Edita cliente, data e serviços. Aceita **agendado e finalizado**; cancelado recusa com
+`409` + `ATENDIMENTO_STATUS_INVALIDO`.
+
+```json
+{
+  "cliente_nome": "Fernanda",
+  "cliente_telefone": "+5511988887777",
+  "data": "2026-09-03T14:00:00-03:00",
+  "servicos": [{ "servico_id": "uuid" }]
+}
+```
+
+> **Por que finalizado também edita.** Corrigir o nome do cliente ou o serviço lançado
+> num atendimento que já aconteceu é o caso comum — errar o nome só aparece depois. O
+> que continua fechado é **cancelado**: registro fora das contas do mês não se
+> reescreve. Materiais **não** entram neste corpo: quem mexe em material é
+> `/finalizar`, a operação que dá baixa no estoque — editar nunca move saldo de item.
+> O preço do catálogo é congelado de novo, igual ao `POST`.
 
 ### `PATCH /atendimentos/{id}/finalizar` — `NOVO`
 
@@ -202,6 +222,13 @@ recusa com `409` + `ATENDIMENTO_STATUS_INVALIDO`.
 cada material com `item_estoque_id`, gerando uma `movimentacao` do tipo `saida` com
 `atendimento_id` preenchido, e recalcula os alertas de estoque. O preço do material é o
 `custo_medio` do item no momento da baixa (snapshot — ver §5).
+
+**De onde vem essa lista:** o app abre a finalização com um modal de confirmação de
+consumo já preenchido pelos `produtos_padrao` dos serviços do atendimento (§8) —
+somando as quantidades quando dois serviços pedem o mesmo item. A usuária ajusta o que
+saiu a mais ou a menos, remove o que não usou e acrescenta o que usou fora do padrão.
+O corpo é sempre o **estado final** dessa conferência, nunca a diferença em relação ao
+padrão: o servidor não deduz consumo, ele grava o que foi confirmado.
 
 #### Estoque insuficiente: avisar e perguntar — `DECIDIDO`
 
@@ -584,7 +611,7 @@ já aconteceu.
 
 ---
 
-## 7. `perfil` — 6 operações
+## 7. `perfil` — 7 operações
 
 ### `GET /perfil` — `NOVO`
 ### `PUT /perfil` — `NOVO`
@@ -602,14 +629,62 @@ migram: o telefone fica aqui, o limite vai para as **preferências de alerta** (
 
 ### `GET /perfil/custos-fixos` — `NOVO`
 
+Aceita `?competencia=2026-09`; sem ela, vale o **mês corrente**.
+
 ```json
 { "total_mensal": 1348.00,
-  "custos": [{ "id": "uuid", "descricao": "Aluguel", "valor": 1200.00 }] }
+  "total_pago": 1200.00,
+  "total_pendente": 148.00,
+  "custos": [{ "id": "uuid", "descricao": "Aluguel", "valor": 1200.00,
+               "dia_vencimento": 5, "competencia": "2026-09",
+               "pago": true, "pago_em": "2026-09-03T10:12:00Z" }] }
 ```
+
+`pago` **não é campo do cadastro**: é o estado daquele custo *naquela
+competência*, resolvido pelo servidor a partir de `custos_fixos_pagamentos`. O
+mesmo aluguel volta com `pago: true` em setembro e `pago: false` em outubro sem
+que ninguém desmarque nada — é o que faz o custo fixo se comportar como
+compromisso recorrente, e não como lançamento.
+
+Os dois totais vêm somados do servidor: o app não soma lista.
 
 ### `POST /perfil/custos-fixos` — `NOVO`
 ### `PATCH /perfil/custos-fixos/{id}` — `NOVO`
+
+Mesmo corpo nos dois; o `PATCH` substitui os três campos.
+
+```json
+{ "descricao": "Aluguel", "valor": 1200.00, "dia_vencimento": 5 }
+```
+
+`dia_vencimento` é **inteiro de 1 a 31 e obrigatório** — fora da faixa,
+`422 VALIDACAO_INVALIDA`. Guarda-se o dia literal que a usuária escolheu, não uma
+data: "todo dia 31" continua sendo dia 31 em fevereiro, e quem agenda o aviso é que
+resolve o mês curto (último dia do mês). Sem ele um custo fixo é só uma parcela do
+total — não dá para avisar que vence amanhã nem para ordenar o mês.
+
+Custo fixo cadastrado antes deste campo existir volta com `dia_vencimento: 1`, que é
+o default da coluna.
+
 ### `DELETE /perfil/custos-fixos/{id}` — `NOVO`
+
+Apaga junto o histórico de pagamento do custo (`on delete cascade`).
+
+### `PATCH /perfil/custos-fixos/{id}/pagar` — `NOVO`
+
+```json
+{ "competencia": "2026-09", "pago": true }
+```
+
+Marca (ou desmarca) o pagamento de **uma competência**. É idempotente: pagar
+duas vezes o mesmo mês não duplica nada — `unique (custo_fixo_id, competencia)`.
+
+- `competencia` fora do formato `AAAA-MM` → `422 VALIDACAO_INVALIDA`.
+- `pago: false` remove a marcação e devolve o custo para pendente. Desmarcar é
+  tão necessário quanto marcar: um toque errado no celular não pode calar o
+  alerta do aluguel pelo mês inteiro.
+- **Pagar não lança gasto.** Custo fixo já entra no resultado do mês pelo
+  perfil; criar um `gasto` aqui contaria o aluguel duas vezes.
 
 ---
 
@@ -629,12 +704,35 @@ Tabela de preços do salão. Módulo próprio para não estourar o `perfil`.
 ] }
 ```
 
-`produtos_padrao` é o que a tela de finalizar atendimento pré-preenche. Existe no mock
-do Flutter (`Servico.produtosPadrao`) e não existe no banco — tabela
-`servico_produtos_padrao` a criar.
+`produtos_padrao` é o vínculo do serviço com o estoque: **todo serviço realizado
+consome, por padrão, os itens listados aqui**. É o que a tela de finalizar atendimento
+usa para já abrir a baixa preenchida — a usuária confere e ajusta o que saiu a mais ou
+a menos, em vez de lembrar do zero. Tabela `servico_produtos_padrao` a criar.
+
+`nome` e `unidade` vêm **resolvidos do item**, não do que o cliente mandou: sem isso a
+tela teria que cruzar duas listas só para escrever "2 cx".
 
 ### `POST /servicos` — `NOVO`
 ### `PATCH /servicos/{id}` — `NOVO`
+
+Mesmo corpo nos dois. O `PATCH` **substitui** a lista inteira de produtos padrão — o
+app manda o estado final da tela, não um diff:
+
+```json
+{ "nome": "Extensão de cílios", "preco": 180.00,
+  "produtos_padrao": [
+    { "item_estoque_id": "uuid", "quantidade": 1 }
+  ] }
+```
+
+- `produtos_padrao` é opcional; ausente ou `[]` significa serviço que não consome
+  material.
+- `item_estoque_id` inexistente ou inativo é **404**, e nada é gravado: material
+  fantasma vira uma baixa de estoque que nunca fecha.
+- `item_estoque_id` repetido no mesmo corpo é **422** — duas linhas do mesmo item viram
+  duas baixas que ninguém confere na hora de finalizar.
+- `quantidade` > 0.
+
 ### `DELETE /servicos/{id}` — `NOVO`
 
 Serviço já usado em atendimento: soft delete. O snapshot no atendimento preserva nome e
@@ -655,8 +753,10 @@ Tipos de alerta na V1:
 | `estoque_negativo` | `quantidade_atual < 0` (atendimento/montagem confirmados sem saldo) | `critico` |
 | `estoque_critico` | `quantidade_atual == 0` | `critico` |
 | `estoque_baixo` | `quantidade_atual <= quantidade_minima` | `alerta` |
-| `gasto_a_vencer` | pendente vencendo em ≤3 dias | `alerta` |
+| `gasto_a_vencer` | pendente vencendo em ≤7 dias | `alerta` |
 | `gasto_vencido` | pendente com prazo passado | `critico` |
+| `custo_fixo_a_vencer` | custo fixo da competência corrente **em aberto**, vencendo em ≤7 dias | `alerta` |
+| `custo_fixo_vencido` | custo fixo da competência corrente **em aberto** com o dia já passado | `critico` |
 | `saldo_negativo` | saldo do mês < 0 no fechamento parcial | `critico` |
 | `zero_a_zero` | saldo do mês < limite configurado | `alerta` |
 
@@ -702,7 +802,7 @@ recorte.
 ```json
 {
   "limite_saldo_alerta": 150.00,
-  "dias_antecedencia_gasto": 3,
+  "dias_antecedencia_vencimento": 7,
   "canais": {
     "in_app":   { "ativo": true },
     "push":     { "ativo": true },
@@ -712,6 +812,24 @@ recorte.
   "tipos_silenciados": ["zero_a_zero"]
 }
 ```
+
+`dias_antecedencia_vencimento` vale para **gasto pendente e custo fixo** — é uma
+janela só, e uma semana é o padrão: é o prazo que ainda dá tempo de fazer alguma
+coisa. (Chamava-se `dias_antecedencia_gasto`, com 3 dias; mudou junto com o custo fixo
+ganhar dia de vencimento, e nenhum backend consumia o nome antigo.)
+
+Custo fixo tem par "vencido" porque o servidor **sabe** se ela pagou: o `PATCH
+/perfil/custos-fixos/{id}/pagar` (§7) grava a competência. Enquanto o mês corrente
+estiver em aberto, o vencimento que conta é o **deste mês**, e ele fica para trás —
+isso é `custo_fixo_vencido`. Marcada como paga, a competência para de gerar alerta e o
+próximo alvo é o mês seguinte. Mês curto encurta o dia: com `dia_vencimento` 31,
+fevereiro avisa no dia 28; o 31 continua guardado.
+
+A **competência entra na chave de dedupe** dos dois tipos: o aluguel de setembro e o de
+outubro são dois avisos, e marcar um como lido não pode calar o outro.
+
+`referencia_tipo` é `custo_fixo`, e o app leva para o **Perfil** — é lá que ela marca
+como pago ou conserta o valor e o dia, não em Gastos.
 
 Os canais `whatsapp` e `email` já aparecem no contrato, desligados — ver §10.
 

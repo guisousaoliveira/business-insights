@@ -20,6 +20,7 @@ import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_storage.dart';
 import '../../../settings/app_utils.dart';
+import '../../components/app_alert_banner.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_error_retry.dart';
 import '../../components/app_icon.dart';
@@ -234,7 +235,11 @@ class _Dashboard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (alerta != null) ...[
-              _AlertBanner(alerta: alerta!),
+              AppAlertBanner(
+                title: alerta!.titulo,
+                message: alerta!.mensagem,
+                onTap: () => AppRoutes.push(AppRoutes.alertasRoute),
+              ),
               const SizedBox(height: 16),
             ],
             Row(children: [
@@ -271,29 +276,21 @@ class _Dashboard extends StatelessWidget {
             const SizedBox(height: 16),
             ResumoInsightsGrid(resumo: resumo),
             const SizedBox(height: 16),
-            if (wide)
-              Row(children: [
-                Expanded(
-                    child: _QuickAction(
-                  label: context.l10n.scheduleAppointmentLong,
-                  icon: AppAssets.atendimentos,
-                  onTap: () => AppRoutes.replace(AppRoutes.atendimentosRoute),
-                )),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: _QuickAction(
-                  label: context.l10n.newExpenseButton,
-                  icon: AppAssets.receipt,
-                  onTap: () => AppRoutes.replace(AppRoutes.gastosRoute),
-                )),
-              ])
-            else
-              _QuickAction(
+            Row(children: [
+              Expanded(
+                  child: _QuickAction(
                 label: context.l10n.scheduleAppointmentLong,
                 icon: AppAssets.atendimentos,
-                showAdd: true,
                 onTap: () => AppRoutes.replace(AppRoutes.atendimentosRoute),
-              ),
+              )),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: _QuickAction(
+                label: context.l10n.newExpenseButton,
+                icon: AppAssets.receipt,
+                onTap: () => AppRoutes.replace(AppRoutes.gastosRoute),
+              )),
+            ]),
             const SizedBox(height: 16),
             ResumoHistoryCard(historico: resumo.historicoSeisMeses),
             const SizedBox(height: 16),
@@ -358,49 +355,6 @@ class _Dashboard extends StatelessWidget {
             maiorReceita: resumo.maiorReceitaDoRanking,
           ),
         ],
-      );
-}
-
-class _AlertBanner extends StatelessWidget {
-  final AlertaModel alerta;
-  const _AlertBanner({required this.alerta});
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.dangerLight,
-          border: Border.all(color: AppColors.dangerMid),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(children: [
-          const AppIcon(
-            AppAssets.warning,
-            size: 17,
-            color: AppColors.danger,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  alerta.titulo,
-                  style: AppFonts.rowTitle(context)
-                      .copyWith(color: AppColors.danger),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  alerta.mensagem,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppFonts.captionSmall(context)
-                      .copyWith(color: AppColors.danger),
-                ),
-              ],
-            ),
-          ),
-        ]),
       );
 }
 

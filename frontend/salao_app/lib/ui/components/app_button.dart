@@ -20,6 +20,11 @@ class AppButton extends StatelessWidget {
   final bool isLoading;
   final bool isExpanded;
 
+  /// Versão baixa, para ação que mora **dentro** de um cartão. O alvo de toque
+  /// cai para 36dp porque ali o cartão inteiro já é uma área confortável — o
+  /// botão não é o único jeito de acertar o alvo.
+  final bool isDense;
+
   const AppButton({
     super.key,
     required this.label,
@@ -28,6 +33,7 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.isLoading = false,
     this.isExpanded = false,
+    this.isDense = false,
   });
 
   bool get _isEnabled => onPressed != null && !isLoading;
@@ -54,7 +60,7 @@ class AppButton extends StatelessWidget {
           AppLoading(size: 14, color: _foreground, isInline: true)
         else ...[
           if (icon != null) ...[
-            AppIcon(icon!, size: 15, color: _foreground),
+            AppIcon(icon!, size: isDense ? 14 : 15, color: _foreground),
             const SizedBox(width: 6),
           ],
           Text(
@@ -70,7 +76,7 @@ class AppButton extends StatelessWidget {
       child: AppTappable(
         onTap: _isEnabled ? onPressed : null,
         borderRadius: BorderRadius.circular(9),
-        minSize: 44,
+        minSize: isDense ? 36 : 44,
         child: Container(
           decoration: BoxDecoration(
             color: _background,
@@ -88,7 +94,9 @@ class AppButton extends StatelessWidget {
                   ]
                 : null,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: isDense
+              ? const EdgeInsets.symmetric(horizontal: 11, vertical: 8)
+              : const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: content,
         ),
       ),
