@@ -1,0 +1,224 @@
+{
+  "@@locale": "pt",
+
+  "appName": "Thamires Borges Beauty",
+
+  "unknownError": "Ocorreu um erro inesperado.",
+  "connectionError": "Sem conexão. Verifique sua internet.",
+  "unauthorizedError": "Sessão expirada. Entre novamente.",
+  "unknownPageError": "Não encontramos o que você procura.",
+  "requestError": "Não foi possível completar a solicitação.",
+  "responseError": "Erro no servidor. Tente novamente em instantes.",
+
+  "requiredInputError": "Campo obrigatório.",
+  "emailError": "E-mail inválido.",
+  "passwordTooShortError": "A senha precisa de ao menos 6 caracteres.",
+  "invalidNumberError": "Informe um número válido.",
+  "invalidPhoneError": "Telefone inválido.",
+  "invalidDateError": "Data inválida.",
+  "positiveValueError": "O valor precisa ser maior que zero.",
+
+  "invalidCredentialsError": "E-mail ou senha incorretos.",
+  "sessionExpiredError": "Sua sessão expirou. Entre novamente.",
+  "validationError": "Confira os campos destacados.",
+  "notFoundError": "Registro não encontrado.",
+  "appointmentStatusError": "Esta ação não vale para o status atual do atendimento.",
+  "insufficientStockError": "Não há saldo em estoque para dar baixa neste item.",
+  "itemInUseError": "Este item já tem histórico e não pode ser excluído.",
+  "kitNotAssembledError": "Você não tem kits montados suficientes. Monte antes de vender.",
+  "expenseAlreadyPaidError": "Este gasto já está pago.",
+  "rateLimitError": "Muitas tentativas. Aguarde um momento.",
+
+  "retry": "Tentar novamente",
+  "cancel": "Cancelar",
+  "confirm": "Confirmar",
+  "save": "Salvar",
+  "delete": "Excluir",
+  "edit": "Editar",
+  "add": "Adicionar",
+  "close": "Fechar",
+  "emptyList": "Nada por aqui ainda.",
+  "loading": "Carregando…",
+
+  "navAppointments": "Atendimentos",
+  "navExpenses": "Gastos",
+  "navSummary": "Resumo",
+  "navStock": "Estoque",
+  "navProfile": "Perfil",
+  "navAlerts": "Alertas",
+
+  "loginTitle": "Entrar",
+  "loginSubtitle": "Acompanhe o financeiro do seu salão.",
+  "emailLabel": "E-mail",
+  "emailHint": "voce@exemplo.com",
+  "passwordLabel": "Senha",
+  "signInButton": "Entrar",
+  "logout": "Sair",
+  "demoModeBanner": "Modo demo — dados de exemplo, nada é salvo de verdade. Entre com qualquer e-mail e senha.",
+
+  "appointmentsTitle": "Atendimentos",
+  "netBalanceInPeriod": "Saldo líquido no período",
+  "appointmentsCount": "{count, plural, =0{nenhum atendimento} =1{1 atendimento} other{{count} atendimentos}}",
+  "@appointmentsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "scheduleButton": "Agendar",
+  "statusScheduled": "Agendado",
+  "statusFinished": "Finalizado",
+  "statusCanceled": "Cancelado",
+  "netLabel": "líquido",
+  "forecastLabel": "previsto",
+  "clientLabel": "Cliente",
+  "dateLabel": "Data",
+  "statusLabel": "Status",
+  "valueLabel": "Valor",
+  "finishAppointment": "Finalizar",
+  "cancelAppointment": "Cancelar atendimento",
+  "cancelAppointmentQuestion": "Cancelar o atendimento de {client}?",
+  "@cancelAppointmentQuestion": {
+    "placeholders": { "client": { "type": "String" } }
+  },
+
+  "expensesTitle": "Gastos",
+  "pendingLabel": "Pendente",
+  "paidThisMonthLabel": "Pago no mês",
+  "pendingAndUpcoming": "Pendentes / próximos",
+  "alreadyPaid": "Já pagos",
+  "newExpenseButton": "Novo gasto",
+  "dueBy": "até {date}",
+  "@dueBy": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "categoryFixed": "fixo",
+  "categoryMaterial": "material",
+  "categoryOther": "outros",
+  "paymentCash": "à vista",
+  "paymentCredit": "crédito",
+  "paymentDebit": "débito",
+  "paymentPix": "pix",
+
+  "summaryTitle": "Resumo",
+  "monthBalance": "Saldo do mês",
+  "cameIn": "Entrou",
+  "wentOut": "Saiu",
+  "periodInsights": "Insights do período",
+  "averageTicket": "Ticket médio",
+  "profitMargin": "Margem de lucro",
+  "vsPreviousMonth": "Vs. mês anterior",
+  "mostProfitable": "Mais lucrativo",
+  "mostPerformedServices": "Serviços mais realizados",
+  "fixedCosts": "Custos fixos",
+  "purchasesAndRestock": "Compras e reposição",
+  "timesPerformed": "{count}×",
+  "@timesPerformed": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "stockTitle": "Estoque",
+  "itemsInAlert": "Itens em alerta",
+  "stockValue": "Valor em estoque",
+  "needRestock": "Precisam de reposição · {count}",
+  "@needRestock": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "stockOk": "Estoque ok · {count}",
+  "@stockOk": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "resaleKits": "Kits de revenda",
+  "newItemButton": "Novo item",
+  "stockCritical": "crítico",
+  "stockAlert": "alerta",
+  "stockNegative": "negativo",
+  "currentQuantity": "Atual: {quantity} {unit}",
+  "@currentQuantity": {
+    "placeholders": {
+      "quantity": { "type": "String" },
+      "unit": { "type": "String" }
+    }
+  },
+  "unitCost": "Custo un.: {value}",
+  "@unitCost": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "insufficientStockTitle": "Falta material no estoque",
+  "insufficientStockQuestion": "O saldo não cobre tudo que foi usado. Quer registrar mesmo assim?",
+  "insufficientStockHint": "O estoque vai ficar negativo e entrar na lista de reposição. Corrija quando repor.",
+  "insufficientStockRow": "Usou {requested} · tem {available} {unit}",
+  "@insufficientStockRow": {
+    "placeholders": {
+      "requested": { "type": "String" },
+      "available": { "type": "String" },
+      "unit": { "type": "String" }
+    }
+  },
+  "finishAnyway": "Registrar mesmo assim",
+
+  "assembleKit": "Montar",
+  "sellKit": "Vender",
+  "assembleKitTitle": "Montar kit",
+  "sellKitTitle": "Vender kit",
+  "assembledQuantity": "Montados: {count}",
+  "@assembledQuantity": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "assemblableQuantity": "Dá para montar: {count}",
+  "@assemblableQuantity": {
+    "placeholders": { "count": { "type": "String" } }
+  },
+  "quantityToAssembleLabel": "Quantos kits montar",
+  "quantityToSellLabel": "Quantos kits vender",
+  "unitPriceLabel": "Preço unitário",
+  "kitsRevenueLine": "{value} do que entrou veio de {count, plural, =1{1 kit vendido} other{{count} kits vendidos}}",
+  "@kitsRevenueLine": {
+    "placeholders": {
+      "value": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+
+  "stockHistory": "Histórico de movimentações",
+  "stockEntry": "entrada",
+  "stockExit": "saída",
+  "stockAdjustment": "ajuste",
+
+  "profileTitle": "Perfil do salão",
+  "ownerLabel": "Proprietária",
+  "monthlyFixedCosts": "Custos fixos mensais",
+  "monthlyTotal": "Total mensal",
+  "serviceTable": "Tabela de serviços",
+  "addAction": "+ Adicionar",
+
+  "alertsTitle": "Alertas",
+  "unreadAlerts": "{count, plural, =0{nenhum alerta novo} =1{1 alerta novo} other{{count} alertas novos}}",
+  "@unreadAlerts": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "markAllAsRead": "Marcar todos como lidos",
+
+  "descriptionLabel": "Descrição",
+  "paymentMethodLabel": "Forma de pagamento",
+  "categoryLabel": "Categoria",
+  "dueDateLabel": "Prazo de pagamento",
+  "whatsappLabel": "WhatsApp",
+  "servicesLabel": "Serviços",
+  "itemNameLabel": "Nome do item",
+  "unitLabel": "Unidade",
+  "quantityLabel": "Quantidade",
+  "minQuantityLabel": "Quantidade mínima",
+  "unitCostLabel": "Custo unitário",
+  "reasonLabel": "Motivo",
+  "stockEntryTitle": "Registrar entrada",
+  "serviceNameLabel": "Nome do serviço",
+  "priceLabel": "Preço",
+  "salonNameLabel": "Nome do salão",
+  "salonFallbackName": "Meu salão",
+  "phoneHint": "(11) 90000-0000",
+  "ownerNameLabel": "Proprietária",
+  "materialsUsedLabel": "Materiais usados",
+  "newFixedCostTitle": "Novo custo fixo",
+  "newServiceTitle": "Novo serviço",
+  "consumedLabel": "Consumido no atendimento",
+  "logoutQuestion": "Deseja sair da sua conta?",
+  "noAlerts": "Nenhum alerta no momento."
+}
