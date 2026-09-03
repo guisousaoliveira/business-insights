@@ -9,9 +9,10 @@ erro como tipo de dado, repository como interface + impl injetada, `copyWith` co
 `?? this.x`, `buildWhen` sempre presente, componentes `App*`, tokens em
 `AppColors`/`AppFonts`, nada de Material solto na tela, nada de string fora do ARB.
 
-> Este app é **web e mobile ao mesmo tempo**, com um usuário só e sem operação offline.
-> É a diferença que gera quase todas as divergências abaixo — a adaptação FrotaOP
-> (mobile puro, offline, multiusuário) **não se aplica aqui**, exceto onde citada.
+> Este app é **só Android/iOS** (decisão A10 — a web é o React em
+> `frontend/salao_web`), com um usuário só e sem operação offline. É a diferença que
+> gera quase todas as divergências abaixo — a adaptação FrotaOP (mobile puro, offline,
+> multiusuário) se aplica quase inteira, e o padrão base, que é web, não.
 
 ## S1 — Camada de dados: REST via Dio contra o FastAPI, e só ele
 
@@ -33,7 +34,7 @@ Nem Hive (padrão base), nem drift (adaptação FrotaOP).
 
 `AppStorage` mantém a mesma superfície pública do padrão
 (`read`/`write`/`delete`/`clear` + chaves centralizadas), implementada sobre
-`SharedPreferences`. Funciona igual em web e mobile, sem code-gen e sem banco local.
+`SharedPreferences`. Sem code-gen e sem banco local.
 
 Serve para o que o padrão sempre disse: **sessão e cache leve**. Mapas e listas são
 gravados como JSON string (`jsonEncode`/`jsonDecode`) — a fachada esconde isso; quem
@@ -43,28 +44,25 @@ chama continua vendo `read<Map>` / `write`.
 mostra o erro. Se um dia isso mudar, a camada `sync/` da adaptação FrotaOP é o caminho
 — e aí este parágrafo some.
 
-## S3 — A casca é web **e** mobile
+## S3 — A casca é só mobile
 
-O padrão base é web; a adaptação FrotaOP é mobile. Aqui as duas convivem no mesmo
-`AppScaffold`, que decide por `deviceType(context)`:
+O padrão base é web; a adaptação FrotaOP é mobile. **Aqui vale a do FrotaOP**: o
+`AppScaffold` tem uma forma só — app bar, `AppBottomNav` de 5 itens e FAB no canto
+inferior direito para a ação primária. Listas são sempre cartões empilhados, padding
+de 12px, e o `AppDialog` é sempre bottom sheet.
 
-| | ≤1024 (mobile/tablet) | >1024 (desktop) |
-|---|---|---|
-| Navegação | `AppBottomNav`, 5 itens | `AppSideMenu`, 172px |
-| Ação primária | FAB inferior direito | botão no cabeçalho da página |
-| Listas | cartões empilhados | `AppTable` ou grid de 2 colunas |
-| Padding | 12px | 22px / 26px |
+Isso mudou em 03/09/2026 com a decisão A10. Até ali havia um ramo `>1024` com menu
+lateral, `AppTable` e grid de duas colunas; ele foi removido junto com a pasta `web/`
+do projeto Flutter. **`AppTable` e `AppPagination` não existem mais** — se uma tabela
+voltar a ser necessária, ela nasce no React.
 
-`AppCurrentRoute` continua sendo a fonte única do item ativo — muda só quem o consome.
-**`AppTable` e `AppPagination` existem neste projeto** (ao contrário do FrotaOP), porque
-a casca web precisa deles.
+`AppCurrentRoute` continua sendo a fonte única do item ativo. `deviceType(context)`
+sobreviveu com três valores (`mobile`, `tablet`, `tabletLandscape`) e serve para
+densidade, não para trocar de casca — não existe mais `isWideLayout`.
 
-Breakpoints são os do padrão base (`app_media_querys.dart`, copiável literal): ≤640
-mobile · ≤1024 tablet · ≤1280 small desktop · >1280 desktop.
-
-**Alvo de toque mínimo de 44dp** nas telas mobile. Não é o mesmo cenário do FrotaOP
-(cabine, sol, mão suja) — aqui é uso de mão em ambiente interno — mas continua sendo
-toque, não mouse.
+**Alvo de toque mínimo de 44dp**, garantido pelo `AppTappable`. Não é o mesmo cenário
+do FrotaOP (cabine, sol, mão suja) — aqui é uso de mão em ambiente interno — mas
+continua sendo toque, não mouse.
 
 ## S4 — Um usuário, e mesmo assim nenhuma autorização no cliente
 
@@ -127,4 +125,4 @@ Além dos portões do padrão base, antes de marcar qualquer task como concluíd
 - [ ] Cubit trata sucesso, `DioException` e genérico — sempre terminando em `completed`
 - [ ] Repository não trata exceção, e nenhuma autorização é decidida no cliente
 - [ ] Cor de sinal (verde/vermelho/âmbar) usada por significado, não por estética
-- [ ] A tela foi verificada nas duas cascas: bottom nav e menu lateral
+- [ ] Nenhum ramo de layout por largura de tela: a casca é uma só (A10)
