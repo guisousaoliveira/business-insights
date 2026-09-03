@@ -65,7 +65,7 @@ void main() {
     });
   });
 
-  testWidgets('a barra inferior rotula só o destino ativo', (tester) async {
+  testWidgets('a barra inferior rotula todos os destinos', (tester) async {
     await tester.pumpWidget(
       wrap(
         const AppBottomNav(
@@ -75,12 +75,11 @@ void main() {
       ),
     );
 
-    // A9: o item ativo se destaca por cor, ícone e rótulo; os outros ficam só
-    // com o ícone, então procurar o texto deles aqui é procurar o que não
-    // deveria existir.
+    // Espelho do mobile web: os cinco destinos mantêm ícone e rótulo; o ativo
+    // se destaca somente por cor e peso, sem cápsula de fundo.
     expect(find.text('Resumo'), findsOneWidget);
     for (final inativo in ['Atendimentos', 'Gastos', 'Estoque', 'Perfil']) {
-      expect(find.text(inativo), findsNothing);
+      expect(find.text(inativo), findsOneWidget);
     }
 
     // Cinco destinos, e o badge de estoque com a contagem que chegou.

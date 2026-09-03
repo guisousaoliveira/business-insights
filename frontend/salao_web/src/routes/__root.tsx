@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Thamires Beauty — gestão financeira do seu salão" },
+      { title: "GlowApp — gestão financeira do seu salão" },
       {
         name: "description",
         content:
           "Controle atendimentos, gastos e estoque e descubra em segundos se o mês está dando lucro.",
       },
-      { name: "author", content: "Thamires Beauty" },
-      { property: "og:title", content: "Thamires Beauty — gestão financeira do seu salão" },
+      { name: "author", content: "GlowApp" },
+      { property: "og:title", content: "GlowApp — gestão financeira do seu salão" },
       {
         property: "og:description",
         content: "Atendimentos, gastos, estoque e lucro do salão em um só lugar.",
@@ -105,7 +105,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      { rel: "icon", href: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
     ],
   }),
   shellComponent: RootShell,

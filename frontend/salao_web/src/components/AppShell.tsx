@@ -50,10 +50,10 @@ function Logo({ compacto = false }: { compacto?: boolean }) {
       {!compacto ? (
         <span className="min-w-0">
           <span className="block truncate font-display text-[15px] leading-tight font-semibold">
-            Thamires
+            GlowApp
           </span>
           <span className="block truncate text-[10px] font-semibold tracking-[0.18em] text-primary-dark uppercase">
-            Beauty
+            Gestão financeira
           </span>
         </span>
       ) : null}

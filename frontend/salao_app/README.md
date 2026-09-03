@@ -1,6 +1,6 @@
-# Salão App — Flutter (Android/iOS)
+# GlowApp — Flutter (Android/iOS)
 
-O app de celular da Thamires Borges Beauty. **Só mobile**: desde a decisão A10 a
+O app de celular do GlowApp. **Só mobile**: desde a decisão A10 a
 web é um projeto React separado, em `frontend/salao_web`.
 
 Contexto do produto, decisões (A1–A10) e o padrão arquitetural estão no

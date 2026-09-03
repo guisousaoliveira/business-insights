@@ -76,6 +76,9 @@ class _GastosScreenState extends State<GastosScreen> {
             builder: (context, state) => AppScaffold(
               currentPage: AppCurrentRoute.gastos,
               title: context.l10n.expensesTitle,
+              subtitle: context.l10n.expensesSubtitle(
+                AppUtils.dateToMonthName(DateTime.now()),
+              ),
               primaryActionLabel: context.l10n.newExpenseButton,
               onPrimaryAction: _openNovoGasto,
               alertCount: alertasState.badgeCount,

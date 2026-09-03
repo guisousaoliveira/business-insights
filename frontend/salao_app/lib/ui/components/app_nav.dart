@@ -155,8 +155,10 @@ class AppBottomNav extends StatelessWidget {
                   final label = item.label(context);
                   final icon = AppIcon(
                     isActive ? item.activeIcon : item.icon,
-                    size: 22,
-                    color: isActive ? AppColors.primaryDark : AppColors.text3,
+                    size: 20,
+                    color: isActive
+                        ? AppColors.primaryAccent
+                        : AppColors.text3,
                   );
 
                   return Expanded(
@@ -189,18 +191,20 @@ class AppBottomNav extends StatelessWidget {
                             const SizedBox(height: 3),
                             SizedBox(
                               height: 14,
-                              child: isActive
-                                  ? Text(
-                                      label,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primaryDark,
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: isActive
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: isActive
+                                      ? AppColors.primaryAccent
+                                      : AppColors.text3,
+                                ),
+                              ),
                             ),
                           ],
                         ),

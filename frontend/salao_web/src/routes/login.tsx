@@ -10,13 +10,12 @@ import { textoDoErro, useLogin, useSessao } from "@/lib/queries";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Entrar — Thamires Beauty" },
+      { title: "Entrar — GlowApp" },
       {
         name: "description",
-        content:
-          "Acesse o Thamires Beauty e acompanhe faturamento, gastos, lucro e estoque do seu salão.",
+        content: "Acesse o GlowApp e acompanhe faturamento, gastos, lucro e estoque do seu salão.",
       },
-      { property: "og:title", content: "Entrar — Thamires Beauty" },
+      { property: "og:title", content: "Entrar — GlowApp" },
       {
         property: "og:description",
         content: "Gestão financeira simples para profissionais de beleza.",
@@ -55,7 +54,7 @@ function LoginPage() {
           <span className="grid size-11 place-items-center rounded-2xl bg-surface/20">
             <Sparkles className="size-5" />
           </span>
-          <span className="font-display text-xl font-semibold">Thamires Beauty</span>
+          <span className="font-display text-xl font-semibold">GlowApp</span>
         </div>
         <div className="max-w-md">
           <h2 className="font-display text-4xl leading-tight font-semibold">
@@ -78,7 +77,7 @@ function LoginPage() {
             <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-brand-gradient text-primary-foreground shadow-glow">
               <Sparkles className="size-6" />
             </span>
-            <h1 className="mt-4 font-display text-2xl font-semibold">Thamires Beauty</h1>
+            <h1 className="mt-4 font-display text-2xl font-semibold">GlowApp</h1>
             <p className="mt-1 text-sm text-muted-foreground">Gestão financeira do seu salão</p>
           </div>
 

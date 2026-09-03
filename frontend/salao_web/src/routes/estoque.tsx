@@ -69,13 +69,13 @@ import type {
 export const Route = createFileRoute("/estoque")({
   head: () => ({
     meta: [
-      { title: "Estoque e kits — Thamires Beauty" },
+      { title: "Estoque e kits — GlowApp" },
       {
         name: "description",
         content:
           "Acompanhe saldo, custo médio ponderado e monte kits para revenda usando os insumos do salão.",
       },
-      { property: "og:title", content: "Estoque e kits — Thamires Beauty" },
+      { property: "og:title", content: "Estoque e kits — GlowApp" },
       {
         property: "og:description",
         content: "Saldo de produtos, entradas, saídas e kits prontos para vender.",

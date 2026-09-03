@@ -47,13 +47,13 @@ import type { CategoriaGasto, FormaPagamento, Gasto } from "@/lib/types";
 export const Route = createFileRoute("/gastos")({
   head: () => ({
     meta: [
-      { title: "Gastos e contas — Thamires Beauty" },
+      { title: "Gastos e contas — GlowApp" },
       {
         name: "description",
         content:
           "Controle materiais, custos fixos e outras contas do salão por categoria, status e vencimento.",
       },
-      { property: "og:title", content: "Gastos e contas — Thamires Beauty" },
+      { property: "og:title", content: "Gastos e contas — GlowApp" },
       {
         property: "og:description",
         content: "Veja o que já foi pago, o que está pendente e o que venceu no seu salão.",

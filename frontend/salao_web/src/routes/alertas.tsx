@@ -33,13 +33,13 @@ import type { TipoAlerta } from "@/lib/types";
 export const Route = createFileRoute("/alertas")({
   head: () => ({
     meta: [
-      { title: "Central de alertas — Thamires Beauty" },
+      { title: "Central de alertas — GlowApp" },
       {
         name: "description",
         content:
           "Estoque baixo, contas a vencer e metas em risco reunidos em um só lugar, com marcação de leitura.",
       },
-      { property: "og:title", content: "Central de alertas — Thamires Beauty" },
+      { property: "og:title", content: "Central de alertas — GlowApp" },
       {
         property: "og:description",
         content: "Acompanhe avisos de estoque, vencimentos e metas do seu salão.",

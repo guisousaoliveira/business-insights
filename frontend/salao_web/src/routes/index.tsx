@@ -48,13 +48,13 @@ import { textoDoErro, useEstoque, useGastos, useResumo, useSessao } from "@/lib/
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Resumo financeiro — Thamires Beauty" },
+      { title: "Resumo financeiro — GlowApp" },
       {
         name: "description",
         content:
           "Veja em segundos quanto você faturou, gastou e lucrou no mês, além de pendências e produtos para repor.",
       },
-      { property: "og:title", content: "Resumo financeiro — Thamires Beauty" },
+      { property: "og:title", content: "Resumo financeiro — GlowApp" },
       {
         property: "og:description",
         content: "Faturamento, gastos, lucro, ticket médio e alertas do seu salão em uma tela.",

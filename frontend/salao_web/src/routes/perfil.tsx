@@ -66,13 +66,13 @@ import type { CustoFixo, Servico } from "@/lib/types";
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
-      { title: "Perfil e serviços — Thamires Beauty" },
+      { title: "Perfil e serviços — GlowApp" },
       {
         name: "description",
         content:
           "Dados do salão, meta de faturamento, custos fixos recorrentes e cadastro de serviços com insumos padrão.",
       },
-      { property: "og:title", content: "Perfil e serviços — Thamires Beauty" },
+      { property: "og:title", content: "Perfil e serviços — GlowApp" },
       {
         property: "og:description",
         content: "Configure meta, custos fixos e a tabela de serviços do seu salão.",

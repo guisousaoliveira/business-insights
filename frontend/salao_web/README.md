@@ -1,6 +1,6 @@
-# Salão Web — React
+# GlowApp Web — React
 
-O front-end web da Thamires Borges Beauty. É onde ela senta para fechar as contas;
+O front-end web do GlowApp. É onde a profissional senta para fechar as contas;
 o dia a dia acontece no app Flutter (`../salao_app`), que atende Android e iOS.
 
 Contexto do produto, contrato da API e as decisões A1–A10 estão no

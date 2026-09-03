@@ -1,10 +1,10 @@
-# AGENTS.md — Thamires Borges Beauty (business-insights)
+# AGENTS.md — GlowApp (business-insights)
 
 Contexto permanente do projeto. Leia antes de tocar em qualquer arquivo.
 
 ## O que é
 
-App de gestão financeira para um salão de beleza de uma profissional autônoma
+GlowApp é o app de gestão financeira para um salão de beleza de uma profissional autônoma
 (Thamires Borges Beauty). Responde a uma pergunta só, de várias formas: **"eu estou
 ganhando ou perdendo dinheiro?"** — por atendimento, por mês, por serviço.
 
@@ -55,7 +55,7 @@ ele**. Vieram de perguntas explícitas, não de dedução.
 | **A5** | **Estoque insuficiente avisa, não bloqueia.** Finalizar atendimento e montar kit perguntam "quer registrar mesmo assim?". | Duas passadas no mesmo endpoint: a primeira não grava nada e devolve `409 ESTOQUE_INSUFICIENTE` com `result.faltantes`; a segunda leva `confirmar_estoque_insuficiente: true`, deixa o saldo negativo e gera alerta. `StatusEstoque` ganha `negativo`, distinto de `critico`. |
 | **A6** | **Custo do item é média ponderada móvel**, não o último preço pago. | Cada entrada recalcula `custo_medio`; `custo_ultima_compra` fica ao lado, informativo. Uma compra cara ou promocional não reescreve o custo do saldo parado — a margem só se move quando o custo real se move. |
 | **A7** | **Montar kit é operação real.** Ela monta kits com o estoque que já tem, e vende depois. | Montar e vender são fatos separados, em momentos diferentes: o kit tem saldo próprio (`quantidade_montada`). Montar consome insumo e passa pelo aviso de A5; vender **não** tem segunda passada — `KIT_NAO_MONTADO` é definitivo, um kit que não existe não se vende. |
-| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "Thamires Beauty". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. É a identidade do app nas lojas — cara de mudar depois. |
+| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "GlowApp". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. O bundle id legado permanece estável para não criar outro app nas lojas. |
 | **A9** | **Resumo é a entrada do app e segue o painel Lovable de 02/09/2026.** | É a primeira aba e a `homeRoute`. Consolida alerta, resultado mensal, histórico de seis meses, lucro por serviço, meta, próximos gastos e reposição. A bottom bar destaca o ativo só por cor/ícone/rótulo, sem fundo. |
 | **A10** | **A web é React; o Flutter é só Android/iOS.** (03/09/2026) | O MVP do Lovable virou `frontend/salao_web`, com a camada de dados reescrita contra o contrato. O Flutter **perdeu a casca de desktop**: sem menu lateral, sem `AppTable`, sem `deviceType.desktop`, sem pasta `web/`. Cada front-end tem seu padrão (`padrao-flutter-salao.md`, `padrao-react-salao.md`), mas o contrato, os códigos de erro e as decisões A1–A9 valem para os dois. |
 

@@ -1,7 +1,7 @@
 {
   "@@locale": "pt",
 
-  "appName": "Thamires Borges Beauty",
+  "appName": "GlowApp",
 
   "unknownError": "Ocorreu um erro inesperado.",
   "connectionError": "Sem conexão. Verifique sua internet.",
@@ -98,6 +98,8 @@
   "canceledAppointmentHint": "Atendimento cancelado — fora das contas do mês.",
 
   "expensesTitle": "Gastos",
+  "expensesSubtitle": "Materiais, custos fixos e outras contas de {month}",
+  "@expensesSubtitle": { "placeholders": { "month": { "type": "String" } } },
   "pendingLabel": "Pendente",
   "paidThisMonthLabel": "Pago no mês",
   "pendingAndUpcoming": "Pendentes / próximos",
@@ -167,6 +169,7 @@
   },
 
   "stockTitle": "Estoque",
+  "stockSubtitle": "Saldo, custo médio e kits para revenda",
   "itemsInAlert": "Itens em alerta",
   "stockValue": "Valor em estoque",
   "needRestock": "Precisam de reposição · {count}",
@@ -234,7 +237,8 @@
   "stockExit": "saída",
   "stockAdjustment": "ajuste",
 
-  "profileTitle": "Perfil do salão",
+  "profileTitle": "Perfil",
+  "profileSubtitle": "Dados do salão, custos fixos e serviços",
   "ownerLabel": "Proprietária",
   "monthlyFixedCosts": "Custos fixos mensais",
   "monthlyTotal": "Total mensal",
@@ -242,6 +246,8 @@
   "addAction": "+ Adicionar",
 
   "alertsTitle": "Alertas",
+  "alertsSubtitle": "{count, plural, =0{nenhum aviso não lido} =1{1 aviso não lido} other{{count} avisos não lidos}}",
+  "@alertsSubtitle": { "placeholders": { "count": { "type": "int" } } },
   "unreadAlerts": "{count, plural, =0{nenhum alerta novo} =1{1 alerta novo} other{{count} alertas novos}}",
   "@unreadAlerts": {
     "placeholders": { "count": { "type": "int" } }

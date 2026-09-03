@@ -169,6 +169,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           builder: (context, alertasState) => AppScaffold(
             currentPage: AppCurrentRoute.perfil,
             title: context.l10n.profileTitle,
+            subtitle: context.l10n.profileSubtitle,
             alertCount: alertasState.badgeCount,
             trailingIcon: AppAssets.logout,
             onTrailingAction: _logout,

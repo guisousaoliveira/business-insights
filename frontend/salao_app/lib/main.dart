@@ -55,7 +55,7 @@ class MainApp extends StatelessWidget {
         // Envolve o MaterialApp para o AppSnackBar funcionar de qualquer rota.
         child: ScaffoldMessenger(
           child: MaterialApp(
-            title: 'Thamires Borges Beauty',
+            title: 'GlowApp',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             navigatorKey: AppRoutes.navigatorKey,

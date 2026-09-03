@@ -133,6 +133,7 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
             builder: (context, state) => AppScaffold(
               currentPage: AppCurrentRoute.estoque,
               title: context.l10n.stockTitle,
+              subtitle: context.l10n.stockSubtitle,
               primaryActionLabel: context.l10n.newItemButton,
               onPrimaryAction: _openNovoItem,
               trailingIcon: AppAssets.history,

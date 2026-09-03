@@ -8,17 +8,13 @@ import '../../../cubits/servicos/servicos_cubit.dart';
 import '../../../models/alertas/get_alertas_response_model.dart';
 import '../../../models/atendimentos/atendimento_model.dart';
 import '../../../models/atendimentos/get_atendimentos_response_model.dart';
-import '../../../settings/app_assets.dart';
-import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_extensions.dart';
-import '../../../settings/app_fonts.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_alert_banner.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_error_retry.dart';
-import '../../components/app_icon.dart';
 import '../../components/app_scaffold.dart';
 import '../../components/app_snackbar.dart';
 import '../../components/app_sub_state_builder.dart';
@@ -166,8 +162,7 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
               primaryActionLabel: context.l10n.scheduleButton,
               onPrimaryAction: _openNovoAtendimento,
               alertCount: alertasState.badgeCount,
-              headerLeading: _buildHeaderAvatar(),
-              headerTitle: _buildHeaderTitle(context),
+              subtitle: context.l10n.appointmentsSubtitle,
               child: AppSubStateBuilder<GetAtendimentosResponseModel>(
                 subState: state.getAtendimentosSubState,
                 onError: (error) =>
@@ -177,36 +172,6 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
             ),
           ),
         ),
-      );
-
-  Widget _buildHeaderAvatar() => Container(
-        width: 36,
-        height: 36,
-        alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-          shape: BoxShape.circle,
-        ),
-        child: const AppIcon(
-          AppAssets.atendimentos,
-          size: 17,
-          color: AppColors.white,
-        ),
-      );
-
-  Widget _buildHeaderTitle(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            context.l10n.appointmentsTitle,
-            style: AppFonts.pageTitle(context),
-          ),
-          Text(
-            context.l10n.appointmentsSubtitle,
-            style: AppFonts.captionSmall(context),
-          ),
-        ],
       );
 
   Widget _buildBody(

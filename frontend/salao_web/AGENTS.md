@@ -9,9 +9,9 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 
-# Salão Web — regras do projeto
+# GlowApp Web — regras do projeto
 
-Front-end web da Thamires Borges Beauty (salão de beleza, usuária única). O app de
+Front-end web do GlowApp (salão de beleza, usuária única). O app de
 celular é o Flutter em `../salao_app`; os dois falam com o **mesmo** FastAPI.
 
 Leia antes de mexer: [`../../CLAUDE.md`](../../CLAUDE.md) (contexto e decisões A1–A10)

@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In pt, this message translates to:
-  /// **'Thamires Borges Beauty'**
+  /// **'GlowApp'**
   String get appName;
 
   /// No description provided for @unknownError.
@@ -574,6 +574,12 @@ abstract class AppLocalizations {
   /// **'Gastos'**
   String get expensesTitle;
 
+  /// No description provided for @expensesSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Materiais, custos fixos e outras contas de {month}'**
+  String expensesSubtitle(String month);
+
   /// No description provided for @pendingLabel.
   ///
   /// In pt, this message translates to:
@@ -898,6 +904,12 @@ abstract class AppLocalizations {
   /// **'Estoque'**
   String get stockTitle;
 
+  /// No description provided for @stockSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo, custo médio e kits para revenda'**
+  String get stockSubtitle;
+
   /// No description provided for @itemsInAlert.
   ///
   /// In pt, this message translates to:
@@ -1081,8 +1093,14 @@ abstract class AppLocalizations {
   /// No description provided for @profileTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Perfil do salão'**
+  /// **'Perfil'**
   String get profileTitle;
+
+  /// No description provided for @profileSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados do salão, custos fixos e serviços'**
+  String get profileSubtitle;
 
   /// No description provided for @ownerLabel.
   ///
@@ -1119,6 +1137,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Alertas'**
   String get alertsTitle;
+
+  /// No description provided for @alertsSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{nenhum aviso não lido} =1{1 aviso não lido} other{{count} avisos não lidos}}'**
+  String alertsSubtitle(int count);
 
   /// No description provided for @unreadAlerts.
   ///

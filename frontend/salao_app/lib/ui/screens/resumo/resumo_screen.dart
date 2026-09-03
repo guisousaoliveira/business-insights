@@ -128,20 +128,6 @@ class _ResumoScreenState extends State<ResumoScreen> {
                   primaryActionLabel: context.l10n.scheduleAppointmentLong,
                   onPrimaryAction: () =>
                       AppRoutes.replace(AppRoutes.atendimentosRoute),
-                  headerLeading: Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const AppIcon(
-                      AppAssets.sparkles,
-                      size: 18,
-                      color: AppColors.white,
-                    ),
-                  ),
                   headerTitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,

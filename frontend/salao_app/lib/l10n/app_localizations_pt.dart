@@ -9,7 +9,7 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appName => 'Thamires Borges Beauty';
+  String get appName => 'GlowApp';
 
   @override
   String get unknownError => 'Ocorreu um erro inesperado.';
@@ -269,6 +269,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get expensesTitle => 'Gastos';
 
   @override
+  String expensesSubtitle(String month) {
+    return 'Materiais, custos fixos e outras contas de $month';
+  }
+
+  @override
   String get pendingLabel => 'Pendente';
 
   @override
@@ -455,6 +460,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get stockTitle => 'Estoque';
 
   @override
+  String get stockSubtitle => 'Saldo, custo médio e kits para revenda';
+
+  @override
   String get itemsInAlert => 'Itens em alerta';
 
   @override
@@ -569,7 +577,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get stockAdjustment => 'ajuste';
 
   @override
-  String get profileTitle => 'Perfil do salão';
+  String get profileTitle => 'Perfil';
+
+  @override
+  String get profileSubtitle => 'Dados do salão, custos fixos e serviços';
 
   @override
   String get ownerLabel => 'Proprietária';
@@ -588,6 +599,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get alertsTitle => 'Alertas';
+
+  @override
+  String alertsSubtitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count avisos não lidos',
+      one: '1 aviso não lido',
+      zero: 'nenhum aviso não lido',
+    );
+    return '$_temp0';
+  }
 
   @override
   String unreadAlerts(int count) {

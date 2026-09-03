@@ -65,6 +65,7 @@ class _AlertasScreenState extends State<AlertasScreen> {
           builder: (context, state) => AppScaffold(
             currentPage: AppCurrentRoute.alertas,
             title: context.l10n.alertsTitle,
+            subtitle: context.l10n.alertsSubtitle(state.badgeCount),
             alertCount: state.badgeCount,
             child: AppSubStateBuilder<GetAlertasResponseModel>(
               subState: state.getAlertasSubState,

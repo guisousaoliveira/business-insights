@@ -19,6 +19,7 @@ import 'app_tappable.dart';
 class AppScaffold extends StatelessWidget {
   final AppCurrentRoute currentPage;
   final String title;
+  final String? subtitle;
   final Widget child;
 
   /// "Agendar", "Novo gasto", "Novo item" — o FAB do canto inferior direito.
@@ -41,6 +42,7 @@ class AppScaffold extends StatelessWidget {
     super.key,
     required this.currentPage,
     required this.title,
+    this.subtitle,
     required this.child,
     this.primaryActionLabel,
     this.onPrimaryAction,
@@ -69,7 +71,7 @@ class AppScaffold extends StatelessWidget {
                     children: [
                       Padding(
                         padding: isPadded
-                            ? const EdgeInsets.all(12)
+                            ? const EdgeInsets.all(16)
                             : EdgeInsets.zero,
                         child: isScrollable
                             ? SingleChildScrollView(
@@ -114,13 +116,29 @@ class AppScaffold extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 14, 8, 10),
         child: Row(
           children: [
-            if (headerLeading != null) ...[
-              headerLeading!,
-              const SizedBox(width: 10),
-            ],
+            headerLeading ?? const _BrandMark(),
+            const SizedBox(width: 10),
             Expanded(
               child: headerTitle ??
-                  Text(title, style: AppFonts.appBarTitle(context)),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.appBarTitle(context),
+                      ),
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.captionSmall(context),
+                        ),
+                    ],
+                  ),
             ),
             if (trailingIcon != null)
               AppTappable(
@@ -202,34 +220,53 @@ class _Fab extends StatelessWidget {
   const _Fab({required this.label, required this.icon, this.onTap});
 
   @override
-  Widget build(BuildContext context) => AppTappable(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.primaryShadow,
-                blurRadius: 18,
-                offset: Offset(0, 8),
-              ),
-            ],
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: label,
+        child: AppTappable(
+          onTap: onTap,
+          minSize: 56,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            width: 56,
+            height: 56,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primaryShadow,
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: AppIcon(icon, size: 24, color: AppColors.white),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppIcon(icon, size: 16, color: AppColors.white),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style:
-                    AppFonts.button(context).copyWith(color: AppColors.white),
-              ),
-            ],
-          ),
+        ),
+      );
+}
+
+class _BrandMark extends StatelessWidget {
+  const _BrandMark();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(color: AppColors.primaryShadow, blurRadius: 10),
+          ],
+        ),
+        child: const AppIcon(
+          AppAssets.sparkles,
+          size: 17,
+          color: AppColors.white,
         ),
       );
 }

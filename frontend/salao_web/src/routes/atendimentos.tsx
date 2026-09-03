@@ -59,13 +59,13 @@ import type { Atendimento, FaltanteEstoque, StatusAtendimento } from "@/lib/type
 export const Route = createFileRoute("/atendimentos")({
   head: () => ({
     meta: [
-      { title: "Atendimentos — Thamires Beauty" },
+      { title: "Atendimentos — GlowApp" },
       {
         name: "description",
         content:
           "Agende, finalize e acompanhe o lucro de cada atendimento do salão, com baixa automática de produtos.",
       },
-      { property: "og:title", content: "Atendimentos — Thamires Beauty" },
+      { property: "og:title", content: "Atendimentos — GlowApp" },
       {
         property: "og:description",
         content: "Controle de agenda, valores cobrados, custos e lucro por atendimento.",
