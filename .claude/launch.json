@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "salao-web-demo",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend/salao_web", "run", "dev:demo", "--", "--port", "8081", "--strictPort"],
+      "port": 8081,
+      "autoPort": false
+    }
+  ]
+}
