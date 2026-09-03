@@ -17,7 +17,7 @@ class AppFilterOption<T> {
 
 /// A pílula de filtro do protótipo — rótulo do que está selecionado e uma
 /// seta. Tocar abre a lista de opções no mesmo contêiner do resto do app
-/// (bottom sheet no mobile, diálogo na web).
+/// (o bottom sheet do [AppDialog]).
 ///
 /// É componente e não widget de tela porque duas telas já pedem o mesmo objeto:
 /// o período do Resumo e os dois filtros de Atendimentos.

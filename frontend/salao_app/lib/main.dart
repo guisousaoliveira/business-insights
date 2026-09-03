@@ -64,8 +64,8 @@ class MainApp extends StatelessWidget {
             initialRoute: AppRoutes.defaultRoute,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            // Na web, arrastar com o mouse tem que rolar a lista como o dedo
-            // rola no celular.
+            // O mouse do emulador e do desktop de desenvolvimento rola a
+            // lista como o dedo rola no celular.
             scrollBehavior: const MaterialScrollBehavior().copyWith(
               dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch},
               scrollbars: false,

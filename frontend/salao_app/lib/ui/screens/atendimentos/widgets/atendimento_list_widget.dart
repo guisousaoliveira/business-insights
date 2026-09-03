@@ -2,16 +2,14 @@ import 'package:flutter/widgets.dart';
 
 import '../../../../models/atendimentos/atendimento_model.dart';
 import '../../../../settings/app_extensions.dart';
-import '../../../../settings/app_media_querys.dart';
 import '../../../components/app_empty_list_warning.dart';
 import 'atendimento_card_widget.dart';
 
-/// A lista de atendimentos nas duas cascas: **os mesmos cartões**, empilhados
-/// no mobile e em duas colunas na web.
+/// A lista de atendimentos: cartões empilhados.
 ///
-/// A tabela que existia aqui na web saiu: o cartão carrega ação (finalizar,
-/// editar, cancelar) e detalhe que abre no lugar, e nada disso cabe numa
-/// célula de tabela sem virar outro fluxo.
+/// Cartão e não tabela porque cada linha carrega ação (finalizar, editar,
+/// cancelar) e detalhe que abre no lugar — nada disso cabe numa célula sem
+/// virar outro fluxo.
 class AtendimentoListWidget extends StatelessWidget {
   static const _gap = 12.0;
 
@@ -52,35 +50,14 @@ class AtendimentoListWidget extends StatelessWidget {
       );
     }
 
-    if (!isWideLayout(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final atendimento in atendimentos) ...[
-            _card(atendimento),
-            const SizedBox(height: _gap),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final atendimento in atendimentos) ...[
+          _card(atendimento),
+          const SizedBox(height: _gap),
         ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.maxWidth - _gap) / 2;
-
-        return Wrap(
-          spacing: _gap,
-          runSpacing: _gap,
-          children: atendimentos
-              .map(
-                (atendimento) => SizedBox(
-                  width: width,
-                  child: _card(atendimento),
-                ),
-              )
-              .toList(),
-        );
-      },
+      ],
     );
   }
 }

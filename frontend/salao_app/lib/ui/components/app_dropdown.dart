@@ -148,7 +148,7 @@ class _AppDropdownState extends State<AppDropdown> {
   }
 }
 
-/// O seletor compacto do cabeçalho web ("mai/2025 ▾") — mesmo dado, densidade
+/// O seletor compacto de cabeçalho ("mai/2025 ▾") — mesmo dado, densidade
 /// menor, sem rótulo.
 class AppChipSelect extends StatelessWidget {
   final String label;

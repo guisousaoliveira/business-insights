@@ -9,10 +9,9 @@ enum BlocDataState { idle, loading, completed }
 
 enum SnackBarStatus { sucess, error, alert }
 
-enum DeviceType { desktop, smallDesktop, tablet, tabletLandscape, mobile }
+enum DeviceType { tablet, tabletLandscape, mobile }
 
-/// Item ativo da navegação — consumido pelo menu lateral (web) e pela barra
-/// inferior (mobile).
+/// Item ativo da navegação — consumido pela barra inferior.
 enum AppCurrentRoute { atendimentos, gastos, resumo, estoque, perfil, alertas }
 
 // ── Atendimentos ─────────────────────────────────────────────────────────────

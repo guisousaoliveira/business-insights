@@ -166,9 +166,8 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
               primaryActionLabel: context.l10n.scheduleButton,
               onPrimaryAction: _openNovoAtendimento,
               alertCount: alertasState.badgeCount,
-              narrowHeaderLeading: _buildHeaderAvatar(),
-              narrowHeaderTitle: _buildHeaderTitle(context),
-              wideHeaderTitle: _buildHeaderTitle(context),
+              headerLeading: _buildHeaderAvatar(),
+              headerTitle: _buildHeaderTitle(context),
               child: AppSubStateBuilder<GetAtendimentosResponseModel>(
                 subState: state.getAtendimentosSubState,
                 onError: (error) =>

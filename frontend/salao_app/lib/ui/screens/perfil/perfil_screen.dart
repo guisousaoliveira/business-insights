@@ -14,7 +14,6 @@ import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_extensions.dart';
 import '../../../settings/app_fonts.dart';
-import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_card.dart';
@@ -178,20 +177,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
               children: [
                 _buildPerfilCard(context),
                 const SizedBox(height: 16),
-                if (isWideLayout(context))
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _buildCustosFixos(context)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _buildServicos(context)),
-                    ],
-                  )
-                else ...[
-                  _buildCustosFixos(context),
-                  const SizedBox(height: 16),
-                  _buildServicos(context),
-                ],
+                _buildCustosFixos(context),
+                const SizedBox(height: 16),
+                _buildServicos(context),
               ],
             ),
           ),
@@ -203,53 +191,47 @@ class _PerfilScreenState extends State<PerfilScreen> {
         buildWhen: (p, c) => p.getPerfilSubState != c.getPerfilSubState,
         builder: (context, state) => AppSubStateBuilder<GetPerfilResponseModel>(
           subState: state.getPerfilSubState,
-          onData: (data) => ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isWideLayout(context) ? 420 : double.infinity,
-            ),
-            child: AppCard(
-              padding: const EdgeInsets.all(13),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const AppIcon(
-                      AppAssets.perfil,
-                      size: 24,
-                      color: AppColors.primaryDark,
-                    ),
+          onData: (data) => AppCard(
+            padding: const EdgeInsets.all(13),
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          data.perfil.nome,
-                          style: AppFonts.pageTitle(context)
-                              .copyWith(fontSize: 15),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          data.perfil.proprietaria.isEmpty
-                              ? context.l10n.ownerLabel
-                              : data.perfil.proprietaria,
-                          style:
-                              AppFonts.caption(context).copyWith(fontSize: 12),
-                        ),
-                      ],
-                    ),
+                  child: const AppIcon(
+                    AppAssets.perfil,
+                    size: 24,
+                    color: AppColors.primaryDark,
                   ),
-                  const AppIcon(AppAssets.edit, size: 16),
-                ],
-              ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        data.perfil.nome,
+                        style:
+                            AppFonts.pageTitle(context).copyWith(fontSize: 15),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        data.perfil.proprietaria.isEmpty
+                            ? context.l10n.ownerLabel
+                            : data.perfil.proprietaria,
+                        style: AppFonts.caption(context).copyWith(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                const AppIcon(AppAssets.edit, size: 16),
+              ],
             ),
           ),
         ),

@@ -4,10 +4,10 @@ import 'package:flutter/widgets.dart';
 
 import '../../settings/app_colors.dart';
 
-/// Área clicável sem o ripple do Material, com cursor de mão na web.
+/// Área clicável sem o ripple do Material.
 ///
 /// Toda interação do app passa por aqui: é o que garante o alvo de toque mínimo
-/// de 44dp no mobile (S3) sem repetir `constraints` em cada tela.
+/// de 44dp (S3) sem repetir `constraints` em cada tela.
 class AppTappable extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;

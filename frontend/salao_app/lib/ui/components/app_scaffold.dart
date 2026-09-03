@@ -4,45 +4,34 @@ import 'package:flutter/widgets.dart';
 import '../../settings/app_assets.dart';
 import '../../settings/app_colors.dart';
 import '../../settings/app_enums.dart';
-import '../../settings/app_extensions.dart';
 import '../../settings/app_fonts.dart';
-import '../../settings/app_media_querys.dart';
 import '../../settings/app_routes.dart';
-import '../../settings/app_storage.dart';
-import 'app_button.dart';
 import 'app_icon.dart';
 import 'app_nav.dart';
 import 'app_tappable.dart';
 
-/// A casca de toda tela, nas **duas** formas (S3):
+/// A casca de toda tela do app (Android/iOS): app bar, barra inferior de 5
+/// itens e FAB para a ação primária.
 ///
-/// - ≤1024: app bar, barra inferior de 5 itens, FAB para a ação primária;
-/// - \>1024: menu lateral de 172px, cabeçalho com título, a ação primária
-///   virando botão e o sino de alertas à direita dele — sem barra inferior e
-///   sem FAB.
-///
-/// A tela não sabe em qual está: descreve título, ação primária e conteúdo.
+/// Desde A10 existe **uma** casca só — a web é o app React em
+/// `frontend/salao_web`. A tela continua sem saber onde está: descreve título,
+/// ação primária e conteúdo.
 class AppScaffold extends StatelessWidget {
   final AppCurrentRoute currentPage;
   final String title;
   final Widget child;
 
-  /// "Agendar", "Novo gasto", "Novo item" — FAB no mobile, botão no cabeçalho
-  /// na web.
+  /// "Agendar", "Novo gasto", "Novo item" — o FAB do canto inferior direito.
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
   final IconData primaryActionIcon;
 
-  /// Ação secundária do canto (o relógio de histórico em Estoque; na web ela
-  /// acompanha o título).
+  /// Ação secundária do canto (o relógio de histórico em Estoque).
   final IconData? trailingIcon;
   final VoidCallback? onTrailingAction;
 
-  /// Seletor de período do cabeçalho de Resumo.
-  final Widget? headerTrailing;
-  final Widget? narrowHeaderLeading;
-  final Widget? narrowHeaderTitle;
-  final Widget? wideHeaderTitle;
+  final Widget? headerLeading;
+  final Widget? headerTitle;
 
   final int alertCount;
   final bool isScrollable;
@@ -58,92 +47,15 @@ class AppScaffold extends StatelessWidget {
     this.primaryActionIcon = AppAssets.add,
     this.trailingIcon,
     this.onTrailingAction,
-    this.headerTrailing,
-    this.narrowHeaderLeading,
-    this.narrowHeaderTitle,
-    this.wideHeaderTitle,
+    this.headerLeading,
+    this.headerTitle,
     this.alertCount = 0,
     this.isScrollable = true,
     this.isPadded = true,
   });
 
   @override
-  Widget build(BuildContext context) =>
-      isWideLayout(context) ? _buildWide(context) : _buildNarrow(context);
-
-  // ── Web ────────────────────────────────────────────────────────────────────
-
-  Widget _buildWide(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.scaffold,
-        body: SafeArea(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppSideMenu(
-                currentPage: currentPage,
-                salonName: AppStorage.read<String>(AppStorage.salonInfoKey) ??
-                    context.l10n.salonFallbackName,
-                alertCount: alertCount,
-              ),
-              Expanded(
-                child: _PageEnter(
-                  child: Padding(
-                    padding: isPadded
-                        ? const EdgeInsets.fromLTRB(26, 22, 26, 22)
-                        : EdgeInsets.zero,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildWideHeader(context),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: isScrollable
-                              ? SingleChildScrollView(child: child)
-                              : child,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-  Widget _buildWideHeader(BuildContext context) => Row(
-        children: [
-          Expanded(
-            child: wideHeaderTitle ??
-                Text(title, style: AppFonts.pageTitle(context)),
-          ),
-          if (trailingIcon != null) ...[
-            AppTappable(
-              onTap: onTrailingAction,
-              minSize: 38,
-              borderRadius: BorderRadius.circular(8),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: AppIcon(trailingIcon!, size: 18),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (headerTrailing != null) headerTrailing!,
-          if (primaryActionLabel != null) ...[
-            if (headerTrailing != null) const SizedBox(width: 10),
-            AppButton(
-              label: primaryActionLabel!,
-              icon: primaryActionIcon,
-              onPressed: onPrimaryAction,
-            ),
-          ],
-          const SizedBox(width: 14),
-          _AlertBell(count: alertCount),
-        ],
-      );
-
-  // ── Mobile ─────────────────────────────────────────────────────────────────
-
-  Widget _buildNarrow(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => Scaffold(
         backgroundColor: AppColors.scaffold,
         body: SafeArea(
           bottom: false,
@@ -202,12 +114,12 @@ class AppScaffold extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 14, 8, 10),
         child: Row(
           children: [
-            if (narrowHeaderLeading != null) ...[
-              narrowHeaderLeading!,
+            if (headerLeading != null) ...[
+              headerLeading!,
               const SizedBox(width: 10),
             ],
             Expanded(
-              child: narrowHeaderTitle ??
+              child: headerTitle ??
                   Text(title, style: AppFonts.appBarTitle(context)),
             ),
             if (trailingIcon != null)
@@ -236,9 +148,8 @@ class AppScaffold extends StatelessWidget {
 /// A entrada do conteúdo da página: ~230ms subindo 10px enquanto aparece.
 ///
 /// É a **única** animação da troca de aba. A rota entre telas da casca troca
-/// sem transição (ver `AppRoutes.isShellRoute`), então o menu lateral e a
-/// barra inferior ficam imóveis, como se fossem uma casca só; o movimento
-/// acontece daqui para dentro. Cada rota constrói um `_PageEnter` novo — que é
+/// sem transição (ver `AppRoutes.isShellRoute`), então a barra inferior fica
+/// imóvel, como se fosse uma casca só; o movimento acontece daqui para dentro. Cada rota constrói um `_PageEnter` novo — que é
 /// exatamente uma vez por troca de aba.
 class _PageEnter extends StatefulWidget {
   final Widget child;
@@ -279,26 +190,6 @@ class _PageEnterState extends State<_PageEnter>
             offset: Offset(0, 10 * (1 - _curve.value)),
             child: child,
           ),
-        ),
-      );
-}
-
-/// O sino de alertas do cabeçalho web, à direita da ação primária. É o mesmo
-/// alvo e o mesmo badge da app bar mobile — muda só onde ele mora.
-class _AlertBell extends StatelessWidget {
-  final int count;
-
-  const _AlertBell({required this.count});
-
-  @override
-  Widget build(BuildContext context) => AppTappable(
-        onTap: () => AppRoutes.push(AppRoutes.alertasRoute),
-        minSize: 38,
-        borderRadius: BorderRadius.circular(19),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: AppBadge(
-          count: count,
-          child: const AppIcon(AppAssets.alert, size: 20),
         ),
       );
 }

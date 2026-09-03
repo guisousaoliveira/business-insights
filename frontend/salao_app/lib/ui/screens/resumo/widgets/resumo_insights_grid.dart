@@ -5,14 +5,13 @@ import '../../../../settings/app_assets.dart';
 import '../../../../settings/app_colors.dart';
 import '../../../../settings/app_extensions.dart';
 import '../../../../settings/app_fonts.dart';
-import '../../../../settings/app_media_querys.dart';
 import '../../../../settings/app_utils.dart';
 import '../../../components/app_card.dart';
 import '../../../components/app_icon.dart';
 
 /// Os cinco números principais do mês, na ordem visual do novo painel.
 ///
-/// 2×2 no mobile, 1×4 na web — é o mesmo conteúdo reflowado, não outra tela.
+/// Sempre 2×2 mais um: cinco cartões em três linhas, do maior para o menor.
 class ResumoInsightsGrid extends StatelessWidget {
   final GetResumoMensalResponseModel resumo;
 
@@ -58,20 +57,6 @@ class ResumoInsightsGrid extends StatelessWidget {
         helper: context.l10n.finalizedInMonth,
       ),
     ];
-
-    if (isWideLayout(context)) {
-      return IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (var index = 0; index < cards.length; index++) ...[
-              if (index > 0) const SizedBox(width: 12),
-              Expanded(child: cards[index]),
-            ],
-          ],
-        ),
-      );
-    }
 
     return Column(
       children: [

@@ -14,7 +14,6 @@ import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_error_codes.dart';
 import '../../../settings/app_extensions.dart';
-import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
@@ -148,10 +147,7 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
                   children: [
                     _buildMetrics(context, data),
                     const SizedBox(height: 16),
-                    if (isWideLayout(context))
-                      _buildWideLists(context, data)
-                    else
-                      _buildNarrowLists(context, data),
+                    _buildListas(context, data),
                     const SizedBox(height: 16),
                     AppSectionLabel(context.l10n.resaleKits),
                     const SizedBox(height: 8),
@@ -178,16 +174,6 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
       value: AppUtils.numToMoney(data.valorTotal),
     );
 
-    if (isWideLayout(context)) {
-      return Row(
-        children: [
-          SizedBox(width: 220, child: alertas),
-          const SizedBox(width: 12),
-          SizedBox(width: 220, child: valor),
-        ],
-      );
-    }
-
     return Row(
       children: [
         Expanded(child: alertas),
@@ -197,7 +183,7 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
     );
   }
 
-  Widget _buildNarrowLists(
+  Widget _buildListas(
     BuildContext context,
     GetEstoqueItensResponseModel data,
   ) =>
@@ -207,19 +193,6 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
           _buildAlertaSection(context, data),
           const SizedBox(height: 16),
           _buildOkSection(context, data),
-        ],
-      );
-
-  Widget _buildWideLists(
-    BuildContext context,
-    GetEstoqueItensResponseModel data,
-  ) =>
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildAlertaSection(context, data)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildOkSection(context, data)),
         ],
       );
 

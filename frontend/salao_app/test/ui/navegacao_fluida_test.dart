@@ -5,6 +5,7 @@ import 'package:salon_app/cubits/bloc_substate.dart';
 import 'package:salon_app/l10n/app_localizations.dart';
 import 'package:salon_app/models/error_model.dart';
 import 'package:salon_app/settings/app_enums.dart';
+import 'package:salon_app/ui/components/app_icon.dart';
 import 'package:salon_app/ui/components/app_loading.dart';
 import 'package:salon_app/ui/components/app_nav.dart';
 import 'package:salon_app/ui/components/app_sub_state_builder.dart';
@@ -64,18 +65,26 @@ void main() {
     });
   });
 
-  testWidgets('o menu lateral fecha com Sair, não com Alertas', (tester) async {
+  testWidgets('a barra inferior rotula só o destino ativo', (tester) async {
     await tester.pumpWidget(
       wrap(
-        const AppSideMenu(
+        const AppBottomNav(
           currentPage: AppCurrentRoute.resumo,
-          salonName: 'Thamires Beauty',
           alertCount: 3,
         ),
       ),
     );
 
-    expect(find.text('Sair'), findsOneWidget);
-    expect(find.text('Alertas'), findsNothing);
+    // A9: o item ativo se destaca por cor, ícone e rótulo; os outros ficam só
+    // com o ícone, então procurar o texto deles aqui é procurar o que não
+    // deveria existir.
+    expect(find.text('Resumo'), findsOneWidget);
+    for (final inativo in ['Atendimentos', 'Gastos', 'Estoque', 'Perfil']) {
+      expect(find.text(inativo), findsNothing);
+    }
+
+    // Cinco destinos, e o badge de estoque com a contagem que chegou.
+    expect(find.byType(AppIcon), findsNWidgets(5));
+    expect(find.text('3'), findsOneWidget);
   });
 }

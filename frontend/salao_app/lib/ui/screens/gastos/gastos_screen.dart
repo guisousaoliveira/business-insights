@@ -8,7 +8,6 @@ import '../../../models/gastos/gasto_model.dart';
 import '../../../models/gastos/get_gastos_response_model.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_extensions.dart';
-import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
@@ -89,10 +88,7 @@ class _GastosScreenState extends State<GastosScreen> {
                   children: [
                     _buildMetrics(context, data),
                     const SizedBox(height: 16),
-                    if (isWideLayout(context))
-                      _buildWideLists(context, data)
-                    else
-                      _buildNarrowLists(context, data),
+                    _buildListas(context, data),
                   ],
                 ),
               ),
@@ -111,18 +107,6 @@ class _GastosScreenState extends State<GastosScreen> {
       value: AppUtils.numToMoney(data.totalPagoMes),
     );
 
-    // Na web os cartões têm largura fixa e sobra espaço; no mobile eles dividem
-    // a linha igualmente.
-    if (isWideLayout(context)) {
-      return Row(
-        children: [
-          SizedBox(width: 220, child: pendente),
-          const SizedBox(width: 12),
-          SizedBox(width: 220, child: pago),
-        ],
-      );
-    }
-
     return Row(
       children: [
         Expanded(child: pendente),
@@ -132,7 +116,7 @@ class _GastosScreenState extends State<GastosScreen> {
     );
   }
 
-  Widget _buildNarrowLists(BuildContext context, GetGastosResponseModel data) =>
+  Widget _buildListas(BuildContext context, GetGastosResponseModel data) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -149,40 +133,6 @@ class _GastosScreenState extends State<GastosScreen> {
             const AppEmptyListWarning()
           else
             GastoListWidget(gastos: data.pagos, onTogglePago: _pagar),
-        ],
-      );
-
-  Widget _buildWideLists(BuildContext context, GetGastosResponseModel data) =>
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppSectionLabel(context.l10n.pendingAndUpcoming),
-                const SizedBox(height: 8),
-                if (data.pendentes.isEmpty)
-                  const AppEmptyListWarning()
-                else
-                  GastoListWidget(gastos: data.pendentes, onTogglePago: _pagar),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AppSectionLabel(context.l10n.alreadyPaid),
-                const SizedBox(height: 8),
-                if (data.pagos.isEmpty)
-                  const AppEmptyListWarning()
-                else
-                  GastoListWidget(gastos: data.pagos, onTogglePago: _pagar),
-              ],
-            ),
-          ),
         ],
       );
 

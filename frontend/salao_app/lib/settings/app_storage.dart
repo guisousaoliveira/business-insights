@@ -8,7 +8,7 @@ import 'app_logger.dart';
 ///
 /// Mantém a fachada do padrão — `read` síncrono, `write` assíncrono, chaves
 /// centralizadas, falha silenciosa se não inicializado — mas sem Hive e sem
-/// drift: funciona igual em web e mobile, sem code-gen e sem banco local.
+/// drift: sem code-gen e sem banco local.
 ///
 /// **Serve para sessão e cache leve.** Não é offline-first: escrita sem rede
 /// falha no repository e a UI mostra o erro.
@@ -29,7 +29,7 @@ class AppStorage {
   static const selectedPeriodKey = 'selected_period';
 
   /// Id do item de estoque que a tela de detalhe deve abrir (passagem entre
-  /// telas que sobrevive a F5 na web — ver 07 do padrão).
+  /// telas que sobrevive ao app ser retomado — ver 07 do padrão).
   static const selectedStockItemKey = 'selected_stock_item';
 
   static Future<void> initialize() async {

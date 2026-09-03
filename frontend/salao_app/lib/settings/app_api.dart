@@ -8,8 +8,8 @@ import 'app_utils.dart';
 /// URL base — **nunca fixa no código**.
 ///
 /// ```bash
-/// flutter run                                          # usa o default de dev
-/// flutter build web --dart-define-from-file=env/prod.json
+/// flutter run                                            # default de dev
+/// flutter build apk --dart-define-from-file=env/prod.json
 /// ```
 const _baseUrl = String.fromEnvironment(
   'API_BASE_URL',

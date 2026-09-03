@@ -1,8 +1,8 @@
 /// Configuração de ambiente resolvida em **tempo de compilação**.
 ///
 /// ```bash
-/// flutter run -d chrome --dart-define-from-file=env/demo.json   # modo demo
-/// flutter run -d chrome --dart-define-from-file=env/dev.json    # backend real
+/// flutter run --dart-define-from-file=env/demo.json   # modo demo
+/// flutter run --dart-define-from-file=env/dev.json    # backend real
 /// ```
 class AppEnvironment {
   const AppEnvironment._();

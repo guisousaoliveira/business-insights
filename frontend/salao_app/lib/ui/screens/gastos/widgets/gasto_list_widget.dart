@@ -10,8 +10,7 @@ import '../../../components/app_card.dart';
 import '../../../components/app_checkbox.dart';
 import '../../../components/app_tag.dart';
 
-/// A lista de gastos, igual nas duas cascas — o que muda é onde ela é
-/// colocada: empilhada no mobile, lado a lado na web.
+/// A lista de gastos: pendentes e pagos usam a mesma linha, empilhada.
 class GastoListWidget extends StatelessWidget {
   final List<GastoModel> gastos;
   final void Function(GastoModel gasto) onTogglePago;
