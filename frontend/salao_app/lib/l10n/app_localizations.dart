@@ -622,6 +622,18 @@ abstract class AppLocalizations {
   /// **'Todos'**
   String get allExpenses;
 
+  /// No description provided for @monthLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mês'**
+  String get monthLabel;
+
+  /// No description provided for @yearLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ano'**
+  String get yearLabel;
+
   /// No description provided for @pendingExpenses.
   ///
   /// In pt, this message translates to:

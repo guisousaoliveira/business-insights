@@ -295,6 +295,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get allExpenses => 'Todos';
 
   @override
+  String get monthLabel => 'Mês';
+
+  @override
+  String get yearLabel => 'Ano';
+
+  @override
   String get pendingExpenses => 'Pendentes';
 
   @override

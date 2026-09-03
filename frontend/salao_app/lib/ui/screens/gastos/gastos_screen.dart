@@ -14,13 +14,13 @@ import '../../../settings/app_utils.dart';
 import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
 import '../../components/app_error_retry.dart';
+import '../../components/app_filter_pill.dart';
 import '../../components/app_metric_card.dart';
 import '../../components/app_scaffold.dart';
 import '../../components/app_segmented_control.dart';
 import '../../components/app_section_label.dart';
 import '../../components/app_snackbar.dart';
 import '../../components/app_sub_state_builder.dart';
-import '../../components/app_tappable.dart';
 import 'dialogs/novo_gasto_dialog.dart';
 import 'widgets/gasto_list_widget.dart';
 
@@ -29,30 +29,6 @@ class GastosScreen extends StatefulWidget {
 
   @override
   State<GastosScreen> createState() => _GastosScreenState();
-}
-
-class _FilterButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _FilterButton({required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => AppTappable(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 13),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          alignment: Alignment.center,
-          child: Text(label, style: AppFonts.caption(context)),
-        ),
-      );
 }
 
 class _GastosScreenState extends State<GastosScreen> {
@@ -161,9 +137,11 @@ class _GastosScreenState extends State<GastosScreen> {
         .where((item) => item.isVencido)
         .fold<double>(0, (sum, item) => sum + item.valor);
     final cards = [
-      AppMetricCard.neutral(
+      AppMetricCard(
         label: context.l10n.totalInPeriod,
         value: AppUtils.numToMoney(total),
+        background: AppColors.surface,
+        foreground: AppColors.text1,
       ),
       AppMetricCard.success(
         label: context.l10n.paidThisMonthLabel,
@@ -230,17 +208,52 @@ class _GastosScreenState extends State<GastosScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _FilterButton(
-              label: _categoria == null
-                  ? context.l10n.categoryLabel
-                  : AppUtils.categoriaGastoToString(_categoria!),
-              onTap: _selectCategoria,
+            AppFilterPill<CategoriaGasto?>(
+              title: context.l10n.categoryLabel,
+              value: _categoria,
+              isActive: _categoria != null,
+              onChanged: (value) => setState(() => _categoria = value),
+              options: [
+                AppFilterOption(value: null, label: context.l10n.allLabel),
+                ...CategoriaGasto.values.map((value) => AppFilterOption(
+                      value: value,
+                      label: AppUtils.categoriaGastoToString(value),
+                    )),
+              ],
             ),
-            _FilterButton(
-              label: AppUtils.dateToMonthName(_periodo),
-              onTap: _selectMonth,
+            AppFilterPill<int>(
+              title: context.l10n.monthLabel,
+              value: _periodo.month,
+              onChanged: (value) {
+                setState(() => _periodo = DateTime(_periodo.year, value));
+                _fetch();
+              },
+              options: List.generate(
+                12,
+                (index) => AppFilterOption(
+                  value: index + 1,
+                  label: AppUtils.dateToMonthName(DateTime(2024, index + 1)),
+                ),
+              ),
             ),
-            _FilterButton(label: '${_periodo.year}', onTap: _selectYear),
+            AppFilterPill<int>(
+              title: context.l10n.yearLabel,
+              value: _periodo.year,
+              onChanged: (value) {
+                setState(() => _periodo = DateTime(value, _periodo.month));
+                _fetch();
+              },
+              options: [
+                AppFilterOption(
+                  value: DateTime.now().year - 1,
+                  label: '${DateTime.now().year - 1}',
+                ),
+                AppFilterOption(
+                  value: DateTime.now().year,
+                  label: '${DateTime.now().year}',
+                ),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -264,62 +277,6 @@ class _GastosScreenState extends State<GastosScreen> {
       ],
     );
   }
-
-  Future<void> _selectCategoria() async {
-    final selected = await _showOptions<CategoriaGasto?>([
-      MapEntry(null, context.l10n.allLabel),
-      ...CategoriaGasto.values.map(
-        (value) => MapEntry(value, AppUtils.categoriaGastoToString(value)),
-      ),
-    ]);
-    if (mounted) setState(() => _categoria = selected);
-  }
-
-  Future<void> _selectMonth() async {
-    final selected = await _showOptions<int>(List.generate(
-      12,
-      (index) => MapEntry(
-        index + 1,
-        AppUtils.dateToMonthName(DateTime(2024, index + 1)),
-      ),
-    ));
-    if (selected != null && mounted) {
-      setState(() => _periodo = DateTime(_periodo.year, selected));
-      _fetch();
-    }
-  }
-
-  Future<void> _selectYear() async {
-    final now = DateTime.now().year;
-    final selected = await _showOptions<int>([
-      MapEntry(now - 1, '${now - 1}'),
-      MapEntry(now, '$now'),
-    ]);
-    if (selected != null && mounted) {
-      setState(() => _periodo = DateTime(selected, _periodo.month));
-      _fetch();
-    }
-  }
-
-  Future<T?> _showOptions<T>(List<MapEntry<T, String>> options) =>
-      AppDialog.show<T>(
-        context: context,
-        title: context.l10n.expensesTitle,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: options
-              .map((option) => AppTappable(
-                    onTap: () => Navigator.of(context).pop(option.key),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child:
-                          Text(option.value, style: AppFonts.rowTitle(context)),
-                    ),
-                  ))
-              .toList(),
-        ),
-      );
 
   void _handleWrite(BuildContext context, BlocSubState subState) {
     if (!subState.isCompleted) return;

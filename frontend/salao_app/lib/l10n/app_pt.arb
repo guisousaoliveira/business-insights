@@ -107,6 +107,8 @@
   "totalInPeriod": "Total no período",
   "overdueTotal": "Vencido",
   "allExpenses": "Todos",
+  "monthLabel": "Mês",
+  "yearLabel": "Ano",
   "pendingExpenses": "Pendentes",
   "paidExpenses": "Pagos",
   "overdueExpenses": "Vencidos",

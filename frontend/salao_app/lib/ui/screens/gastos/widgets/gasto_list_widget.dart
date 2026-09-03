@@ -79,6 +79,7 @@ class _Row extends StatelessWidget {
               value: gasto.pago,
               onChanged: gasto.pago ? null : (_) => onTogglePago(),
             ),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
