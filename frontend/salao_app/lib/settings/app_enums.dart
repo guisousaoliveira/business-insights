@@ -29,6 +29,8 @@ enum FormaPagamento { aVista, credito, debito, pix }
 
 enum CategoriaGasto { fixo, material, outros }
 
+enum FiltroSituacaoGasto { todos, pendentes, pagos, vencidos }
+
 // ── Estoque ──────────────────────────────────────────────────────────────────
 
 /// `negativo` é estado válido: vem de finalizar atendimento sem saldo com a
@@ -41,6 +43,10 @@ enum CategoriaEstoque { cilios, sobrancelha, limpezaPele, descartavel, outro }
 enum UnidadeEstoque { un, ml, g, cx }
 
 enum TipoMovimentacao { entrada, saida, ajuste }
+
+enum SecaoEstoque { produtos, kits, movimentacoes }
+
+enum SecaoPerfil { dados, custos, servicos }
 
 // ── Alertas ──────────────────────────────────────────────────────────────────
 

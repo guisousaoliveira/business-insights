@@ -34,7 +34,8 @@ void main() {
         ),
       );
 
-  testWidgets('mostra os cinco destinos como o menu mobile web', (tester) async {
+  testWidgets('mostra os cinco destinos como o menu mobile web',
+      (tester) async {
     await pumpBottomNav(tester);
     await tester.pumpAndSettle();
 
@@ -47,7 +48,8 @@ void main() {
         greaterThanOrEqualTo(72));
   });
 
-  testWidgets('mantém todos os nomes ao trocar o destino ativo', (tester) async {
+  testWidgets('mantém todos os nomes ao trocar o destino ativo',
+      (tester) async {
     await pumpBottomNav(tester);
     await tester.pumpAndSettle();
 

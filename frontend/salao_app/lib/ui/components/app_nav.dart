@@ -156,9 +156,7 @@ class AppBottomNav extends StatelessWidget {
                   final icon = AppIcon(
                     isActive ? item.activeIcon : item.icon,
                     size: 20,
-                    color: isActive
-                        ? AppColors.primaryAccent
-                        : AppColors.text3,
+                    color: isActive ? AppColors.primaryAccent : AppColors.text3,
                   );
 
                   return Expanded(

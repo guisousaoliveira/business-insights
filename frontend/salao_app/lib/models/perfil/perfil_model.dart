@@ -6,12 +6,14 @@ class PerfilModel {
   static const _proprietariaKey = 'proprietaria';
   static const _fotoUrlKey = 'foto_url';
   static const _telefoneWhatsappKey = 'telefone_whatsapp';
+  static const _metaFaturamentoMensalKey = 'meta_faturamento_mensal';
 
   final String id;
   final String nome;
   final String proprietaria;
   final String? fotoUrl;
   final String? telefoneWhatsapp;
+  final double metaFaturamentoMensal;
 
   const PerfilModel({
     required this.id,
@@ -19,6 +21,7 @@ class PerfilModel {
     required this.proprietaria,
     this.fotoUrl,
     this.telefoneWhatsapp,
+    this.metaFaturamentoMensal = 0,
   });
 
   factory PerfilModel.fromResponse(Map<String, dynamic> map) => PerfilModel(
@@ -27,12 +30,15 @@ class PerfilModel {
         proprietaria: map[_proprietariaKey] as String? ?? '',
         fotoUrl: map[_fotoUrlKey] as String?,
         telefoneWhatsapp: map[_telefoneWhatsappKey] as String?,
+        metaFaturamentoMensal:
+            (map[_metaFaturamentoMensalKey] as num?)?.toDouble() ?? 0,
       );
 
   Map<String, dynamic> get toBody => {
         _nomeKey: nome,
         _proprietariaKey: proprietaria,
         _telefoneWhatsappKey: telefoneWhatsapp,
+        _metaFaturamentoMensalKey: metaFaturamentoMensal,
       };
 }
 

@@ -9,23 +9,26 @@ import '../../../models/estoque/get_estoque_itens_response_model.dart';
 import '../../../models/estoque/item_estoque_model.dart';
 import '../../../models/kits/get_kits_response_model.dart';
 import '../../../models/kits/kit_model.dart';
-import '../../../settings/app_assets.dart';
 import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_error_codes.dart';
 import '../../../settings/app_extensions.dart';
+import '../../../settings/app_fonts.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_dialog.dart';
+import '../../components/app_button.dart';
 import '../../components/app_empty_list_warning.dart';
 import '../../components/app_error_retry.dart';
 import '../../components/app_metric_card.dart';
 import '../../components/app_scaffold.dart';
+import '../../components/app_segmented_control.dart';
 import '../../components/app_section_label.dart';
 import '../../components/app_snackbar.dart';
 import '../../components/app_sub_state_builder.dart';
 import 'dialogs/entrada_estoque_dialog.dart';
 import 'dialogs/historico_estoque_dialog.dart';
 import 'dialogs/montar_kit_dialog.dart';
+import 'dialogs/novo_kit_dialog.dart';
 import 'dialogs/novo_item_dialog.dart';
 import 'dialogs/vender_kit_dialog.dart';
 import 'widgets/estoque_item_list_widget.dart';
@@ -39,11 +42,14 @@ class EstoqueScreen extends StatefulWidget {
 }
 
 class _EstoqueScreenState extends State<EstoqueScreen> {
+  SecaoEstoque _section = SecaoEstoque.produtos;
+
   @override
   void initState() {
     super.initState();
     _fetch();
     BlocProvider.of<KitsCubit>(context).getKits();
+    BlocProvider.of<EstoqueCubit>(context).getMovimentacoes();
     BlocProvider.of<AlertasCubit>(context).getAlertas();
   }
 
@@ -77,6 +83,15 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
     if (reload ?? false) _fetchKits(alsoEstoque: true);
   }
 
+  Future<void> _openNovoKit() async {
+    final reload = await AppDialog.show<bool>(
+      context: context,
+      title: context.l10n.newKit,
+      child: const NovoKitDialog(),
+    );
+    if (reload ?? false) _fetchKits();
+  }
+
   Future<void> _openVenderKit(KitModel kit) async {
     final reload = await AppDialog.show<bool>(
       context: context,
@@ -89,15 +104,6 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
   void _fetchKits({bool alsoEstoque = false}) {
     BlocProvider.of<KitsCubit>(context).getKits();
     if (alsoEstoque) _fetch();
-  }
-
-  void _openHistorico() {
-    BlocProvider.of<EstoqueCubit>(context).getMovimentacoes();
-    AppDialog.show<void>(
-      context: context,
-      title: context.l10n.stockHistory,
-      child: const HistoricoEstoqueDialog(),
-    );
   }
 
   @override
@@ -113,6 +119,11 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
                 p.createMovimentacaoSubState != c.createMovimentacaoSubState,
             listener: (context, state) =>
                 _handleWrite(context, state.createMovimentacaoSubState),
+          ),
+          BlocListener<KitsCubit, KitsState>(
+            listenWhen: (p, c) => p.createKitSubState != c.createKitSubState,
+            listener: (context, state) =>
+                _handleKitWrite(context, state.createKitSubState),
           ),
           BlocListener<KitsCubit, KitsState>(
             listenWhen: (p, c) => p.montarKitSubState != c.montarKitSubState,
@@ -136,24 +147,20 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
               subtitle: context.l10n.stockSubtitle,
               primaryActionLabel: context.l10n.newItemButton,
               onPrimaryAction: _openNovoItem,
-              trailingIcon: AppAssets.history,
-              onTrailingAction: _openHistorico,
               alertCount: alertasState.badgeCount,
               child: AppSubStateBuilder<GetEstoqueItensResponseModel>(
                 subState: state.getItensSubState,
                 onError: (error) =>
                     AppErrorRetry(message: error.message, onRetry: _fetch),
-                onData: (data) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildMetrics(context, data),
-                    const SizedBox(height: 16),
-                    _buildListas(context, data),
-                    const SizedBox(height: 16),
-                    AppSectionLabel(context.l10n.resaleKits),
-                    const SizedBox(height: 8),
-                    _buildKits(context),
-                  ],
+                onData: (data) => BlocBuilder<KitsCubit, KitsState>(
+                  buildWhen: (p, c) => p.getKitsSubState != c.getKitsSubState,
+                  builder: (context, kitsState) {
+                    final kits = kitsState.getKitsSubState
+                            .value<GetKitsResponseModel>()
+                            ?.kits ??
+                        const [];
+                    return _buildBody(context, data, kits);
+                  },
                 ),
               ),
             ),
@@ -164,25 +171,94 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
   Widget _buildMetrics(
     BuildContext context,
     GetEstoqueItensResponseModel data,
+    List<KitModel> kits,
   ) {
-    final alertas = AppMetricCard.danger(
-      label: context.l10n.itemsInAlert,
-      value: '${data.totalAlertas}',
-    );
-    // Valor em estoque é patrimônio, não resultado — por isso roxo, não verde.
-    final valor = AppMetricCard.neutral(
-      label: context.l10n.stockValue,
-      value: AppUtils.numToMoney(data.valorTotal),
-    );
-
-    return Row(
+    final cards = [
+      AppMetricCard.danger(
+          label: context.l10n.itemsInAlert, value: '${data.totalAlertas}'),
+      AppMetricCard.neutral(
+          label: context.l10n.productsLabel, value: '${data.itens.length}'),
+      AppMetricCard.neutral(
+          label: context.l10n.stockValue,
+          value: AppUtils.numToMoney(data.valorTotal)),
+      AppMetricCard.success(
+        label: context.l10n.readyKits,
+        value: AppUtils.quantityToString(
+            kits.fold<double>(0, (sum, kit) => sum + kit.quantidadeMontada)),
+      ),
+    ];
+    return Column(
       children: [
-        Expanded(child: alertas),
-        const SizedBox(width: 10),
-        Expanded(child: valor),
+        Row(children: [
+          Expanded(child: cards[0]),
+          const SizedBox(width: 10),
+          Expanded(child: cards[1]),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: cards[2]),
+          const SizedBox(width: 10),
+          Expanded(child: cards[3]),
+        ]),
       ],
     );
   }
+
+  Widget _buildBody(
+    BuildContext context,
+    GetEstoqueItensResponseModel data,
+    List<KitModel> kits,
+  ) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildMetrics(context, data, kits),
+          const SizedBox(height: 16),
+          AppSegmentedControl<SecaoEstoque>(
+            value: _section,
+            segments: [
+              AppSegment(SecaoEstoque.produtos, context.l10n.productsLabel),
+              AppSegment(SecaoEstoque.kits, context.l10n.resaleKitsTab),
+              AppSegment(
+                  SecaoEstoque.movimentacoes, context.l10n.movementsLabel),
+            ],
+            onChanged: (value) => setState(() => _section = value),
+          ),
+          const SizedBox(height: 16),
+          switch (_section) {
+            SecaoEstoque.produtos => _buildListas(context, data),
+            SecaoEstoque.kits => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppSectionLabel(
+                    context.l10n.resaleKitsTab,
+                    trailing: AppButton(
+                      label: context.l10n.newKit,
+                      type: AppButtonType.outlined,
+                      isDense: true,
+                      onPressed: _openNovoKit,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildKits(context),
+                ],
+              ),
+            SecaoEstoque.movimentacoes => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppSectionLabel(context.l10n.movementsLabel),
+                  const SizedBox(height: 4),
+                  Text(
+                    context.l10n.movementsHint,
+                    style: AppFonts.captionSmall(context),
+                  ),
+                  const SizedBox(height: 8),
+                  const HistoricoEstoqueDialog(),
+                ],
+              ),
+          },
+        ],
+      );
 
   Widget _buildListas(
     BuildContext context,

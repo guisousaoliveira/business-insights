@@ -8,43 +8,53 @@ import '../../../../settings/app_fonts.dart';
 import '../../../../settings/app_utils.dart';
 import '../../../components/app_card.dart';
 import '../../../components/app_checkbox.dart';
+import '../../../components/app_icon.dart';
 import '../../../components/app_tag.dart';
+import '../../../components/app_tappable.dart';
+import '../../../../settings/app_assets.dart';
 
 /// A lista de gastos: pendentes e pagos usam a mesma linha, empilhada.
 class GastoListWidget extends StatelessWidget {
   final List<GastoModel> gastos;
   final void Function(GastoModel gasto) onTogglePago;
+  final void Function(GastoModel gasto) onEdit;
+  final void Function(GastoModel gasto) onDelete;
 
   const GastoListWidget({
     super.key,
     required this.gastos,
     required this.onTogglePago,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   @override
-  Widget build(BuildContext context) => AppCard(
-        child: Column(
-          children: List.generate(
-            gastos.length,
-            (index) => _Row(
-              gasto: gastos[index],
-              isFirst: index == 0,
-              onTogglePago: () => onTogglePago(gastos[index]),
-            ),
-          ),
-        ),
+  Widget build(BuildContext context) => Column(
+        children: gastos
+            .map((gasto) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _Row(
+                    gasto: gasto,
+                    onTogglePago: () => onTogglePago(gasto),
+                    onEdit: () => onEdit(gasto),
+                    onDelete: () => onDelete(gasto),
+                  ),
+                ))
+            .toList(),
       );
 }
 
 class _Row extends StatelessWidget {
   final GastoModel gasto;
-  final bool isFirst;
   final VoidCallback onTogglePago;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   const _Row({
     required this.gasto,
-    required this.isFirst,
     required this.onTogglePago,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   AppTag _buildCategoriaTag(BuildContext context) {
@@ -61,9 +71,8 @@ class _Row extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => AppCardRow(
-        isFirst: isFirst,
-        padding: const EdgeInsets.fromLTRB(4, 4, 13, 4),
+  Widget build(BuildContext context) => AppCard(
+        padding: const EdgeInsets.fromLTRB(10, 10, 12, 10),
         child: Row(
           children: [
             AppCheckBox(
@@ -109,12 +118,38 @@ class _Row extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              AppUtils.numToMoney(gasto.valor),
-              style: AppFonts.rowValue(context).copyWith(
-                color: gasto.pago ? AppColors.text2 : AppColors.danger,
-                decoration: gasto.pago ? TextDecoration.lineThrough : null,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  AppUtils.numToMoney(gasto.valor),
+                  style: AppFonts.rowValue(context).copyWith(
+                    color: gasto.pago ? AppColors.text2 : AppColors.text1,
+                    decoration: gasto.pago ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    AppTappable(
+                      onTap: onEdit,
+                      minSize: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: const AppIcon(AppAssets.edit, size: 16),
+                    ),
+                    AppTappable(
+                      onTap: onDelete,
+                      minSize: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: const AppIcon(
+                        AppAssets.delete,
+                        size: 16,
+                        color: AppColors.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

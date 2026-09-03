@@ -36,6 +36,13 @@ class AppMetricCard extends StatelessWidget {
   })  : background = AppColors.dangerLight,
         foreground = AppColors.danger;
 
+  const AppMetricCard.warning({
+    super.key,
+    required this.label,
+    required this.value,
+  })  : background = AppColors.amberLight,
+        foreground = AppColors.amber;
+
   /// Valor neutro que não é resultado — "Valor em estoque" é patrimônio, não
   /// lucro nem prejuízo, então é roxo.
   const AppMetricCard.neutral({

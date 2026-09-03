@@ -22,12 +22,15 @@ import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
 import '../../components/app_icon.dart';
 import '../../components/app_scaffold.dart';
+import '../../components/app_segmented_control.dart';
+import '../../components/app_metric_card.dart';
 import '../../components/app_section_label.dart';
 import '../../components/app_snackbar.dart';
 import '../../components/app_sub_state_builder.dart';
 import '../../components/app_tappable.dart';
 import 'dialogs/novo_custo_fixo_dialog.dart';
 import 'dialogs/novo_servico_dialog.dart';
+import 'dialogs/editar_perfil_dialog.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -37,6 +40,8 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
+  SecaoPerfil _section = SecaoPerfil.dados;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +82,17 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
+  Future<void> _openPerfil(PerfilModel perfil) async {
+    final reload = await AppDialog.show<bool>(
+      context: context,
+      title: context.l10n.dataAndGoal,
+      child: EditarPerfilDialog(perfil: perfil),
+    );
+    if ((reload ?? false) && mounted) {
+      BlocProvider.of<PerfilCubit>(context).getPerfil();
+    }
+  }
+
   Future<void> _logout() async {
     final confirmed = await AppDialog.confirm(
       context: context,
@@ -107,6 +123,15 @@ class _PerfilScreenState extends State<PerfilScreen> {
               context,
               state.createCustoFixoSubState,
               () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
+            ),
+          ),
+          BlocListener<PerfilCubit, PerfilState>(
+            listenWhen: (p, c) =>
+                p.updatePerfilSubState != c.updatePerfilSubState,
+            listener: (context, state) => _handleWrite(
+              context,
+              state.updatePerfilSubState,
+              () => BlocProvider.of<PerfilCubit>(context).getPerfil(),
             ),
           ),
           BlocListener<PerfilCubit, PerfilState>(
@@ -176,14 +201,80 @@ class _PerfilScreenState extends State<PerfilScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildPerfilCard(context),
+                _buildOverview(context),
                 const SizedBox(height: 16),
-                _buildCustosFixos(context),
+                AppSegmentedControl<SecaoPerfil>(
+                  value: _section,
+                  segments: [
+                    AppSegment(SecaoPerfil.dados, context.l10n.dataAndGoal),
+                    AppSegment(
+                        SecaoPerfil.custos, context.l10n.monthlyFixedCosts),
+                    AppSegment(
+                        SecaoPerfil.servicos, context.l10n.servicesLabel),
+                  ],
+                  onChanged: (value) => setState(() => _section = value),
+                ),
                 const SizedBox(height: 16),
-                _buildServicos(context),
+                switch (_section) {
+                  SecaoPerfil.dados => _buildPerfilCard(context),
+                  SecaoPerfil.custos => _buildCustosFixos(context),
+                  SecaoPerfil.servicos => _buildServicos(context),
+                },
               ],
             ),
           ),
+        ),
+      );
+
+  Widget _buildOverview(BuildContext context) =>
+      BlocBuilder<PerfilCubit, PerfilState>(
+        buildWhen: (p, c) =>
+            p.getPerfilSubState != c.getPerfilSubState ||
+            p.getCustosFixosSubState != c.getCustosFixosSubState,
+        builder: (context, perfilState) =>
+            BlocBuilder<ServicosCubit, ServicosState>(
+          buildWhen: (p, c) => p.getServicosSubState != c.getServicosSubState,
+          builder: (context, servicosState) {
+            final perfil = perfilState.getPerfilSubState
+                .value<GetPerfilResponseModel>()
+                ?.perfil;
+            final custos = perfilState.getCustosFixosSubState
+                .value<GetCustosFixosResponseModel>();
+            final servicos = servicosState.getServicosSubState
+                .value<GetServicosResponseModel>()
+                ?.servicos;
+            final cards = [
+              AppMetricCard.neutral(
+                label: context.l10n.monthlyGoal,
+                value: AppUtils.numToMoney(perfil?.metaFaturamentoMensal ?? 0),
+              ),
+              AppMetricCard.danger(
+                label: context.l10n.monthlyFixedCosts,
+                value: AppUtils.numToMoney(custos?.totalMensal ?? 0),
+              ),
+              AppMetricCard.warning(
+                label: context.l10n.fixedCostsPending,
+                value: AppUtils.numToMoney(custos?.totalPendente ?? 0),
+              ),
+              AppMetricCard.neutral(
+                label: context.l10n.servicesLabel,
+                value: '${servicos?.length ?? 0}',
+              ),
+            ];
+            return Column(children: [
+              Row(children: [
+                Expanded(child: cards[0]),
+                const SizedBox(width: 10),
+                Expanded(child: cards[1]),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: cards[2]),
+                const SizedBox(width: 10),
+                Expanded(child: cards[3]),
+              ]),
+            ]);
+          },
         ),
       );
 
@@ -192,47 +283,51 @@ class _PerfilScreenState extends State<PerfilScreen> {
         buildWhen: (p, c) => p.getPerfilSubState != c.getPerfilSubState,
         builder: (context, state) => AppSubStateBuilder<GetPerfilResponseModel>(
           subState: state.getPerfilSubState,
-          onData: (data) => AppCard(
-            padding: const EdgeInsets.all(13),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(14),
+          onData: (data) => AppTappable(
+            onTap: () => _openPerfil(data.perfil),
+            child: AppCard(
+              padding: const EdgeInsets.all(13),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const AppIcon(
+                      AppAssets.perfil,
+                      size: 24,
+                      color: AppColors.primaryDark,
+                    ),
                   ),
-                  child: const AppIcon(
-                    AppAssets.perfil,
-                    size: 24,
-                    color: AppColors.primaryDark,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          data.perfil.nome,
+                          style: AppFonts.pageTitle(context)
+                              .copyWith(fontSize: 15),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          data.perfil.proprietaria.isEmpty
+                              ? context.l10n.ownerLabel
+                              : data.perfil.proprietaria,
+                          style:
+                              AppFonts.caption(context).copyWith(fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        data.perfil.nome,
-                        style:
-                            AppFonts.pageTitle(context).copyWith(fontSize: 15),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        data.perfil.proprietaria.isEmpty
-                            ? context.l10n.ownerLabel
-                            : data.perfil.proprietaria,
-                        style: AppFonts.caption(context).copyWith(fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                const AppIcon(AppAssets.edit, size: 16),
-              ],
+                  const AppIcon(AppAssets.edit, size: 16),
+                ],
+              ),
             ),
           ),
         ),

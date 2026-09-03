@@ -74,6 +74,40 @@ class GastosCubit extends Cubit<GastosState> {
     }
   }
 
+  Future<void> editGasto({
+    required String id,
+    required String nome,
+    required double valor,
+    required DateTime prazoPagamento,
+    required FormaPagamento formaPagamento,
+    required CategoriaGasto categoria,
+    List<ItemGastoModel> itens = const [],
+  }) async {
+    emit(state.copyWith(editGastoSubState: BlocSubState.loading));
+    final model = CreateGastoRequestModel(
+      nome: nome,
+      valor: valor,
+      prazoPagamento: prazoPagamento,
+      formaPagamento: formaPagamento,
+      categoria: categoria,
+      itens: itens,
+    );
+    try {
+      await _repository.editGasto(id, model);
+      emit(state.copyWith(editGastoSubState: BlocSubState.completed(null)));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        editGastoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao editar gasto', e, s);
+      emit(state.copyWith(
+        editGastoSubState: BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
   Future<void> pagarGasto(String id) async {
     emit(state.copyWith(pagarGastoSubState: BlocSubState.loading));
 

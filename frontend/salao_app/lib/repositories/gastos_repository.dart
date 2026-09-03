@@ -6,6 +6,7 @@ abstract interface class GastosRepository {
   Future<GetGastosResponseModel> getGastos(
       {required int ano, required int mes});
   Future<void> createGasto(CreateGastoRequestModel model);
+  Future<void> editGasto(String id, CreateGastoRequestModel model);
   Future<void> pagarGasto(String id);
   Future<void> deleteGasto(String id);
 }
@@ -30,6 +31,11 @@ class GastosRepositoryImpl implements GastosRepository {
   @override
   Future<void> createGasto(CreateGastoRequestModel model) async {
     await AppApi.post(AppApi.postGastoPath, data: model.toBody);
+  }
+
+  @override
+  Future<void> editGasto(String id, CreateGastoRequestModel model) async {
+    await AppApi.put('${AppApi.editGastoPath}/$id', data: model.toBody);
   }
 
   @override

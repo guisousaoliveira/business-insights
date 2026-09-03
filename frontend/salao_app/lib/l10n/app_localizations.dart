@@ -346,6 +346,18 @@ abstract class AppLocalizations {
   /// **'Acompanhe o financeiro do seu salão.'**
   String get loginSubtitle;
 
+  /// No description provided for @welcomeBack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bem-vinda de volta'**
+  String get welcomeBack;
+
+  /// No description provided for @welcomeBackHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entre para ver como está o seu mês.'**
+  String get welcomeBackHint;
+
   /// No description provided for @emailLabel.
   ///
   /// In pt, this message translates to:
@@ -591,6 +603,72 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Pago no mês'**
   String get paidThisMonthLabel;
+
+  /// No description provided for @totalInPeriod.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total no período'**
+  String get totalInPeriod;
+
+  /// No description provided for @overdueTotal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vencido'**
+  String get overdueTotal;
+
+  /// No description provided for @allExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get allExpenses;
+
+  /// No description provided for @pendingExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendentes'**
+  String get pendingExpenses;
+
+  /// No description provided for @paidExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagos'**
+  String get paidExpenses;
+
+  /// No description provided for @overdueExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vencidos'**
+  String get overdueExpenses;
+
+  /// No description provided for @entriesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos'**
+  String get entriesTitle;
+
+  /// No description provided for @entriesCount.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{nenhum lançamento} =1{1 lançamento} other{{count} lançamentos}}'**
+  String entriesCount(int count);
+
+  /// No description provided for @editExpenseTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar gasto'**
+  String get editExpenseTitle;
+
+  /// No description provided for @deleteExpense.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir gasto'**
+  String get deleteExpense;
+
+  /// No description provided for @deleteExpenseQuestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir o gasto {name}?'**
+  String deleteExpenseQuestion(String name);
 
   /// No description provided for @pendingAndUpcoming.
   ///
@@ -922,6 +1000,36 @@ abstract class AppLocalizations {
   /// **'Valor em estoque'**
   String get stockValue;
 
+  /// No description provided for @productsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Produtos'**
+  String get productsLabel;
+
+  /// No description provided for @readyKits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Kits prontos'**
+  String get readyKits;
+
+  /// No description provided for @resaleKitsTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Kits para revenda'**
+  String get resaleKitsTab;
+
+  /// No description provided for @movementsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimentações'**
+  String get movementsLabel;
+
+  /// No description provided for @movementsHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entradas, saídas e ajustes mais recentes'**
+  String get movementsHint;
+
   /// No description provided for @needRestock.
   ///
   /// In pt, this message translates to:
@@ -939,6 +1047,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Kits de revenda'**
   String get resaleKits;
+
+  /// No description provided for @newKit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar kit'**
+  String get newKit;
+
+  /// No description provided for @kitNameLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome do kit'**
+  String get kitNameLabel;
+
+  /// No description provided for @kitComposition.
+  ///
+  /// In pt, this message translates to:
+  /// **'Composição do kit'**
+  String get kitComposition;
 
   /// No description provided for @newItemButton.
   ///
@@ -1102,6 +1228,24 @@ abstract class AppLocalizations {
   /// **'Dados do salão, custos fixos e serviços'**
   String get profileSubtitle;
 
+  /// No description provided for @dataAndGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados e meta'**
+  String get dataAndGoal;
+
+  /// No description provided for @monthlyGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta mensal'**
+  String get monthlyGoal;
+
+  /// No description provided for @fixedCostsPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Custos pendentes'**
+  String get fixedCostsPending;
+
   /// No description provided for @ownerLabel.
   ///
   /// In pt, this message translates to:
@@ -1155,6 +1299,78 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Marcar todos como lidos'**
   String get markAllAsRead;
+
+  /// No description provided for @allLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get allLabel;
+
+  /// No description provided for @unreadLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não lidos'**
+  String get unreadLabel;
+
+  /// No description provided for @alertsSectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Avisos'**
+  String get alertsSectionTitle;
+
+  /// No description provided for @alertsSectionHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerados a partir do estoque, gastos e metas'**
+  String get alertsSectionHint;
+
+  /// No description provided for @newLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo'**
+  String get newLabel;
+
+  /// No description provided for @criticalLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crítico'**
+  String get criticalLabel;
+
+  /// No description provided for @attentionLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atenção'**
+  String get attentionLabel;
+
+  /// No description provided for @informationLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informação'**
+  String get informationLabel;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver detalhes'**
+  String get viewDetails;
+
+  /// No description provided for @markAsRead.
+  ///
+  /// In pt, this message translates to:
+  /// **'Marcar como lido'**
+  String get markAsRead;
+
+  /// No description provided for @noAlertsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum alerta por aqui'**
+  String get noAlertsTitle;
+
+  /// No description provided for @noAlertsDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quando algum produto ficar baixo ou uma conta vencer, o aviso aparece nesta tela.'**
+  String get noAlertsDescription;
 
   /// No description provided for @descriptionLabel.
   ///

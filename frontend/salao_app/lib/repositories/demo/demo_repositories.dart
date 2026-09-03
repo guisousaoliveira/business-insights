@@ -122,6 +122,12 @@ class DemoGastosRepository implements GastosRepository {
   }
 
   @override
+  Future<void> editGasto(String id, CreateGastoRequestModel model) async {
+    await _latencia();
+    _db.editGasto(id, model.toBody);
+  }
+
+  @override
   Future<void> pagarGasto(String id) async {
     await _latencia();
     _db.pagarGasto(id);

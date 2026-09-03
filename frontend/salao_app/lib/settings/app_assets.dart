@@ -36,6 +36,8 @@ class AppAssets {
   static const back = Icons.arrow_back;
   static const logout = Icons.logout;
   static const search = Icons.search;
+  static const visibility = Icons.visibility_outlined; // ti-eye
+  static const visibilityOff = Icons.visibility_off_outlined; // ti-eye-off
 
   // ── Sinal e conteúdo ───────────────────────────────────────────────────────
   static const arrowUp = Icons.arrow_upward; // ti-arrow-up
