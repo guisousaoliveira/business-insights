@@ -28,6 +28,7 @@ import '../../components/app_sub_state_builder.dart';
 import 'dialogs/entrada_estoque_dialog.dart';
 import 'dialogs/historico_estoque_dialog.dart';
 import 'dialogs/montar_kit_dialog.dart';
+import 'dialogs/movimentar_estoque_dialog.dart';
 import 'dialogs/novo_kit_dialog.dart';
 import 'dialogs/novo_item_dialog.dart';
 import 'dialogs/vender_kit_dialog.dart';
@@ -69,6 +70,15 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
       context: context,
       title: context.l10n.stockEntryTitle,
       child: EntradaEstoqueDialog(item: item),
+    );
+    if (reload ?? false) _fetch();
+  }
+
+  Future<void> _openMovimentacao(ItemEstoqueModel item) async {
+    final reload = await AppDialog.show<bool>(
+      context: context,
+      title: context.l10n.stockMovementTitle,
+      child: MovimentarEstoqueDialog(item: item),
     );
     if (reload ?? false) _fetch();
   }
@@ -176,11 +186,16 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
     final cards = [
       AppMetricCard.danger(
           label: context.l10n.itemsInAlert, value: '${data.totalAlertas}'),
-      AppMetricCard.neutral(
-          label: context.l10n.productsLabel, value: '${data.itens.length}'),
-      AppMetricCard.neutral(
+      AppMetricCard(
+          label: context.l10n.productsLabel,
+          value: '${data.itens.length}',
+          background: AppColors.surface,
+          foreground: AppColors.text1),
+      AppMetricCard(
           label: context.l10n.stockValue,
-          value: AppUtils.numToMoney(data.valorTotal)),
+          value: AppUtils.numToMoney(data.valorTotal),
+          background: AppColors.primaryAccent,
+          foreground: AppColors.white),
       AppMetricCard.success(
         label: context.l10n.readyKits,
         value: AppUtils.quantityToString(
@@ -290,8 +305,8 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
           else
             EstoqueItemListWidget(
               itens: data.emAlerta,
-              showStatusTag: true,
               onEntrada: _openEntrada,
+              onMovimentacao: _openMovimentacao,
             ),
         ],
       );
@@ -311,7 +326,11 @@ class _EstoqueScreenState extends State<EstoqueScreen> {
           if (data.emOk.isEmpty)
             const AppEmptyListWarning()
           else
-            EstoqueItemListWidget(itens: data.emOk, onEntrada: _openEntrada),
+            EstoqueItemListWidget(
+              itens: data.emOk,
+              onEntrada: _openEntrada,
+              onMovimentacao: _openMovimentacao,
+            ),
         ],
       );
 

@@ -108,6 +108,40 @@ class EstoqueCubit extends Cubit<EstoqueState> {
     }
   }
 
+  Future<void> registrarMovimentacao({
+    required String itemId,
+    required TipoMovimentacao tipo,
+    required double quantidade,
+    required String motivo,
+  }) async {
+    emit(state.copyWith(createMovimentacaoSubState: BlocSubState.loading));
+
+    try {
+      await _repository.createMovimentacao(
+        CreateMovimentacaoRequestModel(
+          itemId: itemId,
+          tipo: tipo,
+          quantidade: quantidade,
+          motivo: motivo,
+        ),
+      );
+      emit(state.copyWith(
+        createMovimentacaoSubState: BlocSubState.completed(null),
+      ));
+    } on DioException catch (e) {
+      emit(state.copyWith(
+        createMovimentacaoSubState:
+            BlocSubState.completed(ErrorModel.fromDioException(e)),
+      ));
+    } catch (e, s) {
+      AppLogger.error('Falha inesperada ao movimentar estoque', e, s);
+      emit(state.copyWith(
+        createMovimentacaoSubState:
+            BlocSubState.completed(ErrorModel.generic()),
+      ));
+    }
+  }
+
   Future<void> getMovimentacoes({String? itemId}) async {
     emit(state.copyWith(
         getMovimentacoesSubState: state.getMovimentacoesSubState.toLoading()));

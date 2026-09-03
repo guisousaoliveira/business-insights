@@ -1462,6 +1462,60 @@ abstract class AppLocalizations {
   /// **'Registrar entrada'**
   String get stockEntryTitle;
 
+  /// No description provided for @stockMovementTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimentar estoque'**
+  String get stockMovementTitle;
+
+  /// No description provided for @stockExitOption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saída (uso ou perda)'**
+  String get stockExitOption;
+
+  /// No description provided for @stockAdjustmentOption.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ajuste (contagem)'**
+  String get stockAdjustmentOption;
+
+  /// No description provided for @movementTypeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de movimentação'**
+  String get movementTypeLabel;
+
+  /// No description provided for @minimumStock.
+  ///
+  /// In pt, this message translates to:
+  /// **'mínimo {quantity} {unit}'**
+  String minimumStock(String quantity, String unit);
+
+  /// No description provided for @averageCost.
+  ///
+  /// In pt, this message translates to:
+  /// **'Custo médio {value}'**
+  String averageCost(String value);
+
+  /// No description provided for @stockMissing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faltam {quantity}'**
+  String stockMissing(String quantity);
+
+  /// No description provided for @registerStockEntry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registrar entrada'**
+  String get registerStockEntry;
+
+  /// No description provided for @registerStockExit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registrar saída'**
+  String get registerStockExit;
+
   /// No description provided for @serviceNameLabel.
   ///
   /// In pt, this message translates to:

@@ -793,6 +793,39 @@ class AppLocalizationsPt extends AppLocalizations {
   String get stockEntryTitle => 'Registrar entrada';
 
   @override
+  String get stockMovementTitle => 'Movimentar estoque';
+
+  @override
+  String get stockExitOption => 'Saída (uso ou perda)';
+
+  @override
+  String get stockAdjustmentOption => 'Ajuste (contagem)';
+
+  @override
+  String get movementTypeLabel => 'Tipo de movimentação';
+
+  @override
+  String minimumStock(String quantity, String unit) {
+    return 'mínimo $quantity $unit';
+  }
+
+  @override
+  String averageCost(String value) {
+    return 'Custo médio $value';
+  }
+
+  @override
+  String stockMissing(String quantity) {
+    return 'Faltam $quantity';
+  }
+
+  @override
+  String get registerStockEntry => 'Registrar entrada';
+
+  @override
+  String get registerStockExit => 'Registrar saída';
+
+  @override
   String get serviceNameLabel => 'Nome do serviço';
 
   @override
