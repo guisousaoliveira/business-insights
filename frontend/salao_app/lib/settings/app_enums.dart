@@ -9,9 +9,10 @@ enum BlocDataState { idle, loading, completed }
 
 enum SnackBarStatus { sucess, error, alert }
 
-enum DeviceType { tablet, tabletLandscape, mobile }
+enum DeviceType { desktop, smallDesktop, tablet, tabletLandscape, mobile }
 
-/// Item ativo da navegação — consumido pela barra inferior.
+/// Item ativo da navegação — consumido pelo menu lateral (web) e pela barra
+/// inferior (mobile).
 enum AppCurrentRoute { atendimentos, gastos, resumo, estoque, perfil, alertas }
 
 // ── Atendimentos ─────────────────────────────────────────────────────────────
@@ -29,8 +30,6 @@ enum FormaPagamento { aVista, credito, debito, pix }
 
 enum CategoriaGasto { fixo, material, outros }
 
-enum FiltroSituacaoGasto { todos, pendentes, pagos, vencidos }
-
 // ── Estoque ──────────────────────────────────────────────────────────────────
 
 /// `negativo` é estado válido: vem de finalizar atendimento sem saldo com a
@@ -43,10 +42,6 @@ enum CategoriaEstoque { cilios, sobrancelha, limpezaPele, descartavel, outro }
 enum UnidadeEstoque { un, ml, g, cx }
 
 enum TipoMovimentacao { entrada, saida, ajuste }
-
-enum SecaoEstoque { produtos, kits, movimentacoes }
-
-enum SecaoPerfil { dados, custos, servicos }
 
 // ── Alertas ──────────────────────────────────────────────────────────────────
 

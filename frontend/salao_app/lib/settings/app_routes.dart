@@ -67,8 +67,8 @@ class AppRoutes {
     alertasRoute: AppCurrentRoute.alertas,
   };
 
-  /// As rotas que dividem a casca do [AppScaffold]. Entre elas a barra
-  /// inferior são os mesmos pixels no mesmo lugar.
+  /// As rotas que dividem a casca do [AppScaffold]. Entre elas o menu lateral
+  /// e a barra inferior são os mesmos pixels no mesmo lugar.
   ///
   /// Por isso a troca de aba **não** anima a rota: como `pushReplacement`
   /// mantém a página velha pintada embaixo durante a transição, animar a

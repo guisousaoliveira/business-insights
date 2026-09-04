@@ -1,16 +1,19 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../cubits/auth/auth_cubit.dart';
 import '../../settings/app_assets.dart';
 import '../../settings/app_colors.dart';
 import '../../settings/app_enums.dart';
 import '../../settings/app_extensions.dart';
+import '../../settings/app_fonts.dart';
 import '../../settings/app_routes.dart';
+import 'app_dialog.dart';
 import 'app_icon.dart';
 import 'app_tappable.dart';
 
-/// Os cinco destinos do app, em ordem. Uma lista só, consumida pela barra
-/// inferior — a única casca que existe desde A10 (a web é o app React em
-/// `frontend/salao_web`).
+/// Os cinco destinos do app, em ordem. Uma lista só, consumida pelas duas
+/// cascas — é o que garante que menu lateral e barra inferior nunca divirjam.
 class AppNavItem {
   final AppCurrentRoute page;
   final IconData icon;
@@ -117,7 +120,7 @@ class AppBadge extends StatelessWidget {
   }
 }
 
-/// Barra inferior — a casca do app (Android/iOS).
+/// Barra inferior — casca mobile (≤1024).
 ///
 /// O item ativo troca **sem** animação, de propósito: a troca de aba recria a
 /// rota inteira, então esta barra é um widget novo a cada toque e qualquer
@@ -155,8 +158,8 @@ class AppBottomNav extends StatelessWidget {
                   final label = item.label(context);
                   final icon = AppIcon(
                     isActive ? item.activeIcon : item.icon,
-                    size: 20,
-                    color: isActive ? AppColors.primaryAccent : AppColors.text3,
+                    size: 22,
+                    color: isActive ? AppColors.primaryDark : AppColors.text3,
                   );
 
                   return Expanded(
@@ -189,20 +192,18 @@ class AppBottomNav extends StatelessWidget {
                             const SizedBox(height: 3),
                             SizedBox(
                               height: 14,
-                              child: Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isActive
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: isActive
-                                      ? AppColors.primaryAccent
-                                      : AppColors.text3,
-                                ),
-                              ),
+                              child: isActive
+                                  ? Text(
+                                      label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ],
                         ),
@@ -215,4 +216,169 @@ class AppBottomNav extends StatelessWidget {
           ),
         ),
       );
+}
+
+/// Menu lateral de 172px — casca web (>1024).
+class AppSideMenu extends StatelessWidget {
+  final AppCurrentRoute currentPage;
+  final int alertCount;
+  final String salonName;
+
+  const AppSideMenu({
+    super.key,
+    required this.currentPage,
+    required this.salonName,
+    this.alertCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 172,
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          border: Border(
+            right: BorderSide(color: AppColors.border, width: 0.5),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 18),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const AppIcon(
+                      AppAssets.scissors,
+                      size: 15,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      salonName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        color: AppColors.text1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...AppNavItem.all().map(
+              (item) => _SideMenuItem(
+                icon: item.page == currentPage ? item.activeIcon : item.icon,
+                label: item.label(context),
+                isActive: item.page == currentPage,
+                badgeCount:
+                    item.page == AppCurrentRoute.estoque ? alertCount : 0,
+                onTap: item.page == currentPage
+                    ? null
+                    : () => AppRoutes.replace(AppRoutes.routeOf(item.page)),
+              ),
+            ),
+            const Spacer(),
+            // Sair fecha a lista, no lugar onde estavam os alertas: na web eles
+            // já moram no sino do cabeçalho, e tê-los duas vezes gastava o
+            // único lugar do menu que ainda não tinha dono.
+            _SideMenuItem(
+              icon: AppAssets.logout,
+              label: context.l10n.logout,
+              isActive: false,
+              onTap: () => _confirmLogout(context),
+            ),
+          ],
+        ),
+      );
+
+  /// A mesma confirmação do Perfil — sair é irreversível o bastante para não
+  /// acontecer por um clique perdido no canto do menu.
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await AppDialog.confirm(
+      context: context,
+      title: context.l10n.logout,
+      message: context.l10n.logoutQuestion,
+      confirmLabel: context.l10n.logout,
+    );
+
+    if (!confirmed || !context.mounted) return;
+
+    // Aqui se espera o cubit em vez de ouvir o estado: o menu vive em todas as
+    // telas da casca, e nenhuma delas escuta `logoutSubState`.
+    await BlocProvider.of<AuthCubit>(context).logout();
+    await AppRoutes.push(AppRoutes.loginRoute, removeUntil: (_) => false);
+  }
+}
+
+/// Uma linha do menu lateral. Recebe ícone, rótulo e ação prontos porque nem
+/// toda linha é um destino: a última é o logout.
+class _SideMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool isActive;
+  final int badgeCount;
+  final VoidCallback? onTap;
+
+  const _SideMenuItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    this.onTap,
+    this.badgeCount = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final iconWidget = AppIcon(
+      icon,
+      size: 17,
+      color: isActive ? AppColors.primaryDark : AppColors.text2,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: AppTappable(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        minSize: 38,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Row(
+            children: [
+              AppBadge(count: badgeCount, child: iconWidget),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.caption(context).copyWith(
+                    fontSize: 13,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    color: isActive ? AppColors.primaryDark : AppColors.text2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

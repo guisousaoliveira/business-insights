@@ -1,18 +1,21 @@
-import 'package:flutter/material.dart' show showModalBottomSheet;
+import 'package:flutter/material.dart'
+    show Dialog, showDialog, showModalBottomSheet;
 import 'package:flutter/widgets.dart';
 
 import '../../settings/app_assets.dart';
 import '../../settings/app_colors.dart';
 import '../../settings/app_extensions.dart';
 import '../../settings/app_fonts.dart';
+import '../../settings/app_media_querys.dart';
 import 'app_button.dart';
 import 'app_icon.dart';
 import 'app_tappable.dart';
 
 /// Contêiner de formulário e de confirmação.
 ///
-/// Sempre bottom sheet, como no protótipo — é onde o polegar alcança. A tela
-/// não escolhe a forma, só descreve o conteúdo.
+/// **A mesma chamada rende as duas cascas**: bottom sheet no mobile (como no
+/// protótipo, onde o polegar alcança) e diálogo centrado na web. A tela não
+/// escolhe — só descreve o conteúdo.
 ///
 /// Padrão de retorno do capítulo 07: o diálogo executa a ação e devolve `true`;
 /// quem o abriu decide recarregar a lista.
@@ -24,6 +27,23 @@ class AppDialog {
     required String title,
     required Widget child,
   }) {
+    if (isWideLayout(context)) {
+      return showDialog<T>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: AppColors.surface,
+          insetPadding: const EdgeInsets.all(24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: _DialogFrame(title: title, child: child),
+          ),
+        ),
+      );
+    }
+
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,

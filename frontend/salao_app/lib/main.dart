@@ -55,7 +55,7 @@ class MainApp extends StatelessWidget {
         // Envolve o MaterialApp para o AppSnackBar funcionar de qualquer rota.
         child: ScaffoldMessenger(
           child: MaterialApp(
-            title: 'GlowApp',
+            title: 'Thamires Borges Beauty',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             navigatorKey: AppRoutes.navigatorKey,
@@ -64,8 +64,8 @@ class MainApp extends StatelessWidget {
             initialRoute: AppRoutes.defaultRoute,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            // O mouse do emulador e do desktop de desenvolvimento rola a
-            // lista como o dedo rola no celular.
+            // Na web, arrastar com o mouse tem que rolar a lista como o dedo
+            // rola no celular.
             scrollBehavior: const MaterialScrollBehavior().copyWith(
               dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch},
               scrollbars: false,

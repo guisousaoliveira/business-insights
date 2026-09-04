@@ -4,11 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../settings/app_colors.dart';
-import '../../settings/app_assets.dart';
 import '../../settings/app_fonts.dart';
 import '../../settings/app_globals.dart' as globals;
-import 'app_icon.dart';
-import 'app_tappable.dart';
 
 /// Estado e validação de um campo, fora do widget.
 ///
@@ -80,7 +77,6 @@ class AppInput extends StatefulWidget {
   final String label;
   final String? hint;
   final bool isObscure;
-  final bool showObscureToggle;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final int maxLines;
@@ -93,7 +89,6 @@ class AppInput extends StatefulWidget {
     required this.label,
     this.hint,
     this.isObscure = false,
-    this.showObscureToggle = false,
     this.keyboardType,
     this.inputFormatters,
     this.maxLines = 1,
@@ -106,12 +101,9 @@ class AppInput extends StatefulWidget {
 }
 
 class _AppInputState extends State<AppInput> {
-  late bool _obscureText;
-
   @override
   void initState() {
     super.initState();
-    _obscureText = widget.isObscure;
     widget.controller.onValueChangedSetState = () {
       if (mounted) setState(() {});
     };
@@ -136,7 +128,7 @@ class _AppInputState extends State<AppInput> {
         TextField(
           controller: widget.controller._textEditingController,
           focusNode: widget.controller.focusNode,
-          obscureText: _obscureText,
+          obscureText: widget.isObscure,
           keyboardType: widget.keyboardType,
           inputFormatters: widget.inputFormatters,
           maxLines: widget.isObscure ? 1 : widget.maxLines,
@@ -157,19 +149,6 @@ class _AppInputState extends State<AppInput> {
             fillColor: AppColors.surface2,
             hintText: widget.hint,
             hintStyle: AppFonts.input(context).copyWith(color: AppColors.text3),
-            suffixIcon: widget.showObscureToggle
-                ? AppTappable(
-                    onTap: () => setState(() => _obscureText = !_obscureText),
-                    minSize: 44,
-                    child: AppIcon(
-                      _obscureText
-                          ? AppAssets.visibility
-                          : AppAssets.visibilityOff,
-                      size: 19,
-                      color: AppColors.text2,
-                    ),
-                  )
-                : null,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             border: _border(AppColors.border),

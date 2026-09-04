@@ -16,6 +16,7 @@ import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_extensions.dart';
 import '../../../settings/app_fonts.dart';
+import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_storage.dart';
 import '../../../settings/app_utils.dart';
@@ -128,7 +129,37 @@ class _ResumoScreenState extends State<ResumoScreen> {
                   primaryActionLabel: context.l10n.scheduleAppointmentLong,
                   onPrimaryAction: () =>
                       AppRoutes.replace(AppRoutes.atendimentosRoute),
-                  headerTitle: Column(
+                  narrowHeaderLeading: Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const AppIcon(
+                      AppAssets.sparkles,
+                      size: 18,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  narrowHeaderTitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        context.l10n.helloUser(_firstName),
+                        style: AppFonts.pageTitle(context),
+                      ),
+                      Text(
+                        context.l10n.summaryOfPeriod(
+                          AppUtils.dateToMonthYearLong(periodo),
+                        ),
+                        style: AppFonts.captionSmall(context),
+                      ),
+                    ],
+                  ),
+                  wideHeaderTitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -196,9 +227,10 @@ class _Dashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emAlerta = estoque?.emAlerta ?? const [];
+    final wide = isWideLayout(context);
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
+        constraints: BoxConstraints(maxWidth: wide ? 1100 : 900),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -211,16 +243,33 @@ class _Dashboard extends StatelessWidget {
               const SizedBox(height: 16),
             ],
             Row(children: [
-              Expanded(
-                child: _PeriodButton(
-                  label: AppUtils.dateToMonthName(periodo),
-                  onTap: onMonth,
+              SizedBox(
+                width: wide ? 150 : null,
+                child: wide
+                    ? _PeriodButton(
+                        label: AppUtils.dateToMonthName(periodo),
+                        onTap: onMonth,
+                      )
+                    : null,
+              ),
+              if (!wide)
+                Expanded(
+                  child: _PeriodButton(
+                    label: AppUtils.dateToMonthName(periodo),
+                    onTap: onMonth,
+                  ),
                 ),
-              ),
               const SizedBox(width: 10),
-              Expanded(
-                child: _PeriodButton(label: '${periodo.year}', onTap: onYear),
+              SizedBox(
+                width: wide ? 110 : null,
+                child: wide
+                    ? _PeriodButton(label: '${periodo.year}', onTap: onYear)
+                    : null,
               ),
+              if (!wide)
+                Expanded(
+                  child: _PeriodButton(label: '${periodo.year}', onTap: onYear),
+                ),
             ]),
             const SizedBox(height: 16),
             ResumoSaldoCard(resumo: resumo),
@@ -245,20 +294,49 @@ class _Dashboard extends StatelessWidget {
             const SizedBox(height: 16),
             ResumoHistoryCard(historico: resumo.historicoSeisMeses),
             const SizedBox(height: 16),
-            _ranking(context),
-            const SizedBox(height: 16),
-            ResumoKnowledgeCard(resumo: resumo, restockCount: emAlerta.length),
-            const SizedBox(height: 16),
-            ResumoUpcomingExpensesCard(
-              gastos: gastos?.gastos ?? const [],
-              onViewAll: () => AppRoutes.replace(AppRoutes.gastosRoute),
-            ),
-            if (emAlerta.isNotEmpty) ...[
+            if (wide)
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Expanded(
+                    child: Column(children: [
+                  _ranking(context),
+                  const SizedBox(height: 16),
+                  ResumoKnowledgeCard(
+                      resumo: resumo, restockCount: emAlerta.length),
+                ])),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: Column(children: [
+                  ResumoUpcomingExpensesCard(
+                    gastos: gastos?.gastos ?? const [],
+                    onViewAll: () => AppRoutes.replace(AppRoutes.gastosRoute),
+                  ),
+                  if (emAlerta.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    ResumoRestockCard(
+                      itens: emAlerta,
+                      onViewStock: () =>
+                          AppRoutes.replace(AppRoutes.estoqueRoute),
+                    ),
+                  ],
+                ])),
+              ])
+            else ...[
+              _ranking(context),
               const SizedBox(height: 16),
-              ResumoRestockCard(
-                itens: emAlerta,
-                onViewStock: () => AppRoutes.replace(AppRoutes.estoqueRoute),
+              ResumoKnowledgeCard(
+                  resumo: resumo, restockCount: emAlerta.length),
+              const SizedBox(height: 16),
+              ResumoUpcomingExpensesCard(
+                gastos: gastos?.gastos ?? const [],
+                onViewAll: () => AppRoutes.replace(AppRoutes.gastosRoute),
               ),
+              if (emAlerta.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ResumoRestockCard(
+                  itens: emAlerta,
+                  onViewStock: () => AppRoutes.replace(AppRoutes.estoqueRoute),
+                ),
+              ],
             ],
           ],
         ),
@@ -314,12 +392,13 @@ class _PeriodButton extends StatelessWidget {
 class _QuickAction extends StatelessWidget {
   final String label;
   final IconData icon;
+  final bool showAdd;
   final VoidCallback onTap;
-  const _QuickAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
+  const _QuickAction(
+      {required this.label,
+      required this.icon,
+      required this.onTap,
+      this.showAdd = false});
 
   @override
   Widget build(BuildContext context) => AppTappable(
@@ -354,6 +433,21 @@ class _QuickAction extends StatelessWidget {
                 style: AppFonts.rowTitle(context),
               ),
             ),
+            if (showAdd)
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const AppIcon(
+                  AppAssets.add,
+                  size: 25,
+                  color: AppColors.white,
+                ),
+              ),
           ]),
         ),
       );

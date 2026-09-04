@@ -586,21 +586,6 @@ class DemoDatabase {
     return envelope(const {});
   }
 
-  Map<String, dynamic> editGasto(String id, Map<String, dynamic> body) {
-    final gasto = _gastos.firstWhere(
-      (e) => e['id'] == id,
-      orElse: () => _naoEncontrado('Gasto'),
-    );
-    gasto
-      ..['nome'] = body['nome']
-      ..['valor'] = (body['valor'] as num).toDouble()
-      ..['prazo_pagamento'] = body['prazo_pagamento']
-      ..['forma_pagamento'] = body['forma_pagamento']
-      ..['categoria'] = body['categoria']
-      ..['itens'] = body['itens'] ?? const [];
-    return envelope(const {});
-  }
-
   Map<String, dynamic> pagarGasto(String id) {
     final gasto = _gastos.firstWhere(
       (e) => e['id'] == id,

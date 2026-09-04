@@ -34,22 +34,20 @@ void main() {
         ),
       );
 
-  testWidgets('mostra os cinco destinos como o menu mobile web',
-      (tester) async {
+  testWidgets('mostra somente o nome do item selecionado', (tester) async {
     await pumpBottomNav(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Resumo'), findsOneWidget);
-    expect(find.text('Atendimentos'), findsOneWidget);
-    expect(find.text('Gastos'), findsOneWidget);
-    expect(find.text('Estoque'), findsOneWidget);
-    expect(find.text('Perfil'), findsOneWidget);
+    expect(find.text('Atendimentos'), findsNothing);
+    expect(find.text('Gastos'), findsNothing);
+    expect(find.text('Estoque'), findsNothing);
+    expect(find.text('Perfil'), findsNothing);
     expect(tester.getSize(find.byType(AppBottomNav)).height,
         greaterThanOrEqualTo(72));
   });
 
-  testWidgets('mantém todos os nomes ao trocar o destino ativo',
-      (tester) async {
+  testWidgets('troca o nome selecionado no mesmo quadro', (tester) async {
     await pumpBottomNav(tester);
     await tester.pumpAndSettle();
 
@@ -58,7 +56,7 @@ void main() {
 
     // Sem meio-termo: a troca de aba recria a barra, então um estado animado
     // aqui seria um quadro intermediário que a usuária nunca chega a ver.
-    expect(find.text('Resumo'), findsOneWidget);
+    expect(find.text('Resumo'), findsNothing);
     expect(find.text('Estoque'), findsOneWidget);
   });
 

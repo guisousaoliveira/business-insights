@@ -26,13 +26,22 @@ router = APIRouter(prefix="/webhooks", tags=["Webhooks n8n"])
 def _validar_n8n(x_n8n_secret: str | None = Header(default=None)) -> None:
     """
     Valida que a requisição veio do n8n usando um secret compartilhado.
-    Configure N8N_WEBHOOK_SECRET no .env e no n8n (Header node).
+    Configure N8N_SECRET no .env e no n8n (Header node).
+
+    Antes: só validava em produção, e mesmo assim só se o secret estivesse
+    configurado (getattr com default None nunca disparava, já que a variável
+    nem existia em Settings). Ou seja, em dev/homolog — e por acidente também
+    em produção — esta rota estava aberta. N8N_SECRET agora é obrigatório em
+    Settings (a API não sobe sem ele) e a checagem vale para TODO ambiente,
+    conforme 00-ENTREGA-BACKEND.md §7 ("já existe; passa a ser exigido em
+    TODO ambiente").
     """
     cfg = get_settings()
-    # Se não tiver secret configurado, só bloqueia em produção
-    secret_esperado = getattr(cfg, "n8n_webhook_secret", None)
-    if cfg.is_production and secret_esperado and x_n8n_secret != secret_esperado:
-        raise HTTPException(status_code=403, detail="Secret inválido")
+    if x_n8n_secret != cfg.n8n_secret:
+        raise HTTPException(
+            status_code=403,
+            detail={"codigo": None, "mensagem": "Secret inválido"},
+        )
 
 
 class ConfirmacaoN8N(BaseModel):

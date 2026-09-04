@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'app_colors.dart';
+import 'app_media_querys.dart';
 
 /// Tipografia do protótipo.
 ///
@@ -15,8 +16,8 @@ class AppFonts {
   const AppFonts._();
 
   /// Saldo do mês — o maior número da tela de Resumo.
-  static TextStyle displayBalance(BuildContext context) => const TextStyle(
-        fontSize: 27,
+  static TextStyle displayBalance(BuildContext context) => TextStyle(
+        fontSize: isWideLayout(context) ? 26 : 27,
         fontWeight: FontWeight.w700,
         letterSpacing: -0.5,
         color: AppColors.text1,
@@ -30,9 +31,9 @@ class AppFonts {
         color: AppColors.text1,
       );
 
-  /// Título da página no cabeçalho.
-  static TextStyle pageTitle(BuildContext context) => const TextStyle(
-        fontSize: 16,
+  /// Título da página no cabeçalho web.
+  static TextStyle pageTitle(BuildContext context) => TextStyle(
+        fontSize: isWideLayout(context) ? 18 : 16,
         fontWeight: FontWeight.w600,
         color: AppColors.text1,
       );
@@ -93,14 +94,22 @@ class AppFonts {
       );
 
   /// Rótulo de botão e de FAB.
-  static TextStyle button(BuildContext context) => const TextStyle(
-        fontSize: 12,
+  static TextStyle button(BuildContext context) => TextStyle(
+        fontSize: isWideLayout(context) ? 12.5 : 12,
         fontWeight: FontWeight.w600,
       );
 
+  /// Cabeçalho de coluna da tabela web.
+  static TextStyle tableHeader(BuildContext context) => const TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.4,
+        color: AppColors.text3,
+      );
+
   /// Valor grande dos cartões de insight (Ticket médio, Margem).
-  static TextStyle insightValue(BuildContext context) => const TextStyle(
-        fontSize: 15,
+  static TextStyle insightValue(BuildContext context) => TextStyle(
+        fontSize: isWideLayout(context) ? 14 : 15,
         fontWeight: FontWeight.w700,
         color: AppColors.text1,
       );

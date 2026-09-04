@@ -14,6 +14,7 @@ import '../../../settings/app_fonts.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_validators.dart';
 import '../../components/app_button.dart';
+import '../../components/app_card.dart';
 import '../../components/app_icon.dart';
 import '../../components/app_input.dart';
 import '../../components/app_snackbar.dart';
@@ -108,46 +109,38 @@ class _LoginScreenState extends State<LoginScreen> {
                         _buildDemoBanner(context),
                       ],
                       const SizedBox(height: 26),
-                      Text(
-                        context.l10n.welcomeBack,
-                        style: AppFonts.sectionTitle(context),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        context.l10n.welcomeBackHint,
-                        style: AppFonts.caption(context),
-                      ),
-                      const SizedBox(height: 20),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          AppInput(
-                            controller: _emailController,
-                            label: context.l10n.emailLabel,
-                            hint: context.l10n.emailHint,
-                            keyboardType: TextInputType.emailAddress,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.deny(RegExp(r'\s')),
-                            ],
-                            autofocus: true,
-                          ),
-                          const SizedBox(height: 14),
-                          AppInput(
-                            controller: _passwordController,
-                            label: context.l10n.passwordLabel,
-                            isObscure: true,
-                            showObscureToggle: true,
-                            onSubmitted: _submit,
-                          ),
-                          const SizedBox(height: 20),
-                          AppButton(
-                            label: context.l10n.signInButton,
-                            isLoading: state.loginSubState.isLoading,
-                            isExpanded: true,
-                            onPressed: _submit,
-                          ),
-                        ],
+                      AppCard(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            AppInput(
+                              controller: _emailController,
+                              label: context.l10n.emailLabel,
+                              hint: context.l10n.emailHint,
+                              keyboardType: TextInputType.emailAddress,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                              ],
+                              autofocus: true,
+                            ),
+                            const SizedBox(height: 14),
+                            AppInput(
+                              controller: _passwordController,
+                              label: context.l10n.passwordLabel,
+                              isObscure: true,
+                              onSubmitted: _submit,
+                            ),
+                            const SizedBox(height: 20),
+                            AppButton(
+                              label: context.l10n.signInButton,
+                              isLoading: state.loginSubState.isLoading,
+                              isExpanded: true,
+                              onPressed: _submit,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -185,8 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildBrand(BuildContext context) => Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 52,
+            height: 52,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.primary,
@@ -200,8 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
             child: const AppIcon(
-              AppAssets.sparkles,
-              size: 25,
+              AppAssets.scissors,
+              size: 24,
               color: AppColors.white,
             ),
           ),

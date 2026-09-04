@@ -15,7 +15,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.routers import relatorio, precificacao, webhooks, health
+from app.schemas.envelope import registrar_exception_handlers
+from app.routers import auth, relatorio, precificacao, webhooks, health
 
 cfg = get_settings()
 
@@ -42,11 +43,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Envelope de resposta ──────────────────────────────────────────
+# HTTPException, erro de validação (422) e exceção genérica (500) — as três
+# fontes possíveis de erro — passam a sair sempre como
+# { total, mensagem, codigo, result }, nunca no formato padrão do FastAPI.
+registrar_exception_handlers(app)
+
 # ── Routers ────────────────────────────────────────────────────────
-app.include_router(health.router)
-app.include_router(relatorio.router)
-app.include_router(precificacao.router)
-app.include_router(webhooks.router)
+# Prefixo /v1 obrigatório (endpoints-backend.md §0 — base URL termina em /v1).
+router_prefix = "/v1"
+app.include_router(health.router, prefix=router_prefix)
+app.include_router(auth.router, prefix=router_prefix)
+app.include_router(relatorio.router, prefix=router_prefix)
+app.include_router(precificacao.router, prefix=router_prefix)
+app.include_router(webhooks.router, prefix=router_prefix)
 
 
 @app.get("/", include_in_schema=False)

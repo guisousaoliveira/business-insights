@@ -36,12 +36,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('no tablet a grade continua a mesma, em pares', (tester) async {
-    // A10 tirou a casca de desktop: largura maior não muda mais o arranjo, e é
-    // isso que este teste segura — o grid é sempre dois a dois.
-    await tester.pumpWidget(montar(const Size(1000, 900)));
+  testWidgets('renderiza dentro de uma tela que rola, na web', (tester) async {
+    await tester.pumpWidget(montar(const Size(1400, 900)));
     expect(tester.takeException(), isNull);
-    expect(find.byType(IntrinsicHeight), findsNWidgets(2));
+
+    final equalizer = find.byType(IntrinsicHeight).first;
+    final row = tester.widget<Row>(
+      find.descendant(of: equalizer, matching: find.byType(Row)).first,
+    );
+    final alturas = row.children
+        .whereType<Expanded>()
+        .map((item) => tester.getSize(find.byWidget(item)).height)
+        .toSet();
+    expect(alturas, hasLength(1),
+        reason: 'os cinco indicadores devem ser iguais');
   });
 
   testWidgets('os dois cartões de uma linha têm a mesma altura', (

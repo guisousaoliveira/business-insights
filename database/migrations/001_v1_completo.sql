@@ -495,13 +495,15 @@ create table if not exists refresh_tokens (
 -- Definida aqui, e não na §1, porque depende de alerta_preferencias.
 
 create or replace function criar_perfil_ao_cadastrar()
-returns trigger language plpgsql security definer as $fn$
+returns trigger language plpgsql security definer
+set search_path = public
+as $fn$
 begin
-  insert into perfil_salao (user_id, email)
+  insert into public.perfil_salao (user_id, email)
   values (new.id, new.email)
   on conflict (user_id) do nothing;
 
-  insert into alerta_preferencias (user_id)
+  insert into public.alerta_preferencias (user_id)
   values (new.id)
   on conflict (user_id) do nothing;
 

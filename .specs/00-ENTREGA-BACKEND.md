@@ -3,16 +3,15 @@
 Ponto único de entrada. Tudo que o time de backend precisa está listado aqui; os
 outros arquivos são o detalhe de cada item.
 
-**Situação:** os dois front-ends estão prontos — o app Flutter (Android/iOS) e o
-app React (web, `frontend/salao_web`). O backend responde **4 das 53 operações**
-que eles chamam — apontados para a API real, abrem no login e param ali.
+**Situação:** o app Flutter está pronto (web, Android e iOS). O backend responde
+**4 das 53 operações** que o app chama — apontado para a API real, o app abre no
+login e para ali.
 
-Para ver as telas funcionando antes do backend existir, há um **modo demo** dos
-dois lados: um servidor falso em memória por trás do mesmo transporte.
+Para ver as telas funcionando antes do backend existir, há um **modo demo**: um
+servidor falso em memória por trás das mesmas interfaces de repository.
 
 ```bash
-flutter run --dart-define-from-file=env/demo.json     # app, em frontend/salao_app
-npm run dev:demo                                      # web, em frontend/salao_web
+flutter run -d chrome --dart-define-from-file=env/demo.json
 ```
 
 Entra com qualquer e-mail e senha. Ele **não substitui o backend** — serve de
@@ -233,7 +232,7 @@ confirmar que o registro existe.
 ## 5. 🔴 A correção de segurança que vem antes de tudo
 
 `api/app/routers/relatorio.py::_extrair_user_id` decodifica o JWT em base64 e
-confia no `sub` **sem verificar a assinatura**. Enquanto o cliente falava direto
+confia no `sub` **sem verificar a assinatura**. Enquanto o Flutter falava direto
 com o Supabase, a RLS segurava. Agora o FastAPI é a única barreira: qualquer
 pessoa monta um token com o `sub` da usuária e lê a receita dela inteira.
 
@@ -271,17 +270,14 @@ N8N_SECRET=...              # já existe; passa a ser exigido em TODO ambiente
 FCM_SERVER_KEY=...          # só no L6
 ```
 
-A API precisa servir sob o prefixo **`/v1`** e liberar **CORS** para a origem da
-web — em desenvolvimento, a origem que o `vite dev` imprimir ao subir. Cada
-front-end aponta para o backend por arquivo de ambiente:
+A API precisa servir sob o prefixo **`/v1`** e liberar **CORS** para a origem do
+Flutter web. O app aponta para o backend por arquivo de ambiente:
 
 ```bash
-flutter run --dart-define-from-file=env/dev.json      # app
-npm run dev                                           # web, lendo .env
+flutter run -d chrome --dart-define-from-file=env/dev.json
 ```
 
-`env/dev.json` (app) e `.env.example` (web) já estão em
-`http://localhost:8000/v1`.
+`env/dev.json` já está em `http://localhost:8000/v1`.
 
 ---
 

@@ -1,16 +1,15 @@
-# CLAUDE.md — GlowApp (business-insights)
+# CLAUDE.md — Thamires Borges Beauty (business-insights)
 
 Contexto permanente do projeto. Leia antes de tocar em qualquer arquivo.
 
 ## O que é
 
-GlowApp é o app de gestão financeira para um salão de beleza de uma profissional autônoma
+App de gestão financeira para um salão de beleza de uma profissional autônoma
 (Thamires Borges Beauty). Responde a uma pergunta só, de várias formas: **"eu estou
 ganhando ou perdendo dinheiro?"** — por atendimento, por mês, por serviço.
 
 Usuária única, não técnica, usando **celular no dia a dia** e **navegador quando senta
-para fechar as contas**. São **dois front-ends** (A10): o app Flutter (Android/iOS) e o
-app React (web). Mesmo backend, mesmo contrato, mesmas decisões — telas diferentes.
+para fechar as contas**. Web e mobile são o mesmo app Flutter, com cascas diferentes.
 
 ## Repositório
 
@@ -21,19 +20,15 @@ business-insights/
 │   ├── 00-ENTREGA-BACKEND.md      # índice único do que entregar ao backend — comece aqui
 │   ├── padrao-de-projeto-flutter/ # o padrão arquitetural (15 docs) — fonte da verdade
 │   ├── padrao-flutter-salao.md    # divergências deste projeto em relação ao padrão
-│   ├── padrao-react-salao.md      # o padrão do front-end web
-│   ├── auditoria-mvp-lovable.md   # o que o MVP web tinha fora do contrato, e o que ficou
 │   ├── endpoints-backend.md       # contrato: 53 operações que o FastAPI deve expor
 │   └── pedidos-backend.md         # ordens de serviço da F4, em lotes L0–L7
-├── api/                           # FastAPI — o ÚNICO backend que os front-ends enxergam
+├── api/                           # FastAPI — o ÚNICO backend que o app enxerga
 ├── database/
 │   ├── schema.sql                 # Supabase/Postgres (estado antes da V1)
 │   └── migrations/
 │       ├── 001_v1_completo.sql    # idempotente: 12 tabelas novas + ajustes
 │       └── 002_seed_teste.sql     # dados de teste (NÃO rodar em produção)
-├── frontend/
-│   ├── salao_app/                 # Flutter — só Android/iOS (A10)
-│   └── salao_web/                 # React (TanStack Start) — a web
+├── frontend/salao_app/            # Flutter (web + mobile)
 └── n8n/                           # automações (WhatsApp, cron, resumos)
 ```
 
@@ -41,23 +36,22 @@ O padrão em `.specs/padrao-de-projeto-flutter/` é uma cópia vendorizada de
 `F:\projects\FrotaOP_mobile\padrao-de-projeto-flutter` — mantida aqui para o repo ser
 autocontido. Se o original mudar, atualize a cópia deliberadamente.
 
-## Decisões de arquitetura (02–03/09/2026)
+## Decisões de arquitetura (02/09/2026)
 
-Estas dez foram decididas pelo dono do projeto e **não devem ser revisitadas sem
+Estas nove foram decididas pelo dono do projeto e **não devem ser revisitadas sem
 ele**. Vieram de perguntas explícitas, não de dedução.
 
 | # | Decisão | Consequência |
 |---|---|---|
-| **A1** | **Tudo via FastAPI.** Uma única `baseUrl`. Nenhum front-end fala com o Supabase (nem PostgREST, nem RPC, nem SDK). | O FastAPI passa a ter CRUD, não só relatório. O mapa de endpoints é uma especificação de backend real. Regra de negócio (baixa de estoque ao finalizar atendimento) mora no servidor. |
+| **A1** | **Tudo via FastAPI.** Uma única `baseUrl`. O Flutter **nunca** fala com o Supabase (nem PostgREST, nem RPC, nem SDK). | O FastAPI passa a ter CRUD, não só relatório. O mapa de endpoints é uma especificação de backend real. Regra de negócio (baixa de estoque ao finalizar atendimento) mora no servidor. |
 | **A2** | **Módulo `auth` completo.** Login, token no `AppStorage`, interceptor 401, route guard. | É a primeira feature a subir — o padrão manda validar a arquitetura inteira com ela. Layout de login derivado da paleta (não existe no protótipo). |
 | **A3** | **Alertas in-app + push agora; WhatsApp e e-mail só mapeados.** | Implementar: badge, banner, central de alertas, push. Os endpoints de WhatsApp/e-mail entram no mapa marcados como *futuro* — o n8n já tem fluxos prontos para consumi-los. |
 | **A4** | **`AppStorage` só sobre `SharedPreferences`.** Sem Hive, sem drift. | Mesma fachada `read`/`write`/`delete`/chaves centralizadas do padrão. Serve para sessão e cache leve. **Não há offline-first**: escrita sem rede falha e a UI mostra erro. |
 | **A5** | **Estoque insuficiente avisa, não bloqueia.** Finalizar atendimento e montar kit perguntam "quer registrar mesmo assim?". | Duas passadas no mesmo endpoint: a primeira não grava nada e devolve `409 ESTOQUE_INSUFICIENTE` com `result.faltantes`; a segunda leva `confirmar_estoque_insuficiente: true`, deixa o saldo negativo e gera alerta. `StatusEstoque` ganha `negativo`, distinto de `critico`. |
 | **A6** | **Custo do item é média ponderada móvel**, não o último preço pago. | Cada entrada recalcula `custo_medio`; `custo_ultima_compra` fica ao lado, informativo. Uma compra cara ou promocional não reescreve o custo do saldo parado — a margem só se move quando o custo real se move. |
 | **A7** | **Montar kit é operação real.** Ela monta kits com o estoque que já tem, e vende depois. | Montar e vender são fatos separados, em momentos diferentes: o kit tem saldo próprio (`quantidade_montada`). Montar consome insumo e passa pelo aviso de A5; vender **não** tem segunda passada — `KIT_NAO_MONTADO` é definitivo, um kit que não existe não se vende. |
-| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "GlowApp". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. O bundle id legado permanece estável para não criar outro app nas lojas. |
+| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "Thamires Beauty". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. É a identidade do app nas lojas — cara de mudar depois. |
 | **A9** | **Resumo é a entrada do app e segue o painel Lovable de 02/09/2026.** | É a primeira aba e a `homeRoute`. Consolida alerta, resultado mensal, histórico de seis meses, lucro por serviço, meta, próximos gastos e reposição. A bottom bar destaca o ativo só por cor/ícone/rótulo, sem fundo. |
-| **A10** | **A web é React; o Flutter é só Android/iOS.** (03/09/2026) | O MVP do Lovable virou `frontend/salao_web`, com a camada de dados reescrita contra o contrato. O Flutter **perdeu a casca de desktop**: sem menu lateral, sem `AppTable`, sem `deviceType.desktop`, sem pasta `web/`. Cada front-end tem seu padrão (`padrao-flutter-salao.md`, `padrao-react-salao.md`), mas o contrato, os códigos de erro e as decisões A1–A9 valem para os dois. |
 
 ### O que essas decisões apagam do estado atual
 
@@ -87,16 +81,9 @@ As três assinaturas que não se negociam:
    `buildWhen` funcionar por identidade.
 3. **`navigatorKey` global**, e só em `app_globals.dart` e `app_routes.dart`.
 
-Na web o padrão é outro, mas a **mesma pilha com outros nomes**: rota → hook de
-`lib/queries.ts` → módulo de `lib/api/` → `lib/http.ts`. Está em
-`.specs/padrao-react-salao.md`, com a tabela de equivalência arquivo a arquivo.
-
 ## Módulos
 
 Os nomes valem simultaneamente em `cubits/`, `models/`, `repositories/` e `ui/screens/`.
-
-Valem para os dois front-ends: no Flutter viram pastas, na web viram
-`lib/api/<modulo>.ts` mais o grupo de chaves em `lib/queries.ts`.
 
 | Módulo | Responsabilidade | Tela no protótipo |
 |---|---|---|
@@ -134,18 +121,18 @@ removido junto com `lib/theme/`. O `scaffold` era o lilás `#F1EDF0` do protóti
 virou branco por decisão do dono do projeto — os cartões continuam se destacando pela
 borda e pela sombra, não pelo contraste com o fundo.
 
-### Casca por front-end
+### Casca por dispositivo
 
-A mesma paleta e os mesmos cinco destinos, em duas implementações:
+`AppScaffold` resolve as duas, decidindo por `deviceType(context)`:
 
-- **Flutter (`AppScaffold`)** — casca única: app bar simples, **bottom nav** de 5 itens,
-  FAB ("Agendar", "Novo gasto", "Novo item") no canto inferior direito. Desde A10 não há
-  mais ramo de desktop; listas são sempre cartões empilhados.
-- **React (`AppShell.tsx`)** — as duas densidades do protótipo: **menu lateral** de 172px
-  a partir de `lg`, com a ação primária no cabeçalho; abaixo disso, barra inferior e FAB.
-  Na largura maior as mesmas listas ganham tabela e grid de duas colunas.
+- **mobile / tablet (≤1024)** — app bar simples, **bottom nav** de 5 itens, FAB
+  ("Agendar", "Novo gasto", "Novo item") no canto inferior direito.
+- **desktop (>1024)** — **menu lateral** de 172px com marca e 5 itens, sem bottom nav,
+  sem FAB; a ação primária vira botão no cabeçalho da página.
 
-É o mesmo dado com densidade diferente, não duas telas diferentes.
+Regra prática do protótipo: no mobile as listas são **cartões empilhados**; na web as
+mesmas listas viram **tabela** (`AppTable`) ou grid de duas colunas. É o mesmo dado com
+densidade diferente, não duas telas diferentes.
 
 ### Ícones
 
@@ -169,13 +156,9 @@ Além dos portões do padrão, antes de marcar qualquer task como concluída:
 - [ ] `buildWhen` / `listenWhen` presentes, comparando o sub-estado específico
 - [ ] Cubit trata sucesso, `DioException` e genérico — sempre terminando em `completed`
 - [ ] Repository não trata exceção e não decide autorização
-
-A checklist do front-end web está em `.specs/padrao-react-salao.md` — mesma ideia,
-outros arquivos (`http.ts`, `paths.ts`, `storage.ts`, `env.ts`, `queries.ts`).
+- [ ] A tela funciona nas duas cascas (bottom nav e menu lateral)
 
 ## Estado da migração
-
-### Flutter
 
 O app foi **reescrito** sobre o padrão. O que existia antes — `provider` +
 `ChangeNotifier`, `ApiService` com métodos `static` e mocks em memória, `http` em vez de
@@ -199,42 +182,19 @@ Fases, nesta ordem (cada uma é entregável e revisável sozinha):
 - [ ] **F5 — Push.** `android/`/`ios/` já existem (A8). Falta o projeto Firebase —
       config que só o dono cria.
 
-### Web (A10)
-
-- [x] **W0 — Integração.** O MVP do Lovable virou `frontend/salao_web`, com `lib/`
-      reescrita contra o contrato: transporte com envelope, sessão com refresh e guard,
-      hooks de react-query, tipos em `snake_case`, modo demo espelhando o do Flutter.
-      O que divergia está registrado em `.specs/auditoria-mvp-lovable.md`; as telas
-      não foram redesenhadas.
-- [x] **W1 — Limpeza do Flutter.** Casca de desktop removida: sem `AppSideMenu`, sem
-      `AppTable`, sem `deviceType.desktop`, sem `web/`. Testes revisados.
-- [ ] **W2 — Backend real.** Depende da F4: hoje a web só tem com quem falar no modo
-      demo.
-
 ### Portões verificados
 
-**Flutter** (`frontend/salao_app`): `flutter analyze` sem nenhum aviso ·
-`dart format` sem diferença · `flutter test` com **102 testes verdes** ·
-`flutter build apk --dart-define-from-file=env/prod.json` concluindo.
-
-**Web** (`frontend/salao_web`): `npm run typecheck` limpo · `npm run lint` sem erro
-(restam 8 avisos de `react-refresh` herdados do MVP) · `npm run build` concluindo.
-
-Rode os do lado que você tocou antes de fechar qualquer fase.
+`flutter analyze` sem nenhum aviso · `flutter test` com **75 testes verdes** ·
+`flutter build web --release` concluindo. Rode os três antes de fechar qualquer fase.
 
 ### Modo demo
 
-Um servidor falso em memória por trás do mesmo transporte, para os dois front-ends
-serem demonstráveis enquanto a F4 não sai.
+Um servidor falso em memória por trás das mesmas interfaces de repository, para o
+app ser demonstrável enquanto a F4 não sai.
 
 ```bash
-flutter run --dart-define-from-file=env/demo.json          # app
-npm --prefix frontend/salao_web run dev:demo               # web
+flutter run -d chrome --dart-define-from-file=env/demo.json
 ```
-
-Os dois são independentes: cada um tem seu banco em memória, e nada é gravado. O
-que vale para os dois é a regra abaixo — a demo é a especificação do backend em
-código executável, não um mock de conveniência.
 
 - **Liga por `--dart-define`**, lido em `settings/app_environment.dart`
   (`AppEnvironment.isDemo`, `const`). `env/demo.json` é o único lugar que o marca.
@@ -249,8 +209,6 @@ código executável, não um mock de conveniência.
   (`test/repositories/demo_database_test.dart`).
 - **Some do build de produção**: com `isDemo` `const false`, o tree shaking
   descarta a pasta `demo/` inteira (verificado no `main.dart.js`).
-- **Na web é o mesmo desenho**: `VITE_DEMO_MODE` em `.env.demo`, lido só em
-  `lib/env.ts`, e `lib/demo/demo-transport.ts` respondendo por trás do `http.ts`.
 - Login aceita qualquer e-mail e senha; a senha `errada` devolve
   `AUTH_CREDENCIAIS_INVALIDAS`, para testar o caminho de erro. A tela de login
   mostra um aviso âmbar quando o modo está ligado — sem ele, a demo é
@@ -292,24 +250,14 @@ código executável, não um mock de conveniência.
   (`api/app/routers/relatorio.py`). Com A1 isso vira falha de segurança de verdade, não
   simplificação: qualquer um forja um `sub`. É o lote **L0.2** de
   `pedidos-backend.md`, marcado 🔴 — validar com o `SUPABASE_JWT_SECRET`.
-- **4 de 53 endpoints existem.** Os dois front-ends estão inteiros; o backend, não.
-  `pedidos-backend.md` é a lista do que falta, em ordem de dependência.
-- **Resumo: custo fixo vem do perfil, gasto variável vem de `gastos` com
-  `categoria != 'fixo'`.** As duas demos decidiram igual, mas o contrato não fixa —
-  confirmar na F4 (ver `.specs/auditoria-mvp-lovable.md`, §6).
+- **4 de 53 endpoints existem.** O app está inteiro; o backend, não. `pedidos-backend.md`
+  é a lista do que falta, em ordem de dependência.
 
 ## Convenções de trabalho
 
 - Idioma do código: **inglês** para nomes de classe/arquivo do padrão (`AppApi`,
   `BlocSubState`) e **português** para domínio (`AtendimentoModel`, `getGastosPath`),
   seguindo o que o padrão já faz. Texto de UI: sempre ARB, sempre pt-BR.
-  No React o domínio também é português, e os tipos ficam em `snake_case` — iguais
-  ao JSON do contrato, sem camada de conversão.
 - Commits em português, como o histórico do repositório.
 - Não invente contrato de API: se falta endpoint, ele entra em
   `.specs/endpoints-backend.md` antes de existir código que o chame.
-- **Uma mudança de contrato mexe nos dois front-ends.** `lib/api/paths.ts` (web) e
-  `settings/app_api.dart` (app) são espelhos; deixar um para depois é como o
-  contrato diverge.
-- **`frontend/salao_web` está conectado ao Lovable**: nunca reescreva histórico já
-  publicado (sem force-push, rebase, amend ou squash de commit enviado).

@@ -9,7 +9,7 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appName => 'GlowApp';
+  String get appName => 'Thamires Borges Beauty';
 
   @override
   String get unknownError => 'Ocorreu um erro inesperado.';
@@ -138,12 +138,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get loginSubtitle => 'Acompanhe o financeiro do seu salão.';
-
-  @override
-  String get welcomeBack => 'Bem-vinda de volta';
-
-  @override
-  String get welcomeBackHint => 'Entre para ver como está o seu mês.';
 
   @override
   String get emailLabel => 'E-mail';
@@ -275,65 +269,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get expensesTitle => 'Gastos';
 
   @override
-  String expensesSubtitle(String month) {
-    return 'Materiais, custos fixos e outras contas de $month';
-  }
-
-  @override
   String get pendingLabel => 'Pendente';
 
   @override
   String get paidThisMonthLabel => 'Pago no mês';
-
-  @override
-  String get totalInPeriod => 'Total no período';
-
-  @override
-  String get overdueTotal => 'Vencido';
-
-  @override
-  String get allExpenses => 'Todos';
-
-  @override
-  String get monthLabel => 'Mês';
-
-  @override
-  String get yearLabel => 'Ano';
-
-  @override
-  String get pendingExpenses => 'Pendentes';
-
-  @override
-  String get paidExpenses => 'Pagos';
-
-  @override
-  String get overdueExpenses => 'Vencidos';
-
-  @override
-  String get entriesTitle => 'Lançamentos';
-
-  @override
-  String entriesCount(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count lançamentos',
-      one: '1 lançamento',
-      zero: 'nenhum lançamento',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get editExpenseTitle => 'Editar gasto';
-
-  @override
-  String get deleteExpense => 'Excluir gasto';
-
-  @override
-  String deleteExpenseQuestion(String name) {
-    return 'Excluir o gasto $name?';
-  }
 
   @override
   String get pendingAndUpcoming => 'Pendentes / próximos';
@@ -516,28 +455,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get stockTitle => 'Estoque';
 
   @override
-  String get stockSubtitle => 'Saldo, custo médio e kits para revenda';
-
-  @override
   String get itemsInAlert => 'Itens em alerta';
 
   @override
   String get stockValue => 'Valor em estoque';
-
-  @override
-  String get productsLabel => 'Produtos';
-
-  @override
-  String get readyKits => 'Kits prontos';
-
-  @override
-  String get resaleKitsTab => 'Kits para revenda';
-
-  @override
-  String get movementsLabel => 'Movimentações';
-
-  @override
-  String get movementsHint => 'Entradas, saídas e ajustes mais recentes';
 
   @override
   String needRestock(int count) {
@@ -551,15 +472,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get resaleKits => 'Kits de revenda';
-
-  @override
-  String get newKit => 'Criar kit';
-
-  @override
-  String get kitNameLabel => 'Nome do kit';
-
-  @override
-  String get kitComposition => 'Composição do kit';
 
   @override
   String get newItemButton => 'Novo item';
@@ -657,19 +569,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get stockAdjustment => 'ajuste';
 
   @override
-  String get profileTitle => 'Perfil';
-
-  @override
-  String get profileSubtitle => 'Dados do salão, custos fixos e serviços';
-
-  @override
-  String get dataAndGoal => 'Dados e meta';
-
-  @override
-  String get monthlyGoal => 'Meta mensal';
-
-  @override
-  String get fixedCostsPending => 'Custos pendentes';
+  String get profileTitle => 'Perfil do salão';
 
   @override
   String get ownerLabel => 'Proprietária';
@@ -690,18 +590,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get alertsTitle => 'Alertas';
 
   @override
-  String alertsSubtitle(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count avisos não lidos',
-      one: '1 aviso não lido',
-      zero: 'nenhum aviso não lido',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String unreadAlerts(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -715,43 +603,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get markAllAsRead => 'Marcar todos como lidos';
-
-  @override
-  String get allLabel => 'Todos';
-
-  @override
-  String get unreadLabel => 'Não lidos';
-
-  @override
-  String get alertsSectionTitle => 'Avisos';
-
-  @override
-  String get alertsSectionHint => 'Gerados a partir do estoque, gastos e metas';
-
-  @override
-  String get newLabel => 'Novo';
-
-  @override
-  String get criticalLabel => 'Crítico';
-
-  @override
-  String get attentionLabel => 'Atenção';
-
-  @override
-  String get informationLabel => 'Informação';
-
-  @override
-  String get viewDetails => 'Ver detalhes';
-
-  @override
-  String get markAsRead => 'Marcar como lido';
-
-  @override
-  String get noAlertsTitle => 'Nenhum alerta por aqui';
-
-  @override
-  String get noAlertsDescription =>
-      'Quando algum produto ficar baixo ou uma conta vencer, o aviso aparece nesta tela.';
 
   @override
   String get descriptionLabel => 'Descrição';
@@ -791,39 +642,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get stockEntryTitle => 'Registrar entrada';
-
-  @override
-  String get stockMovementTitle => 'Movimentar estoque';
-
-  @override
-  String get stockExitOption => 'Saída (uso ou perda)';
-
-  @override
-  String get stockAdjustmentOption => 'Ajuste (contagem)';
-
-  @override
-  String get movementTypeLabel => 'Tipo de movimentação';
-
-  @override
-  String minimumStock(String quantity, String unit) {
-    return 'mínimo $quantity $unit';
-  }
-
-  @override
-  String averageCost(String value) {
-    return 'Custo médio $value';
-  }
-
-  @override
-  String stockMissing(String quantity) {
-    return 'Faltam $quantity';
-  }
-
-  @override
-  String get registerStockEntry => 'Registrar entrada';
-
-  @override
-  String get registerStockExit => 'Registrar saída';
 
   @override
   String get serviceNameLabel => 'Nome do serviço';

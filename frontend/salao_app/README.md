@@ -1,55 +1,61 @@
-# GlowApp — Flutter (Android/iOS)
+# Salon App — Flutter
 
-O app de celular do GlowApp. **Só mobile**: desde a decisão A10 a
-web é um projeto React separado, em `frontend/salao_web`.
+App de gestão financeira para salão de beleza. Interface mobile-first, simples e funcional.
 
-Contexto do produto, decisões (A1–A10) e o padrão arquitetural estão no
-[CLAUDE.md](../../CLAUDE.md) da raiz do repositório.
-
-## Estrutura
+## Estrutura do projeto
 
 ```
 lib/
-├── main.dart              # MaterialApp, providers globais, rotas
-├── settings/              # AppApi, AppStorage, AppRoutes, cores, fontes, enums
-├── cubits/                # um Cubit por módulo + BlocSubState por operação
-├── models/                # *_model.dart com fromResponse(Map)
-├── repositories/          # interface + impl por módulo; demo/ = servidor falso
-├── l10n/                  # ARB pt-BR — nenhuma string visível fora daqui
-└── ui/
-    ├── components/        # o design system (App*), casca em app_scaffold.dart
-    ├── dialogs/           # diálogos de domínio usados por mais de uma tela
-    └── screens/           # uma pasta por módulo
+├── main.dart                    # Entrada do app
+├── theme/
+│   └── app_theme.dart           # Cores, tipografia, estilos globais
+├── models/
+│   └── models.dart              # Modelos de dados + dados de exemplo
+├── widgets/
+│   └── common_widgets.dart      # Componentes reutilizáveis
+└── screens/
+    ├── home_screen.dart         # BottomNav + IndexedStack
+    ├── atendimentos_screen.dart # Lista colapsável de atendimentos
+    ├── gastos_screen.dart       # Gastos semanais com checkbox
+    ├── resumo_screen.dart       # Resumo financeiro do mês
+    └── perfil_screen.dart       # Custos fixos e tabela de serviços
 ```
 
 ## Como rodar
 
 ```bash
+cd salon_app
 flutter pub get
-flutter run --dart-define-from-file=env/demo.json
-```
-
-`env/demo.json` liga o **modo demo**: um servidor falso em memória por trás das
-mesmas interfaces de repository, para o app ser navegável enquanto o FastAPI não
-sobe. `env/dev.json`, `env/hml.json` e `env/prod.json` apontam para a API real.
-
-## Portões
-
-```bash
-flutter analyze          # sem nenhum aviso
-flutter test             # 102 testes
-flutter build apk --dart-define-from-file=env/prod.json
+flutter run
 ```
 
 ## Telas
 
-| Tela | O que responde |
-|---|---|
-| Resumo | entrada do app: saldo do mês, histórico de 6 meses, insights, meta |
-| Atendimentos | agendar, finalizar (com baixa de estoque), cancelar |
-| Gastos | lançar, marcar pago, pendentes vs pagos |
-| Estoque | itens, movimentações e kits de revenda |
-| Perfil | dados do salão, custos fixos e tabela de serviços |
+### Atendimentos
+- Lista colapsável por cliente
+- Mostra serviços realizados, insumos usados e saldo líquido por atendimento
+- Banner com total do mês no topo
+- FAB para novo atendimento
 
-A casca é uma só: app bar, barra inferior de 5 destinos e FAB para a ação
-primária (`ui/components/app_scaffold.dart`).
+### Gastos
+- Agrupado por semana, colapsável
+- Checkbox para marcar como pago
+- Tags de prioridade (alta / média / baixa) e forma de pagamento
+- Métricas de pendente vs pago no topo
+
+### Resumo
+- Saldo real do mês (entrou − saiu)
+- Barra visual de proporção
+- Breakdown de receita de atendimentos e gastos
+- Aviso quando está no zero a zero
+
+### Perfil
+- Cadastro de custos fixos (aluguel, internet, etc.)
+- Tabela de serviços com preços
+- Adicionar e remover itens
+
+## Próximos passos (integração com backend)
+1. Substituir dados de exemplo por chamadas ao Supabase REST API
+2. Adicionar auth (Supabase Auth)
+3. Conectar endpoints de cálculo no FastAPI (`/relatorio/mensal`)
+4. Transformar em PWA para rodar no celular sem app store

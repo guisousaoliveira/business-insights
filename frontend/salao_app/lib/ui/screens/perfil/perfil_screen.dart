@@ -14,6 +14,7 @@ import '../../../settings/app_colors.dart';
 import '../../../settings/app_enums.dart';
 import '../../../settings/app_extensions.dart';
 import '../../../settings/app_fonts.dart';
+import '../../../settings/app_media_querys.dart';
 import '../../../settings/app_routes.dart';
 import '../../../settings/app_utils.dart';
 import '../../components/app_card.dart';
@@ -22,15 +23,12 @@ import '../../components/app_dialog.dart';
 import '../../components/app_empty_list_warning.dart';
 import '../../components/app_icon.dart';
 import '../../components/app_scaffold.dart';
-import '../../components/app_segmented_control.dart';
-import '../../components/app_metric_card.dart';
 import '../../components/app_section_label.dart';
 import '../../components/app_snackbar.dart';
 import '../../components/app_sub_state_builder.dart';
 import '../../components/app_tappable.dart';
 import 'dialogs/novo_custo_fixo_dialog.dart';
 import 'dialogs/novo_servico_dialog.dart';
-import 'dialogs/editar_perfil_dialog.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -40,8 +38,6 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  SecaoPerfil _section = SecaoPerfil.dados;
-
   @override
   void initState() {
     super.initState();
@@ -82,17 +78,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
     }
   }
 
-  Future<void> _openPerfil(PerfilModel perfil) async {
-    final reload = await AppDialog.show<bool>(
-      context: context,
-      title: context.l10n.dataAndGoal,
-      child: EditarPerfilDialog(perfil: perfil),
-    );
-    if ((reload ?? false) && mounted) {
-      BlocProvider.of<PerfilCubit>(context).getPerfil();
-    }
-  }
-
   Future<void> _logout() async {
     final confirmed = await AppDialog.confirm(
       context: context,
@@ -123,15 +108,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
               context,
               state.createCustoFixoSubState,
               () => BlocProvider.of<PerfilCubit>(context).getCustosFixos(),
-            ),
-          ),
-          BlocListener<PerfilCubit, PerfilState>(
-            listenWhen: (p, c) =>
-                p.updatePerfilSubState != c.updatePerfilSubState,
-            listener: (context, state) => _handleWrite(
-              context,
-              state.updatePerfilSubState,
-              () => BlocProvider.of<PerfilCubit>(context).getPerfil(),
             ),
           ),
           BlocListener<PerfilCubit, PerfilState>(
@@ -194,87 +170,31 @@ class _PerfilScreenState extends State<PerfilScreen> {
           builder: (context, alertasState) => AppScaffold(
             currentPage: AppCurrentRoute.perfil,
             title: context.l10n.profileTitle,
-            subtitle: context.l10n.profileSubtitle,
             alertCount: alertasState.badgeCount,
             trailingIcon: AppAssets.logout,
             onTrailingAction: _logout,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildOverview(context),
+                _buildPerfilCard(context),
                 const SizedBox(height: 16),
-                AppSegmentedControl<SecaoPerfil>(
-                  value: _section,
-                  segments: [
-                    AppSegment(SecaoPerfil.dados, context.l10n.dataAndGoal),
-                    AppSegment(
-                        SecaoPerfil.custos, context.l10n.monthlyFixedCosts),
-                    AppSegment(
-                        SecaoPerfil.servicos, context.l10n.servicesLabel),
-                  ],
-                  onChanged: (value) => setState(() => _section = value),
-                ),
-                const SizedBox(height: 16),
-                switch (_section) {
-                  SecaoPerfil.dados => _buildPerfilCard(context),
-                  SecaoPerfil.custos => _buildCustosFixos(context),
-                  SecaoPerfil.servicos => _buildServicos(context),
-                },
+                if (isWideLayout(context))
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: _buildCustosFixos(context)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _buildServicos(context)),
+                    ],
+                  )
+                else ...[
+                  _buildCustosFixos(context),
+                  const SizedBox(height: 16),
+                  _buildServicos(context),
+                ],
               ],
             ),
           ),
-        ),
-      );
-
-  Widget _buildOverview(BuildContext context) =>
-      BlocBuilder<PerfilCubit, PerfilState>(
-        buildWhen: (p, c) =>
-            p.getPerfilSubState != c.getPerfilSubState ||
-            p.getCustosFixosSubState != c.getCustosFixosSubState,
-        builder: (context, perfilState) =>
-            BlocBuilder<ServicosCubit, ServicosState>(
-          buildWhen: (p, c) => p.getServicosSubState != c.getServicosSubState,
-          builder: (context, servicosState) {
-            final perfil = perfilState.getPerfilSubState
-                .value<GetPerfilResponseModel>()
-                ?.perfil;
-            final custos = perfilState.getCustosFixosSubState
-                .value<GetCustosFixosResponseModel>();
-            final servicos = servicosState.getServicosSubState
-                .value<GetServicosResponseModel>()
-                ?.servicos;
-            final cards = [
-              AppMetricCard.neutral(
-                label: context.l10n.monthlyGoal,
-                value: AppUtils.numToMoney(perfil?.metaFaturamentoMensal ?? 0),
-              ),
-              AppMetricCard.danger(
-                label: context.l10n.monthlyFixedCosts,
-                value: AppUtils.numToMoney(custos?.totalMensal ?? 0),
-              ),
-              AppMetricCard.warning(
-                label: context.l10n.fixedCostsPending,
-                value: AppUtils.numToMoney(custos?.totalPendente ?? 0),
-              ),
-              AppMetricCard.neutral(
-                label: context.l10n.servicesLabel,
-                value: '${servicos?.length ?? 0}',
-              ),
-            ];
-            return Column(children: [
-              Row(children: [
-                Expanded(child: cards[0]),
-                const SizedBox(width: 10),
-                Expanded(child: cards[1]),
-              ]),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: cards[2]),
-                const SizedBox(width: 10),
-                Expanded(child: cards[3]),
-              ]),
-            ]);
-          },
         ),
       );
 
@@ -283,8 +203,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
         buildWhen: (p, c) => p.getPerfilSubState != c.getPerfilSubState,
         builder: (context, state) => AppSubStateBuilder<GetPerfilResponseModel>(
           subState: state.getPerfilSubState,
-          onData: (data) => AppTappable(
-            onTap: () => _openPerfil(data.perfil),
+          onData: (data) => ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWideLayout(context) ? 420 : double.infinity,
+            ),
             child: AppCard(
               padding: const EdgeInsets.all(13),
               child: Row(

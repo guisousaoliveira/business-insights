@@ -9,41 +9,22 @@ CRUD puro (criar/editar/apagar atendimento, gasto, etc.) fica
 no Supabase REST API — o Flutter chama diretamente.
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException, Header
+from fastapi import APIRouter, Depends, Query
 from supabase import Client
 
 from app.core.supabase_client import get_supabase
+from app.core.security import usuario_atual
 from app.schemas.relatorio import ResumoMensal
 from app.services.relatorio_service import calcular_resumo_mensal
 from app.services.webhook_service import notificar_alerta_saldo
 
 router = APIRouter(prefix="/relatorio", tags=["Relatório"])
 
-
-def _extrair_user_id(authorization: str | None) -> str:
-    """
-    Extrai o user_id do token JWT enviado pelo Flutter no header Authorization.
-    O Flutter autentica via Supabase Auth e repassa o token Bearer neste header.
-
-    Em produção, valide o JWT usando o secret do Supabase.
-    Aqui usamos o sub do payload para simplicidade — adapte conforme necessário.
-    """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Token de autorização ausente")
-
-    token = authorization.removeprefix("Bearer ").strip()
-
-    # Decodifica sem verificar assinatura para extrair o sub
-    # Em produção: use python-jose + SUPABASE_JWT_SECRET para verificar
-    import base64, json
-    try:
-        payload_b64 = token.split(".")[1]
-        # Padding do base64
-        payload_b64 += "=" * (4 - len(payload_b64) % 4)
-        payload = json.loads(base64.b64decode(payload_b64))
-        return payload["sub"]
-    except Exception:
-        raise HTTPException(status_code=401, detail="Token inválido")
+# A extração de user_id agora é feita por `usuario_atual` (app/core/security.py),
+# que VALIDA a assinatura do JWT com SUPABASE_JWT_SECRET antes de confiar no `sub`.
+# O decode manual em base64 que existia aqui não checava assinatura nenhuma:
+# qualquer pessoa montava um token com o `sub` de outra usuária e lia a receita
+# dela inteira. Esse era o item 🔴 do L0.
 
 
 # ── GET /relatorio/mensal ──────────────────────────────────────────
@@ -61,11 +42,9 @@ def _extrair_user_id(authorization: str | None) -> str:
 async def resumo_mensal(
     ano: int = Query(..., ge=2020, le=2100, description="Ano ex: 2025"),
     mes: int = Query(..., ge=1, le=12, description="Mês ex: 5"),
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(usuario_atual),
     supabase: Client = Depends(get_supabase),
 ):
-    user_id = _extrair_user_id(authorization)
-
     resumo = await calcular_resumo_mensal(supabase, user_id, ano, mes)
 
     # Dispara alerta ao n8n em background — não bloqueia a resposta
@@ -86,13 +65,11 @@ async def resumo_mensal(
     ),
 )
 async def resumo_semanal(
-    authorization: str | None = Header(default=None),
+    user_id: str = Depends(usuario_atual),
     supabase: Client = Depends(get_supabase),
 ):
     from datetime import date, timedelta
     from app.services.webhook_service import notificar_resumo_semanal
-
-    user_id = _extrair_user_id(authorization)
 
     hoje = date.today()
     inicio = hoje - timedelta(days=hoje.weekday())
