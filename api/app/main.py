@@ -40,10 +40,8 @@ app = FastAPI(
         "CRUD básico fica no Supabase — este serviço contém apenas "
         "lógica que o Supabase não resolve sozinho."
     ),
-    version="1.0.0",
-    # Docs desativadas em produção para não expor schema
-    docs_url=None if cfg.is_production else "/docs",
-    redoc_url=None if cfg.is_production else "/redoc",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # ── CORS ───────────────────────────────────────────────────────────
