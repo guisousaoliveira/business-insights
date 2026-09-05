@@ -436,6 +436,62 @@ homolog o dado é real também.
 
 ---
 
+## L8 — Agendamento público `feature nova, cliente marca sozinho pelo link`
+
+Contrato completo em `.specs/endpoints-backend.md` §7 (horário de funcionamento e
+link) e §10 (`agendamento_publico`). Decisões do dono do projeto: link fixo por salão,
+múltiplos serviços por agendamento, confirmação automática, expediente por dia da
+semana sem exceção por data — não revisitar sem ele.
+
+### L8.1 · Migration `002_agendamento_publico.sql`
+
+Ainda não escrita. Precisa criar, nessa ordem (FK entre elas):
+
+1. `servicos.duracao_minutos` (int, not null, `> 0`) — sem default sensato; serviço
+   existente precisa ser preenchido manualmente ou a migration quebra o `not null`.
+2. `horario_funcionamento` (`salao_id` fk, `dia_semana` 0–6, `ativo` bool, `hora_inicio`
+   time nulável, `hora_fim` time nulável) — `unique (salao_id, dia_semana)`.
+3. `salao.slug_agendamento` (text, `unique`, not null) — gerar para os salões que já
+   existem a partir do `nome` (normalizado), na própria migration.
+4. `atendimentos.origem` (enum `interno`/`publico`, default `interno`).
+
+### L8.2 · `GET/PUT /perfil/horario-funcionamento`
+
+`PUT` substitui os 7 dias de uma vez, igual à mecânica de `produtos_padrao` em
+`servicos` (L1). Validar `hora_inicio < hora_fim` só quando `ativo: true`.
+
+### L8.3 · `GET /perfil/link-agendamento`
+
+Só leitura nesta versão — o `slug` é gerado uma vez no cadastro do salão, sem endpoint
+de regenerar.
+
+### L8.4 · `GET /agendamento-publico/{slug}` e `/horarios-disponiveis`
+
+Os dois **sem** `Authorization` — é o único módulo assim no mapa inteiro. Cuidado
+específico de segurança: não vazar nada além de nome, foto e tabela de preços; nenhum
+dos dois pode aceitar nem devolver `salao_id` cru, `telefone_whatsapp`, custo fixo ou
+qualquer coisa de outro módulo.
+
+`horarios-disponiveis` é o cálculo novo do backend: expediente do dia (L8.2) menos
+atendimentos que já ocupam aquele intervalo, considerando a soma de
+`duracao_minutos` (§8) dos serviços escolhidos. Slot a cada 30 min.
+
+### L8.5 · `POST /agendamento-publico/{slug}/agendar`
+
+Cria atendimento `agendado` com `origem: publico`, mesma regra de preço congelado do
+`POST /atendimentos` (L2). **Revalida disponibilidade na gravação** — dois clientes
+podem estar olhando o mesmo horário; quem perde a corrida recebe
+`409 HORARIO_INDISPONIVEL` e nada é gravado. Gera o alerta `agendamento_publico_novo`
+(módulo `alertas`, L6) — reaproveita o canal in-app que já existe, **não** depende do
+n8n para isso.
+
+**Aceite:** com o expediente de sábado configurado até 14h, `horarios-disponiveis` não
+oferece 15h; agendar às 14h com um serviço de 90 min não oferece depois 14h30 (passaria
+do expediente); dois `POST /agendar` disputando o mesmo horário — o segundo recebe
+`HORARIO_INDISPONIVEL`, não sobrescreve o primeiro.
+
+---
+
 ## Rastreamento: tela ↔ endpoint
 
 Serve para saber o que uma tela precisa antes de testá-la.
@@ -447,8 +503,9 @@ Serve para saber o que uma tela precisa antes de testá-la.
 | Atendimentos | `GET/POST/PATCH/DELETE /atendimentos`, `/finalizar`, `/cancelar`, `GET /servicos`, `GET /estoque/itens` |
 | Gastos | `GET/POST/PATCH/DELETE /gastos`, `/pagar` |
 | Estoque | `GET/POST/PATCH/DELETE /estoque/itens`, `/movimentacoes`, `GET /kits`, `/montar`, `/vender` |
-| Perfil | `GET/PUT /perfil`, CRUD `/perfil/custos-fixos`, CRUD `/servicos`, `GET/PUT /alertas/preferencias` |
+| Perfil | `GET/PUT /perfil`, CRUD `/perfil/custos-fixos`, CRUD `/servicos`, `GET/PUT /alertas/preferencias`, `GET/PUT /perfil/horario-funcionamento`, `GET /perfil/link-agendamento` |
 | Central de alertas | `GET /alertas`, `PATCH /alertas/{id}/lido`, `PATCH /alertas/lidos` |
+| Agendamento público (sem login) | `GET /agendamento-publico/{slug}`, `GET .../horarios-disponiveis`, `POST .../agendar` |
 
 ---
 

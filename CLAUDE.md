@@ -9,7 +9,40 @@ App de gestão financeira para um salão de beleza de uma profissional autônoma
 ganhando ou perdendo dinheiro?"** — por atendimento, por mês, por serviço.
 
 Usuária única, não técnica, usando **celular no dia a dia** e **navegador quando senta
-para fechar as contas**. Web e mobile são o mesmo app Flutter, com cascas diferentes.
+para fechar as contas**.
+
+## Mudança de stack (04/09/2026)
+
+Decisão do dono do projeto: **o frontend deixa de ser Flutter e passa a ser só React**,
+cobrindo tudo (web e o uso no celular, por navegador responsivo). Não é uma dedução —
+foi pedido explicitamente, e vale a partir desta data.
+
+- **`frontend/salao_app/` (Flutter) está congelado.** Não é apagado — fica como
+  histórico e referência — mas **não recebe mais desenvolvimento** até decisão em
+  contrário. Todo o conteúdo deste arquivo que descreve Flutter (padrão de projeto,
+  decisões A2/A4/A8, checklist, fases F0–F5, modo demo) descreve **esse código
+  congelado**, não o alvo atual.
+- **`frontend/salao_web/` (React) é o novo e único frontend.** Hoje só tem as
+  dependências instaladas (`node_modules/`, `.tanstack/`) — **ainda não existe
+  código-fonte**. O `package-lock` interno identifica o projeto como `glowapp-web`
+  (provável origem Lovable) com esta stack:
+  - **React + TypeScript + Vite**
+  - **TanStack Router** + **TanStack Start** (roteamento / SSR-ready) + **TanStack
+    Query** (dados do servidor)
+  - **React Hook Form** + **Zod** (formulários e validação)
+  - **Tailwind CSS v4** + **Radix UI** (base de componentes, padrão shadcn/ui)
+  - **lucide-react** (ícones), **date-fns** + **react-day-picker** (datas/calendário —
+    já dá base pronta para telas de agendamento)
+  - Sem Redux/Zustand instalado: o estado de servidor deve passar por TanStack Query;
+    estado de UI local fica em React state/Context até haver motivo pra outra coisa.
+- **Não há build nativo Android/iOS por enquanto.** A8 (bundle id, `android/`/`ios/`)
+  fica sem efeito prático enquanto essa decisão não for revisitada.
+- **O padrão de projeto para React ainda não existe** — só a stack está fixada pelas
+  deps instaladas. Antes de escrever módulos (`R3` abaixo), definir e documentar aqui:
+  estrutura de pastas, onde mora a chamada HTTP (uma `baseUrl` só, igual A1), como a
+  sessão é guardada (`localStorage`? cookie?), convenção de nomes de arquivo/componente.
+  **Não inventar isso ad-hoc tela por tela** — é a mesma razão pela qual o padrão
+  Flutter existia.
 
 ## Repositório
 
@@ -18,77 +51,92 @@ business-insights/
 ├── CLAUDE.md                      # este arquivo
 ├── .specs/
 │   ├── 00-ENTREGA-BACKEND.md      # índice único do que entregar ao backend — comece aqui
-│   ├── padrao-de-projeto-flutter/ # o padrão arquitetural (15 docs) — fonte da verdade
-│   ├── padrao-flutter-salao.md    # divergências deste projeto em relação ao padrão
-│   ├── endpoints-backend.md       # contrato: 53 operações que o FastAPI deve expor
-│   └── pedidos-backend.md         # ordens de serviço da F4, em lotes L0–L7
-├── api/                           # FastAPI — o ÚNICO backend que o app enxerga
+│   ├── padrao-de-projeto-flutter/ # padrão do código Flutter CONGELADO — não é mais o alvo
+│   ├── padrao-flutter-salao.md    # divergências do Flutter em relação ao padrão acima
+│   ├── padrao-de-projeto-react.md # padrão do frontend atual (React) — trilha R0, fechada
+│   ├── endpoints-backend.md       # contrato: operações que o FastAPI deve expor (framework-agnóstico)
+│   └── pedidos-backend.md         # ordens de serviço da F4, em lotes L0–L8
+├── api/                           # FastAPI — o ÚNICO backend que qualquer frontend enxerga
 ├── database/
 │   ├── schema.sql                 # Supabase/Postgres (estado antes da V1)
 │   └── migrations/
-│       ├── 001_v1_completo.sql    # idempotente: 12 tabelas novas + ajustes
+│       ├── 001_v1_completo.sql    # idempotente: tabelas novas + ajustes
 │       └── 002_seed_teste.sql     # dados de teste (NÃO rodar em produção)
-├── frontend/salao_app/            # Flutter (web + mobile)
+├── frontend/
+│   ├── salao_app/                 # Flutter — CONGELADO (04/09/2026), não desenvolver
+│   └── salao_web/                 # React — frontend atual, ainda sem código-fonte
 └── n8n/                           # automações (WhatsApp, cron, resumos)
 ```
 
 O padrão em `.specs/padrao-de-projeto-flutter/` é uma cópia vendorizada de
-`F:\projects\FrotaOP_mobile\padrao-de-projeto-flutter` — mantida aqui para o repo ser
-autocontido. Se o original mudar, atualize a cópia deliberadamente.
+`F:\projects\FrotaOP_mobile\padrao-de-projeto-flutter`, mantida por ser referência do
+código congelado. Não é a fonte da verdade para o que vem agora.
 
-## Decisões de arquitetura (02/09/2026)
+## Decisões de arquitetura (02/09/2026, revisadas em 04/09/2026)
 
-Estas nove foram decididas pelo dono do projeto e **não devem ser revisitadas sem
-ele**. Vieram de perguntas explícitas, não de dedução.
+Estas foram decididas pelo dono do projeto e **não devem ser revisitadas sem ele**.
+Vieram de perguntas explícitas, não de dedução. As de negócio/backend continuam
+valendo para qualquer frontend; as de implementação Flutter só valem para o código
+congelado.
 
-| # | Decisão | Consequência |
-|---|---|---|
-| **A1** | **Tudo via FastAPI.** Uma única `baseUrl`. O Flutter **nunca** fala com o Supabase (nem PostgREST, nem RPC, nem SDK). | O FastAPI passa a ter CRUD, não só relatório. O mapa de endpoints é uma especificação de backend real. Regra de negócio (baixa de estoque ao finalizar atendimento) mora no servidor. |
-| **A2** | **Módulo `auth` completo.** Login, token no `AppStorage`, interceptor 401, route guard. | É a primeira feature a subir — o padrão manda validar a arquitetura inteira com ela. Layout de login derivado da paleta (não existe no protótipo). |
-| **A3** | **Alertas in-app + push agora; WhatsApp e e-mail só mapeados.** | Implementar: badge, banner, central de alertas, push. Os endpoints de WhatsApp/e-mail entram no mapa marcados como *futuro* — o n8n já tem fluxos prontos para consumi-los. |
-| **A4** | **`AppStorage` só sobre `SharedPreferences`.** Sem Hive, sem drift. | Mesma fachada `read`/`write`/`delete`/chaves centralizadas do padrão. Serve para sessão e cache leve. **Não há offline-first**: escrita sem rede falha e a UI mostra erro. |
-| **A5** | **Estoque insuficiente avisa, não bloqueia.** Finalizar atendimento e montar kit perguntam "quer registrar mesmo assim?". | Duas passadas no mesmo endpoint: a primeira não grava nada e devolve `409 ESTOQUE_INSUFICIENTE` com `result.faltantes`; a segunda leva `confirmar_estoque_insuficiente: true`, deixa o saldo negativo e gera alerta. `StatusEstoque` ganha `negativo`, distinto de `critico`. |
-| **A6** | **Custo do item é média ponderada móvel**, não o último preço pago. | Cada entrada recalcula `custo_medio`; `custo_ultima_compra` fica ao lado, informativo. Uma compra cara ou promocional não reescreve o custo do saldo parado — a margem só se move quando o custo real se move. |
-| **A7** | **Montar kit é operação real.** Ela monta kits com o estoque que já tem, e vende depois. | Montar e vender são fatos separados, em momentos diferentes: o kit tem saldo próprio (`quantidade_montada`). Montar consome insumo e passa pelo aviso de A5; vender **não** tem segunda passada — `KIT_NAO_MONTADO` é definitivo, um kit que não existe não se vende. |
-| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "Thamires Beauty". | `android/` e `ios/` gerados. Aplicado em `applicationId`, `namespace`, package Kotlin e `PRODUCT_BUNDLE_IDENTIFIER`. É a identidade do app nas lojas — cara de mudar depois. |
-| **A9** | **Resumo é a entrada do app e segue o painel Lovable de 02/09/2026.** | É a primeira aba e a `homeRoute`. Consolida alerta, resultado mensal, histórico de seis meses, lucro por serviço, meta, próximos gastos e reposição. A bottom bar destaca o ativo só por cor/ícone/rótulo, sem fundo. |
+| # | Decisão | Status | Consequência |
+|---|---|---|---|
+| **A1** | **Tudo via FastAPI.** Uma única `baseUrl`. O frontend **nunca** fala com o Supabase (nem PostgREST, nem RPC, nem SDK). | ✅ Vigente | O FastAPI tem CRUD, não só relatório. O mapa de endpoints é uma especificação de backend real, independente de Flutter ou React. Regra de negócio (baixa de estoque ao finalizar atendimento) mora no servidor. |
+| **A2** | **Módulo `auth` completo.** Login, token, interceptor 401, route guard. | ⚠️ Vale o conceito; implementação Flutter (`AppStorage`, interceptor Dio) está congelada | Em React precisa do equivalente: onde o token fica, como toda chamada autenticada reage a 401, como a rota protegida redireciona — a definir junto do padrão de projeto React. |
+| **A3** | **Alertas in-app + push agora; WhatsApp e e-mail só mapeados.** | ✅ Vigente | Badge, banner, central de alertas continuam necessários em React. Push depende de F5 (abaixo), hoje sem prioridade sem build nativo. Endpoints de WhatsApp/e-mail seguem *futuro* — n8n já tem fluxos prontos. |
+| **A4** | **`AppStorage` só sobre `SharedPreferences`.** | 🧊 Congelada (só Flutter) | Não se aplica a React. Equivalente (provavelmente `localStorage`, sem offline-first) fica para o padrão de projeto React. |
+| **A5** | **Estoque insuficiente avisa, não bloqueia.** Finalizar atendimento e montar kit perguntam "quer registrar mesmo assim?". | ✅ Vigente | Duas passadas no mesmo endpoint: a primeira não grava nada e devolve `409 ESTOQUE_INSUFICIENTE` com `result.faltantes`; a segunda leva `confirmar_estoque_insuficiente: true`, deixa o saldo negativo e gera alerta. `StatusEstoque` ganha `negativo`, distinto de `critico`. Regra é do backend — qualquer frontend só exibe o aviso. |
+| **A6** | **Custo do item é média ponderada móvel**, não o último preço pago. | ✅ Vigente | Cada entrada recalcula `custo_medio`; `custo_ultima_compra` fica ao lado, informativo. Regra do backend. |
+| **A7** | **Montar kit é operação real.** Kit tem saldo próprio (`quantidade_montada`). | ✅ Vigente | Montar consome insumo e passa pelo aviso de A5; vender **não** tem segunda passada — `KIT_NAO_MONTADO` é definitivo. Regra do backend. |
+| **A8** | **Bundle id `br.com.thamiresbeauty.salao`**, nome de exibição "Thamires Beauty". | 🧊 Congelada (só Flutter, sem build nativo por ora) | `android/`/`ios/` continuam existindo em `salao_app`, mas não há mais trilha ativa para publicar nas lojas enquanto o frontend for só React. |
+| **A9** | **Resumo é a entrada do app e segue o painel Lovable de 02/09/2026.** | ✅ Vigente (conceito) | Continua sendo a rota inicial: alerta, resultado mensal, histórico de seis meses, lucro por serviço, meta, próximos gastos e reposição. A implementação de navegação lateral/inferior é a reinventar em React — o conceito (menos itens de menu no mobile, mais no desktop) segue válido. |
 
 ### O que essas decisões apagam do estado atual
 
 - `api/README.md` e o docstring de `api/app/main.py` dizem "CRUD puro → Supabase REST
-  (Flutter chama diretamente)". **Isso está morto por A1** — corrija quando encostar
+  (frontend chama diretamente)". **Isso está morto por A1** — corrija quando encostar
   nesses arquivos.
-- O `schema.sql` foi desenhado para RLS com a *anon key* do Supabase, porque o Flutter
-  ia bater direto. Com A1 quem bate é o FastAPI (service role). As policies de RLS
-  continuam valendo como segunda barreira, mas **a autorização passa a ser do FastAPI**,
-  derivada do token — nunca de um `user_id` que o cliente mande no corpo.
+- O `schema.sql` foi desenhado para RLS com a *anon key* do Supabase, pensando num
+  cliente batendo direto. Com A1 quem bate é o FastAPI (service role). As policies de
+  RLS continuam valendo como segunda barreira, mas **a autorização passa a ser do
+  FastAPI**, derivada do token — nunca de um `user_id` que o cliente mande no corpo.
 
-## O padrão de projeto
+## Padrão de projeto Flutter (congelado)
 
-`.specs/padrao-de-projeto-flutter/` vale **integralmente**, com as divergências
-registradas em `.specs/padrao-flutter-salao.md`. O resumo de uma linha:
+Vale só para `frontend/salao_app/`, que não recebe mais desenvolvimento. Mantido aqui
+para quem precisar entender ou recuperar algo de lá.
+
+`.specs/padrao-de-projeto-flutter/` vale **integralmente** para esse código, com as
+divergências registradas em `.specs/padrao-flutter-salao.md`. Resumo de uma linha:
 
 > Cubit por módulo → `BlocSubState` por operação → Repository injetado (interface +
 > impl) → `AppApi` (Dio) → Model com `fromResponse(Map)` → estado emitido com
 > `copyWith`; persistência via `AppStorage`; navegação e i18n globais por
 > `navigatorKey`.
 
-As três assinaturas que não se negociam:
+## Padrão de projeto React
 
-1. **Erro não é estado, é tipo de dado.** `BlocDataState` tem só
-   `idle/loading/completed`; erro é `data is ErrorModel`.
-2. **Sem `Equatable`.** `copyWith` com `?? this.x` em **todos** os campos — é o que faz
-   `buildWhen` funcionar por identidade.
-3. **`navigatorKey` global**, e só em `app_globals.dart` e `app_routes.dart`.
+Fechado em `.specs/padrao-de-projeto-react.md` (trilha **R0** concluída). Resumo de uma
+linha, espelhando o do Flutter:
+
+> Módulo (`modules/*`) → `api.ts` (chamadas via `apiFetch` único) → `queries.ts`
+> (`useQuery`/`useMutation` do TanStack Query) → `schemas.ts` (Zod, valida request e
+> response) → sessão em `localStorage` via `lib/auth.ts` → rotas por arquivo
+> (TanStack Router/Start) com guard em `_authenticated`.
+
+Decisão que diverge do Flutter e vale registrar aqui: **sem i18n** (ARB não tem
+equivalente) — um idioma só, sem plano de internacionalizar, strings direto no
+componente em pt-BR. Detalhe e justificativa em `padrao-de-projeto-react.md` (R9).
 
 ## Módulos
 
-Os nomes valem simultaneamente em `cubits/`, `models/`, `repositories/` e `ui/screens/`.
+Unidade de dado, não de tela — nomes valem independente do framework que os implementa.
 
 | Módulo | Responsabilidade | Tela no protótipo |
 |---|---|---|
 | `auth` | login, refresh, logout, sessão, guard | — (derivada da paleta) |
 | `atendimentos` | agendar, finalizar, cancelar, listar; saldo do período | Atendimentos |
+| `agendamento_publico` | tela sem login, aberta pelo link fixo do salão; cliente marca sozinho | Atendimentos (fonte externa) |
 | `gastos` | lançar, marcar pago, listar pendentes/pagos | Gastos |
 | `resumo` | consolidação mensal, insights, precificação | Resumo |
 | `estoque` | itens e movimentações | Estoque |
@@ -98,13 +146,14 @@ Os nomes valem simultaneamente em `cubits/`, `models/`, `repositories/` e `ui/sc
 | `alertas` | estoque baixo, gastos a vencer, central, badge, push | transversal |
 
 Nenhum passa de ~8 operações — é por isso que `kits` sai de `estoque` e `servicos` sai
-de `perfil`, embora dividam tela. Módulo é unidade de dado, não de tela.
+de `perfil`, embora dividam tela.
 
 ## Design system
 
 Paleta e layout vêm de `design-todas-telas.html` (protótipo aprovado). **A paleta é
 roxa; verde e vermelho são reservados a positivo/negativo** (saldo, pago/pendente,
 estoque ok/alerta) — trocar isso prejudica a leitura financeira e não deve ser feito.
+Isso vale para qualquer frontend.
 
 ```
 primary        #BD6DF2    primary-dark   #896393    primary-accent #BD4EBF
@@ -116,148 +165,94 @@ text-1 #1A1A1A · text-2 #6B6B6B · text-3 #9E9E9E
 surface #FFFFFF · surface-2 #F7F7F5 · border #EAE6E5 · scaffold #FFFFFF
 ```
 
-Implementada em `settings/app_colors.dart`. O tema azul `#185FA5` do app antigo foi
-removido junto com `lib/theme/`. O `scaffold` era o lilás `#F1EDF0` do protótipo e
-virou branco por decisão do dono do projeto — os cartões continuam se destacando pela
-borda e pela sombra, não pelo contraste com o fundo.
+No Flutter congelado estava em `settings/app_colors.dart`. Em React, o natural é virar
+tokens do Tailwind (`tailwind.config`) ou variáveis CSS em `:root` — a decidir junto do
+padrão de projeto React, mas os valores acima não mudam. O `scaffold` é branco (decisão
+do dono do projeto, não o lilás `#F1EDF0` do protótipo original) — cartões se destacam
+pela borda e sombra, não pelo contraste com o fundo.
 
-### Casca por dispositivo
+### Casca por dispositivo (conceito, vale para qualquer frontend)
 
-`AppScaffold` resolve as duas, decidindo por `deviceType(context)`:
+- **mobile / tablet** — bottom nav, ação primária em FAB.
+- **desktop** — menu lateral, sem bottom nav/FAB; ação primária vira botão no cabeçalho.
+- Listas: **cartões empilhados** no mobile, **tabela** ou grid de duas colunas na web —
+  mesmo dado, densidade diferente, não telas diferentes.
 
-- **mobile / tablet (≤1024)** — app bar simples, **bottom nav** de 5 itens, FAB
-  ("Agendar", "Novo gasto", "Novo item") no canto inferior direito.
-- **desktop (>1024)** — **menu lateral** de 172px com marca e 5 itens, sem bottom nav,
-  sem FAB; a ação primária vira botão no cabeçalho da página.
-
-Regra prática do protótipo: no mobile as listas são **cartões empilhados**; na web as
-mesmas listas viram **tabela** (`AppTable`) ou grid de duas colunas. É o mesmo dado com
-densidade diferente, não duas telas diferentes.
+A implementação concreta (`AppScaffold`, breakpoint em 1024px) é do Flutter congelado.
+Em React isso normalmente vira componentes de layout + Tailwind responsive variants —
+a definir.
 
 ### Ícones
 
-O protótipo usa Tabler Icons. Como os SVGs não estão no repositório,
-`settings/app_assets.dart` mapeia cada um para o equivalente Material mais próximo, com
-o nome Tabler anotado ao lado. **Nenhuma tela escreve `Icons.*`** — só `AppAssets` +
-`AppIcon`, então trocar pelos SVGs reais é mexer em um arquivo.
-
-## Checklist de conformidade
-
-Além dos portões do padrão, antes de marcar qualquer task como concluída:
-
-- [ ] Nenhum widget Material direto na tela — só `App*`
-- [ ] Nenhuma cor ou `TextStyle` literal fora de `AppColors` / `AppFonts`
-- [ ] Nenhuma string visível ao usuário fora do ARB
-- [ ] Nenhum enum fora de `app_enums.dart`
-- [ ] Nenhuma string de URL fora de `AppApi`; nenhuma `baseUrl` fixa no código
-- [ ] Nenhum tipo do Dio (`Response`, `DioException`) cruzando o repository
-- [ ] Nenhuma chave de storage fora de `AppStorage`
-- [ ] `copyWith` com `?? this.x` em **todos** os campos
-- [ ] `buildWhen` / `listenWhen` presentes, comparando o sub-estado específico
-- [ ] Cubit trata sucesso, `DioException` e genérico — sempre terminando em `completed`
-- [ ] Repository não trata exceção e não decide autorização
-- [ ] A tela funciona nas duas cascas (bottom nav e menu lateral)
+O protótipo usa Tabler Icons. No Flutter congelado, `settings/app_assets.dart` mapeava
+cada um para Material (SVGs originais não estavam disponíveis). Em React,
+**`lucide-react` já está instalado** — ao montar as telas, mapear cada ícone Tabler do
+protótipo para o equivalente Lucide (mais próximo visualmente do Tabler que o Material).
 
 ## Estado da migração
 
-O app foi **reescrito** sobre o padrão. O que existia antes — `provider` +
-`ChangeNotifier`, `ApiService` com métodos `static` e mocks em memória, `http` em vez de
-Dio, strings e cores literais nas telas, sem rotas nomeadas, sem i18n, sem testes — foi
-removido por inteiro.
+### Trilha Flutter (congelada em 04/09/2026)
 
-Fases, nesta ordem (cada uma é entregável e revisável sozinha):
+Ficou pronta até onde chegou e não recebe mais trabalho:
 
-- [x] **F0 — Contexto.** Este arquivo, `padrao-flutter-salao.md`, `endpoints-backend.md`.
-- [x] **F1 — Infra.** `settings/` completo, `bloc_substate`, `response_model`,
-      `error_model`, ARB, `main.dart`, rotas.
-- [x] **F2 — Design system.** `ui/components/` com a paleta nova e a casca responsiva.
-- [x] **F3 — Módulos** (9), de baixo para cima: model → repo → state → cubit → teste →
-      tela. O código antigo (`provider`, `ApiService`, `screens/`, `theme/`, `widgets/`)
-      foi removido.
-- [ ] **F4 — Backend.** FastAPI implementando `endpoints-backend.md`, nos lotes de
-      `.specs/pedidos-backend.md`. O SQL já está escrito (`database/migrations/`) mas
-      **ainda não foi executado** no Supabase. **O app inteiro depende disto para sair
-      do zero** — contra a API real ele compila, roda e não tem com quem falar.
-      Enquanto isso, o **modo demo** (abaixo) mantém o app clicável de ponta a ponta.
-- [ ] **F5 — Push.** `android/`/`ios/` já existem (A8). Falta o projeto Firebase —
-      config que só o dono cria.
+- [x] **F0 — Contexto.**
+- [x] **F1 — Infra.**
+- [x] **F2 — Design system.**
+- [x] **F3 — Módulos** (9), completos com testes.
+- [ ] **F4 — Backend.** Não terminou (ver "Trilha backend" abaixo) — mas não é mais
+      bloqueio de frontend nenhum: o backend serve a API, não o Flutter especificamente.
+- [ ] **F5 — Push.** Pausada — dependia de build nativo, hoje sem prioridade.
 
-### Portões verificados
+Portões que valiam para essa trilha: `flutter analyze` sem aviso · `flutter test` com
+75 testes verdes · `flutter build web --release` concluindo. Não rodar mais tarefas
+nessa trilha sem pedido explícito do dono do projeto.
 
-`flutter analyze` sem nenhum aviso · `flutter test` com **75 testes verdes** ·
-`flutter build web --release` concluindo. Rode os três antes de fechar qualquer fase.
+**Modo demo** (Flutter, congelado): servidor falso em memória
+(`repositories/demo/demo_database.dart`), ligado por
+`flutter run -d chrome --dart-define-from-file=env/demo.json`. Documentado aqui só
+como referência de regra de negócio executável (as duas passadas de A5, a média
+ponderada de A6, o `KIT_NAO_MONTADO` de A7 estão codificadas lá) — útil de consultar
+mesmo sem tocar mais no Flutter.
 
-### Modo demo
+### Trilha React (nova, começando do zero)
 
-Um servidor falso em memória por trás das mesmas interfaces de repository, para o
-app ser demonstrável enquanto a F4 não sai.
+- [x] **R0 — Padrão de projeto.** Ver `.specs/padrao-de-projeto-react.md`.
+- [ ] **R1 — Infra.** Cliente HTTP com `baseUrl` única, tokens do design system
+      (Tailwind), layout responsivo (casca mobile/desktop), roteamento base.
+- [ ] **R2 — Módulo `auth`.** Primeira feature a subir, mesma razão do Flutter: valida
+      a arquitetura inteira (chamada HTTP, guard de rota, sessão) de uma vez.
+- [ ] **R3 — Demais módulos**, na mesma lista da seção Módulos, contra o contrato de
+      `.specs/endpoints-backend.md`.
 
-```bash
-flutter run -d chrome --dart-define-from-file=env/demo.json
-```
+### Trilha backend (independente do frontend)
 
-- **Liga por `--dart-define`**, lido em `settings/app_environment.dart`
-  (`AppEnvironment.isDemo`, `const`). `env/demo.json` é o único lugar que o marca.
-- **`repositories/app_repositories.dart` é o único arquivo que sabe que a demo
-  existe**: `AppRepositories.kits` devolve `DemoKitsRepository` ou
-  `KitsRepositoryImpl`. Cubit, tela e teste nunca perguntam pelo modo.
-- **`repositories/demo/demo_database.dart` fala o protocolo, não o modelo**:
-  devolve o envelope `{total, mensagem, codigo, result}` cru, que passa pelo
-  `fromResponse` de verdade, e erra lançando `DioException` com `codigo`. As duas
-  passadas de A5, a média ponderada de A6 e o `KIT_NAO_MONTADO` de A7 rodam ali —
-  é a especificação do backend em código executável, com 18 testes
-  (`test/repositories/demo_database_test.dart`).
-- **Some do build de produção**: com `isDemo` `const false`, o tree shaking
-  descarta a pasta `demo/` inteira (verificado no `main.dart.js`).
-- Login aceita qualquer e-mail e senha; a senha `errada` devolve
-  `AUTH_CREDENCIAIS_INVALIDAS`, para testar o caminho de erro. A tela de login
-  mostra um aviso âmbar quando o modo está ligado — sem ele, a demo é
-  indistinguível do app real e alguém salva um dado achando que ficou gravado.
+- [ ] **F4 — Backend.** FastAPI implementando `.specs/endpoints-backend.md`, nos lotes
+      de `.specs/pedidos-backend.md`. O SQL já está escrito (`database/migrations/`)
+      mas **ainda não foi executado** no Supabase.
 
-### Decisões tomadas durante a implementação
+### Dívidas conhecidas do backend, a resolver
 
-- **`AppL10n` com resolvedor injetável** (`settings/app_l10n.dart`) — a saída (b) do
-  §4 de `14-testes.md`. Sem ela, `navigatorKey.currentContext` **lança** em teste
-  unitário (não devolve `null`), e todo teste de caminho de erro quebrava. O padrão
-  manda decidir isso no início do projeto; está decidido.
-- **Ícones Material em vez dos SVGs da Tabler** (`settings/app_assets.dart`). O
-  protótipo usa Tabler; não temos os arquivos, e asset inexistente quebra em runtime.
-  Cada ícone tem o equivalente Tabler anotado ao lado — trocar é mexer em um arquivo.
-- **`kits` separado de `estoque`, `servicos` separado de `perfil`** — juntos passariam
-  de ~8 operações. Módulo é unidade de dado, não de tela.
-- **No resumo, custo fixo vem do perfil e gasto variável vem de `gastos` com
-  `categoria != 'fixo'`** — a demo precisou decidir isso para não somar o mesmo
-  aluguel duas vezes (ele aparece nas duas tabelas no seed). **Confirmar com o
-  backend**: é a única regra da demo que o `endpoints-backend.md` não fixa.
-- **`lib/ui/dialogs/`** existe para o diálogo de domínio que duas telas usam
-  (`EstoqueInsuficienteDialog`). Não é `components/`: lá só moram os `App*` do design
-  system, e a checklist de conformidade depende dessa separação.
-
-### Dívidas conhecidas, a resolver na migração
-
-- ~~Dois modelos `Atendimento` e dois `Gasto` conflitantes~~ — resolvido na F3: sobrou
-  um por módulo, e os arquivos antigos foram apagados.
-- ~~Estoque e kits só existem no mock do Flutter~~ — `001_v1_completo.sql` cria as 11
-  tabelas que faltavam. **Falta executar** no Supabase.
-- **Contrato de `gastos` diverge**: o Flutter usa `forma_pagamento` ∈ {avista, credito,
+- **Contrato de `gastos` diverge**: o app usa `forma_pagamento` ∈ {avista, credito,
   debito, pix} + `categoria` ∈ {material, fixo, outros}; o `schema.sql` usa
   {'à vista','cartão'} + `prioridade` ∈ {alta, média, baixa}. O mapa de endpoints
   define o contrato vencedor, e `001_v1_completo.sql` já converte os dados existentes.
-- **`RelatorioMensal` (Flutter, plano) ≠ `ResumoMensal` (API, aninhado)**. Vence o da
-  API, estendido com os insights do protótipo (ticket médio, margem, comparativo com o
-  mês anterior, serviço mais lucrativo).
+- **`RelatorioMensal` (plano) ≠ `ResumoMensal` (API, aninhado)**. Vence o da API,
+  estendido com os insights do protótipo (ticket médio, margem, comparativo com o mês
+  anterior, serviço mais lucrativo).
 - **`_extrair_user_id` decodifica o JWT sem verificar assinatura**
-  (`api/app/routers/relatorio.py`). Com A1 isso vira falha de segurança de verdade, não
-  simplificação: qualquer um forja um `sub`. É o lote **L0.2** de
-  `pedidos-backend.md`, marcado 🔴 — validar com o `SUPABASE_JWT_SECRET`.
-- **4 de 53 endpoints existem.** O app está inteiro; o backend, não. `pedidos-backend.md`
-  é a lista do que falta, em ordem de dependência.
+  (`api/app/routers/relatorio.py`). Com A1 isso é falha de segurança real: qualquer um
+  forja um `sub`. É o lote **L0.2** de `pedidos-backend.md`, marcado 🔴 — validar com o
+  `SUPABASE_JWT_SECRET`.
+- **4 de poucos endpoints existem.** `pedidos-backend.md` é a lista do que falta, em
+  ordem de dependência.
 
 ## Convenções de trabalho
 
-- Idioma do código: **inglês** para nomes de classe/arquivo do padrão (`AppApi`,
-  `BlocSubState`) e **português** para domínio (`AtendimentoModel`, `getGastosPath`),
-  seguindo o que o padrão já faz. Texto de UI: sempre ARB, sempre pt-BR.
+- Domínio em **português** (`AtendimentoModel`/`Atendimento`, `getGastosPath`), nomes
+  de infraestrutura/framework em **inglês**, seguindo o que o padrão Flutter já fazia —
+  manter a mesma convenção em React. Texto de UI: sempre em pt-BR (mecanismo de
+  tradução a decidir na trilha R0).
 - Commits em português, como o histórico do repositório.
 - Não invente contrato de API: se falta endpoint, ele entra em
-  `.specs/endpoints-backend.md` antes de existir código que o chame.
+  `.specs/endpoints-backend.md` antes de existir código que o chame — vale para
+  qualquer frontend.

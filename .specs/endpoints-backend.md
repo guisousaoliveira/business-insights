@@ -611,7 +611,7 @@ já aconteceu.
 
 ---
 
-## 7. `perfil` — 7 operações
+## 7. `perfil` — 10 operações
 
 ### `GET /perfil` — `NOVO`
 ### `PUT /perfil` — `NOVO`
@@ -686,6 +686,51 @@ duas vezes o mesmo mês não duplica nada — `unique (custo_fixo_id, competenci
 - **Pagar não lança gasto.** Custo fixo já entra no resultado do mês pelo
   perfil; criar um `gasto` aqui contaria o aluguel duas vezes.
 
+### `GET /perfil/horario-funcionamento` — `NOVO`
+### `PUT /perfil/horario-funcionamento` — `NOVO`
+
+Base do cálculo de horário livre do agendamento público (§10). Decisão do dono do
+projeto: **cada dia da semana tem seu próprio horário**, não um expediente único
+repetido — é o que permite "funciono seg-sex mas sábado só de manhã, domingo fechado".
+
+```json
+{
+  "horarios": [
+    { "dia_semana": 0, "ativo": false, "hora_inicio": null, "hora_fim": null },
+    { "dia_semana": 1, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "19:00" },
+    { "dia_semana": 2, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "19:00" },
+    { "dia_semana": 3, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "19:00" },
+    { "dia_semana": 4, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "19:00" },
+    { "dia_semana": 5, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "19:00" },
+    { "dia_semana": 6, "ativo": true,  "hora_inicio": "09:00", "hora_fim": "14:00" }
+  ]
+}
+```
+
+`dia_semana`: `0` domingo … `6` sábado. O `PUT` **substitui os 7 dias de uma vez** —
+mesma filosofia do `PATCH /servicos/{id}` com `produtos_padrao`: o cliente manda o
+estado final da tela (um toggle + dois campos de hora por dia), o servidor não faz
+diff. Dia com `ativo: false` não abre horário nenhum, mesmo que `hora_inicio`/
+`hora_fim` venham preenchidos — o servidor ignora as horas quando o dia está inativo.
+
+`hora_inicio`/`hora_fim` obrigatórios e `hora_inicio < hora_fim` quando `ativo: true`,
+senão `422 VALIDACAO_INVALIDA`. **Não há exceção por data** (feriado, folga pontual)
+nesta versão — é dia da semana fixo. Se isso virar necessário, entra depois como uma
+tabela de bloqueios pontuais; não faz parte do escopo atual.
+
+### `GET /perfil/link-agendamento` — `NOVO`
+
+```json
+{ "slug": "thamires-beauty", "url": "https://agendar.thamiresbeauty.com.br/thamires-beauty" }
+```
+
+Decisão do dono do projeto: **o link é fixo por salão**, não por cliente/convite — a
+profissional compartilha essa mesma URL sempre (bio do Instagram, WhatsApp etc.), sem
+expiração e sem precisar gerar um link por pessoa. `slug` é derivado do nome do salão
+no cadastro (normalizado, sem acento/espaço) com sufixo numérico em caso de colisão
+(`thamires-beauty-2`); não há endpoint de regenerar nesta versão — mudar de slug muda a
+URL que ela já divulgou, então fica manual/suporte enquanto não houver pedido pra isso.
+
 ---
 
 ## 8. `servicos` — 4 operações
@@ -697,12 +742,17 @@ Tabela de preços do salão. Módulo próprio para não estourar o `perfil`.
 ```json
 { "servicos": [
   { "id": "uuid", "nome": "Extensão de cílios", "preco": 180.00,
+    "duracao_minutos": 90,
     "produtos_padrao": [
       { "item_estoque_id": "uuid", "nome": "Fio mink 0.07",
         "quantidade": 1, "unidade": "un" }
     ] }
 ] }
 ```
+
+`duracao_minutos` existe por causa do **agendamento público** (§10): é o que o
+servidor soma para calcular quanto tempo um horário escolhido pelo cliente bloqueia na
+agenda. Obrigatório e `> 0` — sem duração não dá para calcular horário livre.
 
 `produtos_padrao` é o vínculo do serviço com o estoque: **todo serviço realizado
 consome, por padrão, os itens listados aqui**. É o que a tela de finalizar atendimento
@@ -719,7 +769,7 @@ Mesmo corpo nos dois. O `PATCH` **substitui** a lista inteira de produtos padrã
 app manda o estado final da tela, não um diff:
 
 ```json
-{ "nome": "Extensão de cílios", "preco": 180.00,
+{ "nome": "Extensão de cílios", "preco": 180.00, "duracao_minutos": 90,
   "produtos_padrao": [
     { "item_estoque_id": "uuid", "quantidade": 1 }
   ] }
@@ -759,6 +809,7 @@ Tipos de alerta na V1:
 | `custo_fixo_vencido` | custo fixo da competência corrente **em aberto** com o dia já passado | `critico` |
 | `saldo_negativo` | saldo do mês < 0 no fechamento parcial | `critico` |
 | `zero_a_zero` | saldo do mês < limite configurado | `alerta` |
+| `agendamento_publico_novo` | cliente marcou um atendimento pelo link (§10) | `info` |
 
 ### `GET /alertas` — `NOVO`
 
@@ -847,7 +898,84 @@ Chamado no logout — senão a próxima usuária do aparelho recebe alertas alhe
 
 ---
 
-## 10. Canais futuros (WhatsApp e e-mail) — mapeados, não implementados
+## 10. `agendamento_publico` — 3 operações
+
+**O único módulo sem `Authorization`.** É a tela que o cliente abre pelo link fixo do
+salão (§7) para marcar um horário sozinho, sem login — decisões do dono do projeto:
+
+- Link fixo por salão (não por cliente/convite, não expira).
+- Cliente pode escolher **múltiplos serviços** no mesmo agendamento, igual ao fluxo
+  interno (§2) — a duração do horário bloqueado é a **soma** de `duracao_minutos` de
+  cada serviço escolhido.
+- **Confirmação automática**: ao escolher um horário livre, o agendamento já entra como
+  `agendado` — não existe estado "pendente de aprovação". Isso só é seguro porque
+  `horarios-disponiveis` (abaixo) nunca oferece um horário que já colide com outro
+  atendimento.
+
+Autenticação: **nenhuma**. O `slug` na URL identifica o salão — não é secreto (a ideia
+é ser compartilhável), então nenhum dado sensível do salão pode vazar aqui além do que
+já é público num cartão de visita (nome, foto, serviços e preços).
+
+### `GET /agendamento-publico/{slug}` — `NOVO`
+
+```json
+{
+  "salao": { "nome": "Thamires Borges Beauty", "foto_url": "https://..." },
+  "servicos": [
+    { "id": "uuid", "nome": "Extensão de cílios", "preco": 180.00, "duracao_minutos": 90 }
+  ]
+}
+```
+
+`slug` inexistente ou salão inativo → `404 RECURSO_NAO_ENCONTRADO`. Não devolve
+`telefone_whatsapp`, custo fixo, estoque ou qualquer outro dado do módulo `perfil` —
+só o necessário pra montar a tela de agendar.
+
+### `GET /agendamento-publico/{slug}/horarios-disponiveis` — `NOVO`
+
+Query: `data` (date, obrigatório), `servico_ids` (csv de uuid, obrigatório).
+
+```json
+{
+  "duracao_total_minutos": 150,
+  "horarios": ["09:00", "09:30", "10:00", "13:30", "14:00"]
+}
+```
+
+Cálculo, todo no servidor: pega o expediente do dia da semana de `data` em
+`horario_funcionamento` (§7) — dia `ativo: false` devolve `horarios: []` — gera os
+slots possíveis a cada 30 min dentro do expediente, e remove os que colidem com
+qualquer `atendimento` `agendado`/`finalizado` daquele dia (considerando a duração de
+cada um) ou que não caibam antes do fim do expediente com a `duracao_total_minutos`
+pedida. `data` no passado → `horarios: []` (não é erro, só não há o que oferecer).
+
+### `POST /agendamento-publico/{slug}/agendar` — `NOVO`
+
+```json
+{
+  "cliente_nome": "Fernanda",
+  "cliente_telefone": "+5511988887777",
+  "data": "2026-09-10T14:00:00-03:00",
+  "servicos": [{ "servico_id": "uuid" }]
+}
+```
+
+Cria o `atendimento` direto como `agendado` — mesma regra de preço/serviço congelado
+do `POST /atendimentos` (§2), com `origem: "publico"` (ver §14). **O servidor
+revalida a disponibilidade na hora de gravar** (não confia no que o `GET
+horarios-disponiveis` devolveu segundos atrás — dois clientes podem estar olhando o
+mesmo horário ao mesmo tempo): se o horário deixou de estar livre,
+`409 HORARIO_INDISPONIVEL` e nada é gravado; o app reconsulta os horários e pede pra
+escolher outro. Sem segunda passada tipo A5 — não existe "agendar mesmo assim" contra
+a própria agenda.
+
+Ao gravar com sucesso, gera o alerta in-app "novo agendamento pelo link" (módulo
+`alertas`, tipo a acrescentar em §9) para a profissional ver na próxima abertura do
+app — reaproveita o mesmo canal, não precisa do n8n para isso.
+
+---
+
+## 11. Canais futuros (WhatsApp e e-mail) — mapeados, não implementados
 
 Decisão A3: entram no contrato agora, ligam depois. O n8n já tem os fluxos
 (`n8n/fluxo_1_alerta_saldo_mensal.json`, `fluxo_2_resumo_semanal.json`).
@@ -867,7 +995,7 @@ da usuária devem exigi-lo em todo ambiente.
 
 ---
 
-## 11. Códigos de erro (`AppErrorCodes`)
+## 12. Códigos de erro (`AppErrorCodes`)
 
 Todo código aqui tem uma chave correspondente no ARB do app. Código novo no backend sem
 entrada aqui = mensagem genérica na tela.
@@ -885,6 +1013,7 @@ entrada aqui = mensagem genérica na tela.
 | `ITEM_EM_USO` | 409 | exclusão de item/serviço com histórico → use soft delete |
 | `GASTO_JA_PAGO` | 409 | reservado; hoje `/pagar` é idempotente e devolve 200 |
 | `LIMITE_EXCEDIDO` | 429 | rate limit |
+| `HORARIO_INDISPONIVEL` | 409 | agendamento público: horário deixou de estar livre entre a consulta e a gravação (§10) |
 
 Faixas sem código de negócio caem no tratamento genérico do `ErrorModel`: 401/403 →
 sessão expirada, 404 → não encontrado, 4xx → erro de requisição, 5xx → erro de servidor,
@@ -892,7 +1021,7 @@ sem resposta → erro de conexão.
 
 ---
 
-## 12. Resumo por módulo
+## 13. Resumo por módulo
 
 | Módulo | Operações | `EXISTE` | `ALTERAR` | `NOVO` |
 |---|---|---|---|---|
@@ -902,19 +1031,29 @@ sem resposta → erro de conexão.
 | `resumo` | 2 | 1 | 1 | — |
 | `estoque` | 6 | — | — | 6 |
 | `kits` | 6 | — | — | 6 |
-| `perfil` | 6 | — | — | 6 |
+| `perfil` | 10 | — | — | 10 |
 | `servicos` | 4 | — | — | 4 |
 | `alertas` | 7 | — | — | 7 |
+| `agendamento_publico` | 3 | — | — | 3 |
 | n8n / interno | 5 | 3 | — | 2 |
-| **Total** | **52** | **4** | **1** | **47** |
+| **Total** | **59** | **4** | **1** | **54** |
 
-## 13. Mudanças necessárias no banco
+## 14. Mudanças necessárias no banco
 
-**O SQL pronto está em [`database/migrations/001_v1_completo.sql`](../database/migrations/001_v1_completo.sql)** — idempotente, executável direto no SQL Editor do Supabase. Esta seção é só o resumo do que ele faz.
+**O SQL pronto está em [`database/migrations/001_v1_completo.sql`](../database/migrations/001_v1_completo.sql)** — idempotente, executável direto no SQL Editor do Supabase. Esta seção é só o resumo do que ele faz. O agendamento público (§10) ainda **não** tem migration escrita — entra numa `002_agendamento_publico.sql` própria (ver `.specs/pedidos-backend.md`, lote L8).
 
 **Tabelas novas (11):** `perfil_salao` · `estoque_itens` · `estoque_movimentacoes` ·
 `kits` · `kit_itens` · `kit_vendas` · `servico_produtos_padrao` · `alertas` ·
 `alerta_preferencias` · `dispositivos` · `refresh_tokens`.
+
+**Tabelas novas para o agendamento público (a escrever, lote L8):**
+
+| Tabela/coluna | Para quê |
+|---|---|
+| `servicos.duracao_minutos` | calcular quanto tempo um agendamento bloqueia na agenda (§8) |
+| `horario_funcionamento` (`salao_id`, `dia_semana`, `ativo`, `hora_inicio`, `hora_fim`) | expediente por dia da semana (§7) |
+| `salao.slug_agendamento` | URL fixa do link público (§7), único, gerado no cadastro |
+| `atendimentos.origem` (`interno` \| `publico`) | diferenciar na lista/alerta quem veio pelo link (§10) |
 
 **Alterações:**
 
