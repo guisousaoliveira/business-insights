@@ -23,6 +23,8 @@ export interface ItemBody {
   quantidade_minima: number;
   /** Vira o `custo_medio` inicial — daí em diante, média ponderada (A6). */
   custo_unitario: number;
+  /** Código bipado com a câmera — omitido quando o item não tem um. */
+  codigo_barras?: string | null;
 }
 
 export interface MovimentacaoBody {
@@ -39,8 +41,14 @@ export interface MovimentacaoBody {
 }
 
 export const EstoqueApi = {
-  listarItens(): Promise<EstoquePagina> {
-    return AppApi.get<EstoquePagina>(Paths.estoqueItens).then((r) => r.result);
+  listarItens(params?: { codigo_barras?: string }): Promise<EstoquePagina> {
+    return AppApi.get<EstoquePagina>(Paths.estoqueItens, params).then((r) => r.result);
+  },
+
+  /** Busca o item já cadastrado com esse código — null quando é a primeira bipagem. */
+  async buscarPorCodigoBarras(codigo: string): Promise<EstoquePagina["itens"][number] | null> {
+    const pagina = await EstoqueApi.listarItens({ codigo_barras: codigo });
+    return pagina.itens[0] ?? null;
   },
 
   criarItem(body: ItemBody): Promise<void> {

@@ -71,3 +71,19 @@ export function formatHora(value: string): string {
     new Date(value),
   );
 }
+
+/**
+ * Máscara de telefone BR: aceita só dígitos, limita a 11 (DDD + 9 dígitos) e
+ * formata como "(11) 90000-0000" (celular) ou "(11) 0000-0000" (fixo).
+ */
+export function formatTelefone(value: string): string {
+  const digitos = value.replace(/\D/g, "").slice(0, 11);
+  const ddd = digitos.slice(0, 2);
+  const resto = digitos.slice(2);
+  if (digitos.length === 0) return "";
+  if (digitos.length <= 2) return `(${ddd}`;
+  const tamanhoPrefixo = resto.length > 4 ? (digitos.length > 10 ? 5 : 4) : resto.length;
+  const prefixo = resto.slice(0, tamanhoPrefixo);
+  const sufixo = resto.slice(tamanhoPrefixo);
+  return sufixo ? `(${ddd}) ${prefixo}-${sufixo}` : `(${ddd}) ${prefixo}`;
+}

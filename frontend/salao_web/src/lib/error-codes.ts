@@ -17,6 +17,7 @@ export const AppErrorCodes = {
   itemInUse: "ITEM_EM_USO",
   expenseAlreadyPaid: "GASTO_JA_PAGO",
   rateLimited: "LIMITE_EXCEDIDO",
+  barcodeAlreadyUsed: "CODIGO_BARRAS_JA_CADASTRADO",
 } as const;
 
 export type AppErrorCode = (typeof AppErrorCodes)[keyof typeof AppErrorCodes];
@@ -35,6 +36,7 @@ const MENSAGENS: Record<string, string> = {
   [AppErrorCodes.itemInUse]: "Esse item tem histórico e não pode ser apagado.",
   [AppErrorCodes.expenseAlreadyPaid]: "Esse gasto já está pago.",
   [AppErrorCodes.rateLimited]: "Muitas tentativas. Espere um pouco.",
+  [AppErrorCodes.barcodeAlreadyUsed]: "Esse código de barras já está em uso por outro item.",
 };
 
 /**

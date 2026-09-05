@@ -1,5 +1,5 @@
 import { AppApi } from "../http";
-import type { CustosFixosPagina, Perfil } from "../types";
+import type { CustosFixosPagina, HorarioDia, HorarioFuncionamento, LinkAgendamento, Perfil } from "../types";
 import { Paths } from "./paths";
 
 /**
@@ -59,5 +59,20 @@ export const PerfilApi = {
    */
   pagarCustoFixo(id: string, competencia: string, pago: boolean): Promise<void> {
     return AppApi.patch(Paths.pagarCustoFixo(id), { competencia, pago }).then(() => undefined);
+  },
+
+  obterHorarioFuncionamento(): Promise<HorarioFuncionamento> {
+    return AppApi.get<HorarioFuncionamento>(Paths.horarioFuncionamento).then((r) => r.result);
+  },
+
+  /** Substitui os 7 dias de uma vez — o servidor não faz diff (mesma filosofia de PATCH serviços). */
+  salvarHorarioFuncionamento(horarios: HorarioDia[]): Promise<HorarioFuncionamento> {
+    return AppApi.put<HorarioFuncionamento>(Paths.horarioFuncionamento, { horarios }).then(
+      (r) => r.result,
+    );
+  },
+
+  obterLinkAgendamento(): Promise<LinkAgendamento> {
+    return AppApi.get<LinkAgendamento>(Paths.linkAgendamento).then((r) => r.result);
   },
 } as const;

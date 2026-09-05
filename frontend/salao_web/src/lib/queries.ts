@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 
 import {
+  AgendamentoPublicoApi,
   AlertasApi,
   AtendimentosApi,
   AuthApi,
@@ -16,6 +17,7 @@ import {
   PerfilApi,
   ResumoApi,
   ServicosApi,
+  type AgendarBody,
   type AtendimentoBody,
   type CustoFixoBody,
   type FinalizarBody,
@@ -30,7 +32,7 @@ import {
 } from "./api";
 import { ApiError } from "./error-codes";
 import { AppStorage } from "./storage";
-import type { FormaPagamento, Salao, StatusAtendimento, Usuario } from "./types";
+import type { FormaPagamento, HorarioDia, Salao, StatusAtendimento, Usuario } from "./types";
 
 /**
  * A camada de dados vista pela tela.
@@ -67,6 +69,11 @@ export const chaves = {
   servicos: () => ["servicos"] as const,
   alertas: (apenasNaoLidos: boolean) => ["alertas", apenasNaoLidos] as const,
   preferenciasAlerta: () => ["preferencias-alerta"] as const,
+  horarioFuncionamento: () => ["horario-funcionamento"] as const,
+  linkAgendamento: () => ["link-agendamento"] as const,
+  agendamentoPublico: (slug: string) => ["agendamento-publico", slug] as const,
+  horariosDisponiveisPublico: (slug: string, data: string, servicoIds: string[]) =>
+    ["horarios-disponiveis-publico", slug, data, servicoIds.join(",")] as const,
 } as const;
 
 type Grupo =
@@ -79,7 +86,9 @@ type Grupo =
   | "perfil"
   | "custos-fixos"
   | "servicos"
-  | "alertas";
+  | "alertas"
+  | "horario-funcionamento"
+  | "link-agendamento";
 
 function invalidar(cliente: QueryClient, grupos: Grupo[]): void {
   grupos.forEach((grupo) => void cliente.invalidateQueries({ queryKey: [grupo] }));
@@ -507,6 +516,53 @@ export function useExcluirServico() {
   return useMutation({
     mutationFn: (id: string) => ServicosApi.excluir(id),
     onSuccess: () => invalidar(cliente, ["servicos", ...SEMPRE]),
+  });
+}
+
+export function useHorarioFuncionamento() {
+  return useQuery({
+    queryKey: chaves.horarioFuncionamento(),
+    queryFn: () => PerfilApi.obterHorarioFuncionamento(),
+  });
+}
+
+export function useSalvarHorarioFuncionamento() {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: (horarios: HorarioDia[]) => PerfilApi.salvarHorarioFuncionamento(horarios),
+    onSuccess: () => invalidar(cliente, ["horario-funcionamento"]),
+  });
+}
+
+export function useLinkAgendamento() {
+  return useQuery({
+    queryKey: chaves.linkAgendamento(),
+    queryFn: () => PerfilApi.obterLinkAgendamento(),
+  });
+}
+
+// ── agendamento público (sem sessão) ─────────────────────────────────────────
+
+export function useAgendamentoPublico(slug: string) {
+  return useQuery({
+    queryKey: chaves.agendamentoPublico(slug),
+    queryFn: () => AgendamentoPublicoApi.obterPagina(slug),
+    retry: false,
+  });
+}
+
+/** Só busca quando há data e ao menos um serviço escolhido. */
+export function useHorariosDisponiveisPublico(slug: string, data: string, servicoIds: string[]) {
+  return useQuery({
+    queryKey: chaves.horariosDisponiveisPublico(slug, data, servicoIds),
+    queryFn: () => AgendamentoPublicoApi.obterHorariosDisponiveis(slug, data, servicoIds),
+    enabled: Boolean(data) && servicoIds.length > 0,
+  });
+}
+
+export function useAgendarPublico(slug: string) {
+  return useMutation({
+    mutationFn: (body: AgendarBody) => AgendamentoPublicoApi.agendar(slug, body),
   });
 }
 

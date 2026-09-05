@@ -79,11 +79,22 @@ def registrar_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def handler_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        # exc.errors() traz 'ctx': {'error': ValueError(...)} quando o erro vem
+        # de um @model_validator — um ValueError cru não é serializável em JSON,
+        # o que quebrava o JSONResponse e mascarava tudo como 500. Removemos
+        # 'ctx' (ou convertemos para string) antes de montar o envelope.
+        campos = []
+        for erro in exc.errors():
+            erro = dict(erro)
+            ctx = erro.get("ctx")
+            if isinstance(ctx, dict):
+                erro["ctx"] = {k: str(v) for k, v in ctx.items()}
+            campos.append(erro)
         return _erro(
             422,
             "VALIDACAO_INVALIDA",
             "Corpo da requisição inválido",
-            result={"campos": exc.errors()},
+            result={"campos": campos},
         )
 
     @app.exception_handler(Exception)

@@ -14,6 +14,7 @@ export { KitsApi } from "./kits";
 export { PerfilApi } from "./perfil";
 export { ServicosApi } from "./servicos";
 export { AlertasApi } from "./alertas";
+export { AgendamentoPublicoApi } from "./agendamento-publico";
 
 export type {
   AtendimentoBody,
@@ -27,3 +28,4 @@ export type { ItemBody, MovimentacaoBody } from "./estoque";
 export type { KitBody } from "./kits";
 export type { CustoFixoBody, PerfilBody } from "./perfil";
 export type { ServicoBody } from "./servicos";
+export type { AgendarBody } from "./agendamento-publico";

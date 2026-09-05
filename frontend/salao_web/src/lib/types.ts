@@ -141,6 +141,8 @@ export interface ItemEstoque {
   status: StatusEstoque;
   deficit: number;
   ativo: boolean;
+  /** Código bipado com a câmera — null até a primeira bipagem desse item. */
+  codigo_barras: string | null;
 }
 
 export interface EstoquePagina {
@@ -243,6 +245,64 @@ export interface CustosFixosPagina {
   total_pago: number;
   total_pendente: number;
   custos: CustoFixo[];
+}
+
+/** Um dia da semana no expediente. `dia_semana`: domingo=0 ... sábado=6 (§7). */
+export interface HorarioDia {
+  dia_semana: number;
+  ativo: boolean;
+  /** "HH:MM:SS", só quando `ativo`. */
+  hora_inicio: string | null;
+  hora_fim: string | null;
+}
+
+export interface HorarioFuncionamento {
+  horarios: HorarioDia[];
+}
+
+export interface LinkAgendamento {
+  slug: string;
+  url: string;
+}
+
+// ── agendamento público ──────────────────────────────────────────────────────
+// Espelha app/schemas/agendamento_publico.py — usado pela tela sem login que o
+// link fixo do salão abre (módulo `agendamento_publico`, decisão B1).
+
+export interface SalaoPublico {
+  nome: string;
+  foto_url: string | null;
+}
+
+export interface ServicoPublico {
+  id: string;
+  nome: string;
+  preco: number;
+  duracao_minutos: number;
+}
+
+export interface AgendamentoPublicoPagina {
+  salao: SalaoPublico;
+  servicos: ServicoPublico[];
+}
+
+export interface HorariosDisponiveis {
+  duracao_total_minutos: number;
+  /** "HH:MM" no fuso do salão. */
+  horarios: string[];
+}
+
+export interface ServicoAgendado {
+  servico_id: string;
+  nome: string;
+  preco: number;
+}
+
+export interface AgendamentoCriado {
+  id: string;
+  data: string;
+  status: string;
+  servicos: ServicoAgendado[];
 }
 
 // ── resumo ───────────────────────────────────────────────────────────────────

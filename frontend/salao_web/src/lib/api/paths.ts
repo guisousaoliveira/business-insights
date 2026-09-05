@@ -48,10 +48,17 @@ export const Paths = {
   custosFixos: "/perfil/custos-fixos",
   custoFixo: (id: string) => `/perfil/custos-fixos/${id}`,
   pagarCustoFixo: (id: string) => `/perfil/custos-fixos/${id}/pagar`,
+  horarioFuncionamento: "/perfil/horario-funcionamento",
+  linkAgendamento: "/perfil/link-agendamento",
 
   // servicos
   servicos: "/servicos",
   servico: (id: string) => `/servicos/${id}`,
+
+  // agendamento público (sem login — link fixo do salão)
+  agendamentoPublico: (slug: string) => `/agendamento-publico/${slug}`,
+  horariosDisponiveisPublico: (slug: string) => `/agendamento-publico/${slug}/horarios-disponiveis`,
+  agendarPublico: (slug: string) => `/agendamento-publico/${slug}/agendar`,
 
   // alertas
   alertas: "/alertas",

@@ -224,7 +224,10 @@ function estoque(
   }
 
   if (secao === "itens") {
-    if (metodo === "GET" && !id) return db.getItens();
+    if (metodo === "GET" && !id) {
+      const codigoBarras = query?.["codigo_barras"];
+      return db.getItens(typeof codigoBarras === "string" && codigoBarras ? codigoBarras : undefined);
+    }
     if (metodo === "POST" && !id) return db.createItem(body);
     if (metodo === "GET" && acao === "movimentacoes") return db.getMovimentacoes(id);
     if (metodo === "POST" && acao === "movimentacoes") return db.createMovimentacao(id, body);

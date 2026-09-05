@@ -42,6 +42,14 @@ class Settings(BaseSettings):
     # App
     environment: str = Field(default="development", env="ENVIRONMENT")
 
+    # Base da URL do link de agendamento público (§7 do mapa de endpoints).
+    # GET /perfil/link-agendamento monta a url final como f"{base}/{slug}".
+    # Sem domínio próprio ainda — aponta pro front local até existir um.
+    link_agendamento_base_url: str = Field(
+        default="http://localhost:8082/agendar",
+        env="LINK_AGENDAMENTO_BASE_URL",
+    )
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",")]

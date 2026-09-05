@@ -12,4 +12,11 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      // Permite acesso via túnel (cloudflared/ngrok) pra testar no celular —
+      // o Vite recusa por padrão qualquer host que não seja localhost.
+      allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.io"],
+    },
+  },
 });

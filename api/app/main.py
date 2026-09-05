@@ -16,7 +16,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.schemas.envelope import registrar_exception_handlers
-from app.routers import auth, relatorio, precificacao, webhooks, health
+from app.routers import (
+    auth,
+    relatorio,
+    precificacao,
+    webhooks,
+    health,
+    perfil,
+    agendamento_publico,
+    atendimentos,
+    servicos,
+    estoque,
+)
 
 cfg = get_settings()
 
@@ -38,8 +49,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cfg.cors_origins_list,
+    # Túneis de teste (cloudflared/ngrok) em dev, pra testar do celular sem
+    # precisar cadastrar cada subdomínio aleatório em CORS_ORIGINS.
+    allow_origin_regex=None
+    if cfg.is_production
+    else r"https://.*\.(trycloudflare\.com|ngrok-free\.app|ngrok\.io)",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -57,6 +73,11 @@ app.include_router(auth.router, prefix=router_prefix)
 app.include_router(relatorio.router, prefix=router_prefix)
 app.include_router(precificacao.router, prefix=router_prefix)
 app.include_router(webhooks.router, prefix=router_prefix)
+app.include_router(perfil.router, prefix=router_prefix)
+app.include_router(agendamento_publico.router, prefix=router_prefix)
+app.include_router(atendimentos.router, prefix=router_prefix)
+app.include_router(servicos.router, prefix=router_prefix)
+app.include_router(estoque.router, prefix=router_prefix)
 
 
 @app.get("/", include_in_schema=False)

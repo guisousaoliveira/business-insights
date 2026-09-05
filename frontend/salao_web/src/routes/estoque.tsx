@@ -6,12 +6,14 @@ import {
   Package,
   PackagePlus,
   Plus,
+  ScanBarcode,
   ShoppingBag,
   TriangleAlert,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { BarcodeScannerDialog } from "@/components/BarcodeScanner";
 import { EstoqueInsuficienteDialog, faltantesDoErro } from "@/components/EstoqueInsuficienteDialog";
 import {
   Card,
@@ -44,6 +46,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatBRL, formatDateTime } from "@/lib/format";
+import { EstoqueApi } from "@/lib/api/estoque";
 import {
   textoDoErro,
   useCriarItem,
@@ -159,7 +162,11 @@ function EstoquePage() {
     quantidade: "0",
     minimo: "1",
     custo: "",
+    codigoBarras: null as string | null,
   });
+
+  const [bipando, setBipando] = useState(false);
+  const [buscandoCodigo, setBuscandoCodigo] = useState(false);
 
   const [kitAberto, setKitAberto] = useState(false);
   const [formKit, setFormKit] = useState<{
@@ -273,6 +280,7 @@ function EstoquePage() {
         quantidade_atual: quantidade,
         quantidade_minima: Number.isFinite(minimo) ? minimo : 1,
         custo_unitario: custoUnitario,
+        codigo_barras: formItem.codigoBarras,
       },
       {
         onSuccess: () => {
@@ -284,6 +292,7 @@ function EstoquePage() {
             quantidade: "0",
             minimo: "1",
             custo: "",
+            codigoBarras: null,
           });
           toast.success("Produto cadastrado no estoque.");
         },
@@ -291,6 +300,41 @@ function EstoquePage() {
       },
     );
   };
+
+  /**
+   * Bipagem: código novo → formulário de cadastro pré-preenchido com o
+   * código; código já conhecido → direto para a entrada, para ela só
+   * confirmar quantidade e custo (é a reposição de A6).
+   */
+  const aoDetectarCodigo = useCallback(
+    (codigo: string) => {
+      setBipando(false);
+      setBuscandoCodigo(true);
+      EstoqueApi.buscarPorCodigoBarras(codigo)
+        .then((encontrado) => {
+          if (encontrado) {
+            toast.success(`Produto reconhecido: ${encontrado.nome}.`);
+            abrirEntrada(encontrado);
+          } else {
+            setFormItem({
+              nome: "",
+              categoria: "cilios",
+              unidade: "un",
+              quantidade: "0",
+              minimo: "1",
+              custo: "",
+              codigoBarras: codigo,
+            });
+            toast.message("Código novo — cadastre o produto.");
+            setItemAberto(true);
+          }
+        })
+        .catch((erro: unknown) => toast.error(textoDoErro(erro)))
+        .finally(() => setBuscandoCodigo(false));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- abrirEntrada/textoDoErro são estáveis o bastante para este fluxo
+    [],
+  );
 
   const alternarItemKit = (itemId: string) => {
     const existe = formKit.itens.some((i) => i.item_estoque_id === itemId);
@@ -413,6 +457,17 @@ function EstoquePage() {
         </TabsList>
 
         <TabsContent value="produtos" className="mt-4">
+          <SectionTitle
+            hint="Bipe a embalagem para reconhecer o produto ou cadastrar um novo"
+            action={
+              <Button size="sm" variant="outline" onClick={() => setBipando(true)} disabled={buscandoCodigo}>
+                <ScanBarcode className="size-4" />
+                Bipar
+              </Button>
+            }
+          >
+            Produtos
+          </SectionTitle>
           {isPending ? (
             <ListSkeleton />
           ) : isError ? (
@@ -751,6 +806,8 @@ function EstoquePage() {
         </DialogContent>
       </Dialog>
 
+      <BarcodeScannerDialog open={bipando} onOpenChange={setBipando} onDetectado={aoDetectarCodigo} />
+
       <EstoqueInsuficienteDialog
         faltantes={faltantes}
         acao={`montar ${unidades} kit(s)`}
@@ -821,7 +878,13 @@ function EstoquePage() {
       </Dialog>
 
       {/* Novo produto */}
-      <Dialog open={itemAberto} onOpenChange={setItemAberto}>
+      <Dialog
+        open={itemAberto}
+        onOpenChange={(o) => {
+          setItemAberto(o);
+          if (!o) setFormItem((f) => ({ ...f, codigoBarras: null }));
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Novo produto</DialogTitle>
@@ -830,6 +893,12 @@ function EstoquePage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {formItem.codigoBarras ? (
+              <div className="flex items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                <ScanBarcode className="size-4 shrink-0" />
+                Código bipado: <span className="font-medium text-foreground">{formItem.codigoBarras}</span>
+              </div>
+            ) : null}
             <div className="space-y-1.5">
               <Label htmlFor="nome-produto">Nome do produto</Label>
               <Input

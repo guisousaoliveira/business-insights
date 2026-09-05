@@ -18,6 +18,8 @@ COPY app/ ./app/
 RUN useradd -m -u 1000 appuser && chown -R appuser /app
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8080
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Cloud Run injeta a variável PORT (padrão 8080) — o container precisa escutar
+# nela, não numa porta fixa. Forma shell (não exec) pra $PORT ser expandida.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}

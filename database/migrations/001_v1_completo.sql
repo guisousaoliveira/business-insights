@@ -111,6 +111,11 @@ create table if not exists estoque_itens (
                          check (categoria in ('cilios', 'sobrancelha',
                                               'limpeza_pele', 'descartavel', 'outro')),
 
+  -- Bipagem: nulo até a primeira leitura de um código novo. Único por
+  -- usuário (não globalmente) — dois salões podem cadastrar o mesmo produto
+  -- de fornecedores diferentes sob o mesmo código.
+  codigo_barras        text,
+
   -- SEM check (>= 0): saldo negativo é estado válido e desejado.
   -- Vem de finalizar atendimento com confirmar_estoque_insuficiente
   -- (§2 do mapa) — o consumo aconteceu de verdade, o registro só
@@ -586,6 +591,12 @@ create index if not exists idx_estoque_itens_user
 create index if not exists idx_estoque_itens_status
   on estoque_itens (user_id, status)
   where ativo = true;
+
+-- Um código de barras aponta pra no máximo um item, por usuário — é o que
+-- permite reconhecer uma bipagem repetida como "já cadastrado".
+create unique index if not exists idx_estoque_itens_codigo_barras
+  on estoque_itens (user_id, codigo_barras)
+  where codigo_barras is not null;
 
 create index if not exists idx_estoque_mov_item
   on estoque_movimentacoes (item_id, criado_em desc);

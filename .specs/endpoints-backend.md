@@ -424,7 +424,7 @@ Tabelas a criar: `estoque_itens`, `estoque_movimentacoes`, `kits`, `kit_itens`.
 
 ### `GET /estoque/itens` — `NOVO`
 
-Query: `status` (`ok`/`alerta`/`critico`/`negativo`), `categoria`, `ativo`.
+Query: `status` (`ok`/`alerta`/`critico`/`negativo`), `categoria`, `ativo`, `codigo_barras`.
 
 ```json
 {
@@ -442,7 +442,8 @@ Query: `status` (`ok`/`alerta`/`critico`/`negativo`), `categoria`, `ativo`.
       "custo_ultima_compra": 30.00,
       "status": "critico",
       "deficit": 2,
-      "ativo": true
+      "ativo": true,
+      "codigo_barras": null
     }
   ]
 }
@@ -459,6 +460,20 @@ zero ao repor.
 
 `unidade` ∈ `un` · `ml` · `g` · `cx`.
 `categoria` ∈ `cilios` · `sobrancelha` · `limpeza_pele` · `descartavel` · `outro`.
+
+#### Bipagem de código de barras — `DECIDIDO`
+
+`codigo_barras` é opcional e único por usuário (nulo não conta como duplicado — vários
+itens podem não ter código nenhum). A câmera do celular lê o código (sem leitor físico
+dedicado); o app não fala com o banco diretamente para isso — o fluxo é só um `GET
+/estoque/itens?codigo_barras=...` seguido de `POST` (código novo, ela cadastra o item na
+mão, já com o código preenchido) ou `POST .../movimentacoes` do tipo `entrada` (código
+já conhecido, ela confirma o item e a quantidade que está entrando). Não existe endpoint
+dedicado de "bipar" — é reaproveitamento do filtro de listagem, para não estourar as 6
+operações do módulo.
+
+`POST`/`PATCH` com um `codigo_barras` já usado por outro item (do mesmo usuário): `409` +
+`CODIGO_BARRAS_JA_CADASTRADO`.
 
 ### `POST /estoque/itens` — `NOVO`
 ### `PATCH /estoque/itens/{id}` — `NOVO`
@@ -1011,6 +1026,7 @@ entrada aqui = mensagem genérica na tela.
 | `ESTOQUE_INSUFICIENTE` | 409 | baixa maior que o saldo; `result.faltantes` lista o que falta. Reenviar com `confirmar_estoque_insuficiente: true` passa por cima (§2 e §6) |
 | `KIT_NAO_MONTADO` | 409 | venda maior que `quantidade_montada`; sem confirmação por cima |
 | `ITEM_EM_USO` | 409 | exclusão de item/serviço com histórico → use soft delete |
+| `CODIGO_BARRAS_JA_CADASTRADO` | 409 | `codigo_barras` do item já pertence a outro item do mesmo usuário |
 | `GASTO_JA_PAGO` | 409 | reservado; hoje `/pagar` é idempotente e devolve 200 |
 | `LIMITE_EXCEDIDO` | 429 | rate limit |
 | `HORARIO_INDISPONIVEL` | 409 | agendamento público: horário deixou de estar livre entre a consulta e a gravação (§10) |

@@ -7,6 +7,20 @@
       "runtimeArgs": ["--prefix", "frontend/salao_web", "run", "dev:demo", "--", "--port", "8081", "--strictPort"],
       "port": 8081,
       "autoPort": false
+    },
+    {
+      "name": "salao-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend/salao_web", "run", "dev", "--", "--port", "8082", "--strictPort"],
+      "port": 8082,
+      "autoPort": false
+    },
+    {
+      "name": "salao-api",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd api && venv\\Scripts\\python.exe -m uvicorn app.main:app --reload --port 8000"],
+      "port": 8000,
+      "autoPort": false
     }
   ]
 }

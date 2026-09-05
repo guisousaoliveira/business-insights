@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CalendarClock,
+  Check,
+  Copy,
+  Link2,
   LogOut,
   Pencil,
   Plus,
@@ -55,13 +58,36 @@ import {
   useEstoque,
   useExcluirCustoFixo,
   useExcluirServico,
+  useHorarioFuncionamento,
+  useLinkAgendamento,
   useLogout,
   usePagarCustoFixo,
   usePerfil,
+  useSalvarHorarioFuncionamento,
   useSalvarPerfil,
   useServicos,
 } from "@/lib/queries";
-import type { CustoFixo, Servico } from "@/lib/types";
+import type { CustoFixo, HorarioDia, Servico } from "@/lib/types";
+
+/** domingo=0 … sábado=6, mesma convenção do backend. */
+const DIAS_SEMANA = [
+  "Domingo",
+  "Segunda",
+  "Terça",
+  "Quarta",
+  "Quinta",
+  "Sexta",
+  "Sábado",
+];
+
+function horariosPadrao(): HorarioDia[] {
+  return DIAS_SEMANA.map((_, dia_semana) => ({
+    dia_semana,
+    ativo: dia_semana >= 1 && dia_semana <= 5,
+    hora_inicio: dia_semana >= 1 && dia_semana <= 5 ? "09:00" : null,
+    hora_fim: dia_semana >= 1 && dia_semana <= 5 ? "19:00" : null,
+  }));
+}
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({
@@ -103,6 +129,8 @@ function PerfilPage() {
   const { data: custos, isPending: carregandoCustos } = useCustosFixos(competencia);
   const { data: listaServicos, isPending: carregandoServicos } = useServicos();
   const { data: estoque } = useEstoque();
+  const { data: horarioServidor, isPending: carregandoHorario } = useHorarioFuncionamento();
+  const { data: link, isPending: carregandoLink } = useLinkAgendamento();
 
   const salvar = useSalvarPerfil();
   const criarCusto = useCriarCustoFixo();
@@ -111,7 +139,51 @@ function PerfilPage() {
   const criarServico = useCriarServico();
   const editarServico = useEditarServico();
   const excluirServico = useExcluirServico();
+  const salvarHorario = useSalvarHorarioFuncionamento();
   const sair = useLogout();
+
+  const [horarios, setHorarios] = useState<HorarioDia[]>(horariosPadrao());
+  const [linkCopiado, setLinkCopiado] = useState(false);
+
+  useEffect(() => {
+    if (horarioServidor?.horarios.length) setHorarios(horarioServidor.horarios);
+  }, [horarioServidor]);
+
+  const alternarDia = (dia_semana: number) => {
+    setHorarios((atual) =>
+      atual.map((h) =>
+        h.dia_semana === dia_semana
+          ? {
+              ...h,
+              ativo: !h.ativo,
+              hora_inicio: h.ativo ? null : (h.hora_inicio ?? "09:00"),
+              hora_fim: h.ativo ? null : (h.hora_fim ?? "18:00"),
+            }
+          : h,
+      ),
+    );
+  };
+
+  const alterarHorarioDia = (dia_semana: number, campo: "hora_inicio" | "hora_fim", valor: string) => {
+    setHorarios((atual) =>
+      atual.map((h) => (h.dia_semana === dia_semana ? { ...h, [campo]: valor } : h)),
+    );
+  };
+
+  const salvarHorarios = () => {
+    salvarHorario.mutate(horarios, {
+      onSuccess: () => toast.success("Horário de funcionamento salvo."),
+      onError: (erro) => toast.error(textoDoErro(erro)),
+    });
+  };
+
+  const copiarLink = () => {
+    if (!link) return;
+    navigator.clipboard.writeText(link.url).then(() => {
+      setLinkCopiado(true);
+      setTimeout(() => setLinkCopiado(false), 2000);
+    });
+  };
 
   const [perfil, setPerfil] = useState({
     nome: "",
@@ -315,6 +387,7 @@ function PerfilPage() {
           <TabsTrigger value="dados">Dados e meta</TabsTrigger>
           <TabsTrigger value="custos">Custos fixos</TabsTrigger>
           <TabsTrigger value="servicos">Serviços</TabsTrigger>
+          <TabsTrigger value="agendamento">Agendamento online</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="mt-4">
@@ -516,6 +589,83 @@ function PerfilPage() {
               acao={<Button onClick={abrirNovoServico}>Novo serviço</Button>}
             />
           )}
+        </TabsContent>
+
+        <TabsContent value="agendamento" className="mt-4 space-y-4">
+          <Card className="p-4">
+            <SectionTitle hint="Link fixo — não expira, envie uma vez só">
+              Link para o cliente agendar
+            </SectionTitle>
+            {carregandoLink ? (
+              <ListSkeleton linhas={1} />
+            ) : link ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-surface-2 p-3">
+                <Link2 className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm">{link.url}</span>
+                <Button size="sm" variant="outline" onClick={copiarLink}>
+                  {linkCopiado ? <Check className="size-4" /> : <Copy className="size-4" />}
+                  {linkCopiado ? "Copiado" : "Copiar"}
+                </Button>
+              </div>
+            ) : null}
+          </Card>
+
+          <Card className="p-4">
+            <SectionTitle hint="Só aparecem horários dentro do expediente de cada dia">
+              Horário de funcionamento
+            </SectionTitle>
+            {carregandoHorario ? (
+              <ListSkeleton linhas={3} />
+            ) : (
+              <>
+                <ul className="space-y-2">
+                  {horarios.map((h) => (
+                    <li
+                      key={h.dia_semana}
+                      className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-3"
+                    >
+                      <div className="flex min-w-[7rem] items-center gap-2">
+                        <Switch
+                          checked={h.ativo}
+                          onCheckedChange={() => alternarDia(h.dia_semana)}
+                          aria-label={`Abrir ${DIAS_SEMANA[h.dia_semana]}`}
+                        />
+                        <span className="text-sm font-medium">{DIAS_SEMANA[h.dia_semana]}</span>
+                      </div>
+                      {h.ativo ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="time"
+                            value={h.hora_inicio ?? ""}
+                            onChange={(e) =>
+                              alterarHorarioDia(h.dia_semana, "hora_inicio", e.target.value)
+                            }
+                            className="h-9 w-28"
+                          />
+                          <span className="text-sm text-muted-foreground">às</span>
+                          <Input
+                            type="time"
+                            value={h.hora_fim ?? ""}
+                            onChange={(e) =>
+                              alterarHorarioDia(h.dia_semana, "hora_fim", e.target.value)
+                            }
+                            className="h-9 w-28"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Fechado</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-4">
+                  <Button onClick={salvarHorarios} disabled={salvarHorario.isPending}>
+                    Salvar horário
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
         </TabsContent>
       </Tabs>
 

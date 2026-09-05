@@ -1,5 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CalendarHeart, CheckCircle2, Pencil, TriangleAlert, X } from "lucide-react";
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  CalendarDays,
+  CalendarHeart,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  List as ListIcon,
+  Pencil,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -13,6 +36,12 @@ import {
   SectionTitle,
   type BadgeTone,
 } from "@/components/ui-kit";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,8 +71,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AtendimentoBody } from "@/lib/api";
-import { formatBRL, formatDate, formatHora } from "@/lib/format";
+import { formatBRL, formatDate, formatHora, formatTelefone } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   textoDoErro,
   useAtendimentos,
@@ -54,7 +85,7 @@ import {
   useFinalizarAtendimento,
   useServicos,
 } from "@/lib/queries";
-import type { Atendimento, FaltanteEstoque, StatusAtendimento } from "@/lib/types";
+import type { Atendimento, FaltanteEstoque, ItemEstoque, StatusAtendimento } from "@/lib/types";
 
 export const Route = createFileRoute("/atendimentos")({
   head: () => ({
@@ -123,15 +154,33 @@ function nomesDosServicos(a: Atendimento): string {
   return a.servicos.map((s) => s.nome).join(" + ");
 }
 
+type Visao = "lista" | "calendario";
+
 function AtendimentosPage() {
+  const [visao, setVisao] = useState<Visao>("lista");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | StatusAtendimento>("todos");
   const [periodo, setPeriodo] = useState<Periodo>("mes");
+  const [mesCalendario, setMesCalendario] = useState(() => {
+    const hoje = new Date();
+    return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  });
+  const [diaSelecionado, setDiaSelecionado] = useState(() => diaIso(new Date()));
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState<Atendimento | null>(null);
   const [finalizar, setFinalizar] = useState<Atendimento | null>(null);
   const [cancelar, setCancelar] = useState<Atendimento | null>(null);
 
-  const { inicio, fim } = useMemo(() => intervalo(periodo), [periodo]);
+  // No calendário quem manda no período é o mês exibido, não o seletor "Este mês".
+  const { inicio, fim } = useMemo(
+    () =>
+      visao === "calendario"
+        ? {
+            inicio: diaIso(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth(), 1)),
+            fim: diaIso(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth() + 1, 0)),
+          }
+        : intervalo(periodo),
+    [visao, periodo, mesCalendario],
+  );
   const status = filtroStatus === "todos" ? [] : [filtroStatus];
 
   const { data, isPending, isError, error } = useAtendimentos(inicio, fim, status);
@@ -142,8 +191,29 @@ function AtendimentosPage() {
     [data],
   );
 
+  const porDia = useMemo(() => {
+    const mapa = new Map<string, Atendimento[]>();
+    lista.forEach((a) => {
+      const dia = diaIso(new Date(a.data));
+      const atual = mapa.get(dia) ?? [];
+      atual.push(a);
+      mapa.set(dia, atual);
+    });
+    return mapa;
+  }, [lista]);
+
+  const atendimentosDoDia = useMemo(
+    () => (porDia.get(diaSelecionado) ?? []).slice().sort((a, b) => a.data.localeCompare(b.data)),
+    [porDia, diaSelecionado],
+  );
+
   function abrirNovo() {
     setEditando(null);
+    setFormAberto(true);
+  }
+
+  function abrirEditar(a: Atendimento) {
+    setEditando(a);
     setFormAberto(true);
   }
 
@@ -158,17 +228,31 @@ function AtendimentosPage() {
       acaoLabel="Agendar atendimento"
       onAcao={abrirNovo}
     >
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
-          <SelectTrigger className="h-11 w-[160px] rounded-xl bg-surface">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="mes">Este mês</SelectItem>
-            <SelectItem value="proximos">Próximos dias</SelectItem>
-            <SelectItem value="todos">Todo o período</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Tabs value={visao} onValueChange={(v) => setVisao(v as Visao)}>
+          <TabsList>
+            <TabsTrigger value="lista">
+              <ListIcon className="size-4" />
+              Lista
+            </TabsTrigger>
+            <TabsTrigger value="calendario">
+              <CalendarDays className="size-4" />
+              Calendário
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {visao === "lista" ? (
+          <Select value={periodo} onValueChange={(v) => setPeriodo(v as Periodo)}>
+            <SelectTrigger className="h-11 w-[160px] rounded-xl bg-surface">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mes">Este mês</SelectItem>
+              <SelectItem value="proximos">Próximos dias</SelectItem>
+              <SelectItem value="todos">Todo o período</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : null}
         <Select
           value={filtroStatus}
           onValueChange={(v) => setFiltroStatus(v as typeof filtroStatus)}
@@ -193,6 +277,39 @@ function AtendimentosPage() {
           titulo="Não deu para carregar a agenda"
           descricao={textoDoErro(error)}
         />
+      ) : visao === "calendario" ? (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <CalendarioMes
+            mes={mesCalendario}
+            onMudarMes={setMesCalendario}
+            porDia={porDia}
+            diaSelecionado={diaSelecionado}
+            onSelecionarDia={setDiaSelecionado}
+          />
+          <div className="min-w-0">
+            <SectionTitle>{formatDate(diaSelecionado)}</SectionTitle>
+            {atendimentosDoDia.length === 0 ? (
+              <EmptyState
+                icon={<CalendarHeart className="size-5" />}
+                titulo="Nada agendado neste dia"
+                descricao="Escolha outro dia no calendário ou agende um novo atendimento."
+                acao={<Button onClick={abrirNovo}>Agendar atendimento</Button>}
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {atendimentosDoDia.map((a) => (
+                  <AtendimentoCard
+                    key={a.id}
+                    atendimento={a}
+                    onFinalizar={() => setFinalizar(a)}
+                    onEditar={() => abrirEditar(a)}
+                    onCancelar={() => setCancelar(a)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       ) : lista.length === 0 ? (
         <EmptyState
           icon={<CalendarHeart className="size-5" />}
@@ -201,82 +318,15 @@ function AtendimentosPage() {
           acao={<Button onClick={abrirNovo}>Agendar atendimento</Button>}
         />
       ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {lista.map((a) => (
-            <Card key={a.id} className="p-4">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-display text-base font-semibold">{a.cliente_nome}</p>
-                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                    {nomesDosServicos(a)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(a.data)} às {formatHora(a.data)}
-                    {a.cliente_telefone ? ` • ${a.cliente_telefone}` : ""}
-                  </p>
-                </div>
-                <Pill tone={statusInfo[a.status].tone}>{statusInfo[a.status].label}</Pill>
-              </div>
-
-              {/* Os três números vêm prontos do servidor — a tela não subtrai nada. */}
-              <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-surface-2 p-3 text-center">
-                <div>
-                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    Cobrado
-                  </p>
-                  <Money value={a.total_servicos} className="text-sm" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    Custo
-                  </p>
-                  <Money value={a.total_materiais} className="text-sm" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    Lucro
-                  </p>
-                  <Money value={a.saldo} colorir className="text-sm" />
-                </div>
-              </div>
-
-              {a.materiais.length ? (
-                <p className="mt-2 truncate text-xs text-muted-foreground">
-                  Produtos: {a.materiais.map((m) => `${m.nome} (${m.quantidade})`).join(", ")}
-                </p>
-              ) : null}
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {a.status === "agendado" ? (
-                  <>
-                    <Button size="sm" onClick={() => setFinalizar(a)}>
-                      <CheckCircle2 className="size-4" />
-                      Finalizar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditando(a);
-                        setFormAberto(true);
-                      }}
-                    >
-                      <Pencil className="size-4" />
-                      Editar
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setCancelar(a)}>
-                      <X className="size-4" />
-                      Cancelar
-                    </Button>
-                  </>
-                ) : a.status === "finalizado" ? (
-                  <Button size="sm" variant="ghost" onClick={() => setCancelar(a)}>
-                    <X className="size-4" />
-                    Cancelar
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
+            <AtendimentoCard
+              key={a.id}
+              atendimento={a}
+              onFinalizar={() => setFinalizar(a)}
+              onEditar={() => abrirEditar(a)}
+              onCancelar={() => setCancelar(a)}
+            />
           ))}
         </div>
       )}
@@ -322,6 +372,209 @@ function AtendimentosPage() {
         </AlertDialogContent>
       </AlertDialog>
     </AppShell>
+  );
+}
+
+const DIAS_SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const MAX_CHIPS_POR_DIA = 2;
+
+function capitalizar(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function CalendarioMes({
+  mes,
+  onMudarMes,
+  porDia,
+  diaSelecionado,
+  onSelecionarDia,
+}: {
+  mes: Date;
+  onMudarMes: (d: Date) => void;
+  porDia: Map<string, Atendimento[]>;
+  diaSelecionado: string;
+  onSelecionarDia: (iso: string) => void;
+}) {
+  const semanas = useMemo(() => {
+    const inicio = startOfWeek(startOfMonth(mes), { weekStartsOn: 0 });
+    const fim = endOfWeek(endOfMonth(mes), { weekStartsOn: 0 });
+    const dias = eachDayOfInterval({ start: inicio, end: fim });
+    const linhas: Date[][] = [];
+    for (let i = 0; i < dias.length; i += 7) linhas.push(dias.slice(i, i + 7));
+    return linhas;
+  }, [mes]);
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="flex items-center justify-between gap-2 border-b border-border p-3">
+        <p className="font-display text-base font-semibold">
+          {capitalizar(format(mes, "MMMM 'de' yyyy", { locale: ptBR }))}
+        </p>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => onMudarMes(subMonths(mes, 1))}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onMudarMes(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}
+          >
+            Hoje
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-8"
+            onClick={() => onMudarMes(addMonths(mes, 1))}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 border-b border-border text-center text-[10px] font-semibold tracking-wide text-muted-foreground uppercase sm:text-[11px]">
+        {DIAS_SEMANA.map((d) => (
+          <div key={d} className="py-2">
+            {d}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7">
+        {semanas.flatMap((semana) =>
+          semana.map((dia) => {
+            const iso = diaIso(dia);
+            const doDia = porDia.get(iso) ?? [];
+            const foraDoMes = !isSameMonth(dia, mes);
+            const selecionado = iso === diaSelecionado;
+            const hoje = isToday(dia);
+            return (
+              <button
+                key={iso}
+                type="button"
+                onClick={() => onSelecionarDia(iso)}
+                className={cn(
+                  "min-h-[64px] min-w-0 border-r border-b border-border p-1 text-left align-top last:border-r-0 sm:min-h-24 sm:p-1.5",
+                  foraDoMes && "bg-surface-2/60",
+                  selecionado && "bg-accent/40 ring-1 ring-inset ring-primary",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-flex size-5 items-center justify-center rounded-full text-xs font-semibold",
+                    foraDoMes ? "text-muted-foreground/50" : "text-foreground",
+                    hoje && "bg-primary text-primary-foreground",
+                  )}
+                >
+                  {dia.getDate()}
+                </span>
+                <div className="mt-1 flex flex-col gap-0.5">
+                  {doDia.slice(0, MAX_CHIPS_POR_DIA).map((a) => (
+                    <Pill
+                      key={a.id}
+                      tone={statusInfo[a.status].tone}
+                      className="block w-full truncate rounded px-1 py-0.5 text-left text-[9px] leading-tight sm:text-[10px]"
+                    >
+                      {formatHora(a.data)} {a.cliente_nome}
+                    </Pill>
+                  ))}
+                  {doDia.length > MAX_CHIPS_POR_DIA ? (
+                    <span className="px-1 text-[9px] font-medium text-muted-foreground">
+                      +{doDia.length - MAX_CHIPS_POR_DIA} mais
+                    </span>
+                  ) : null}
+                </div>
+              </button>
+            );
+          }),
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function AtendimentoCard({
+  atendimento: a,
+  onFinalizar,
+  onEditar,
+  onCancelar,
+}: {
+  atendimento: Atendimento;
+  onFinalizar: () => void;
+  onEditar: () => void;
+  onCancelar: () => void;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+        <div className="min-w-0">
+          <p className="truncate font-display text-base font-semibold">{a.cliente_nome}</p>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">{nomesDosServicos(a)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatDate(a.data)} às {formatHora(a.data)}
+            {a.cliente_telefone ? ` • ${a.cliente_telefone}` : ""}
+          </p>
+        </div>
+        <Pill tone={statusInfo[a.status].tone}>{statusInfo[a.status].label}</Pill>
+      </div>
+
+      {/* Os três números vêm prontos do servidor — a tela não subtrai nada. */}
+      <div className="mt-3 grid grid-cols-3 gap-2 rounded-xl bg-surface-2 p-3 text-center">
+        <div>
+          <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+            Cobrado
+          </p>
+          <Money value={a.total_servicos} className="text-sm" />
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+            Custo
+          </p>
+          <Money value={a.total_materiais} className="text-sm" />
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+            Lucro
+          </p>
+          <Money value={a.saldo} colorir className="text-sm" />
+        </div>
+      </div>
+
+      {a.materiais.length ? (
+        <p className="mt-2 truncate text-xs text-muted-foreground">
+          Produtos: {a.materiais.map((m) => `${m.nome} (${m.quantidade})`).join(", ")}
+        </p>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {a.status === "agendado" ? (
+          <>
+            <Button size="sm" onClick={onFinalizar}>
+              <CheckCircle2 className="size-4" />
+              Finalizar
+            </Button>
+            <Button size="sm" variant="outline" onClick={onEditar}>
+              <Pencil className="size-4" />
+              Editar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onCancelar}>
+              <X className="size-4" />
+              Cancelar
+            </Button>
+          </>
+        ) : a.status === "finalizado" ? (
+          <Button size="sm" variant="ghost" onClick={onCancelar}>
+            <X className="size-4" />
+            Cancelar
+          </Button>
+        ) : null}
+      </div>
+    </Card>
   );
 }
 
@@ -416,6 +669,7 @@ function FormularioAtendimento({
               value={cliente}
               onChange={(e) => setCliente(e.target.value)}
               className="h-11 rounded-xl"
+              maxLength={80}
               required
             />
           </div>
@@ -424,9 +678,11 @@ function FormularioAtendimento({
             <Input
               id="telefone"
               value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
+              onChange={(e) => setTelefone(formatTelefone(e.target.value))}
               className="h-11 rounded-xl"
               placeholder="(11) 90000-0000"
+              inputMode="numeric"
+              maxLength={15}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -541,6 +797,22 @@ function DialogFinalizar({
 
   if (!atendimento) return null;
 
+  // Um dropdown por serviço, só com os produtos que o catálogo atribui a ele —
+  // ela não precisa mais garimpar o item certo no meio de todo o estoque.
+  const idsAtribuidos = new Set<string>();
+  const gruposDeProdutos = atendimento.servicos
+    .map((s) => servicos.find((x) => x.id === s.servico_id))
+    .filter((s): s is (typeof servicos)[number] => s !== undefined)
+    .map((servico) => {
+      const doServico = servico.produtos_padrao
+        .map((p) => itens.find((i) => i.id === p.item_estoque_id))
+        .filter((i): i is (typeof itens)[number] => i !== undefined);
+      doServico.forEach((i) => idsAtribuidos.add(i.id));
+      return { id: servico.id, nome: servico.nome, itens: doServico };
+    })
+    .filter((grupo) => grupo.itens.length > 0);
+  const outrosProdutos = itens.filter((i) => !idsAtribuidos.has(i.id));
+
   // Sem anotar `MaterialEntrada[]`: a união com o material avulso (`nome`/`preco`)
   // apagaria `item_estoque_id` da prévia de custo logo abaixo. A conversão para o
   // corpo da requisição acontece na chamada.
@@ -619,43 +891,35 @@ function DialogFinalizar({
               <SectionTitle hint="Marque o que foi usado — o estoque é baixado automaticamente">
                 Produtos utilizados
               </SectionTitle>
-              <ul className="space-y-2">
-                {itens.map((p) => {
-                  const quantidade = quantidades[p.id] ?? 0;
-                  return (
-                    <li
-                      key={p.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border p-2.5"
-                    >
-                      <label className="flex min-w-0 items-center gap-2.5">
-                        <Checkbox
-                          checked={quantidade > 0}
-                          onCheckedChange={(v) =>
-                            setQuantidades((s) => ({ ...s, [p.id]: v ? 1 : 0 }))
-                          }
-                        />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{p.nome}</span>
-                          <span className="block text-xs text-muted-foreground">
-                            Saldo: {p.quantidade_atual} {p.unidade} • {formatBRL(p.custo_medio)}
-                          </span>
-                        </span>
-                      </label>
-                      {quantidade > 0 ? (
-                        <Input
-                          type="number"
-                          min={1}
-                          value={quantidade}
-                          onChange={(e) =>
-                            setQuantidades((s) => ({ ...s, [p.id]: Number(e.target.value) }))
-                          }
-                          className="h-9 w-16 rounded-lg text-center"
-                        />
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
+              <Accordion
+                type="multiple"
+                defaultValue={[...gruposDeProdutos.map((g) => g.id), "outros"]}
+              >
+                {gruposDeProdutos.map((grupo) => (
+                  <AccordionItem key={grupo.id} value={grupo.id}>
+                    <AccordionTrigger>{grupo.nome}</AccordionTrigger>
+                    <AccordionContent>
+                      <ListaDeProdutos
+                        itens={grupo.itens}
+                        quantidades={quantidades}
+                        onMudar={setQuantidades}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+                {outrosProdutos.length > 0 ? (
+                  <AccordionItem value="outros">
+                    <AccordionTrigger>Outros produtos</AccordionTrigger>
+                    <AccordionContent>
+                      <ListaDeProdutos
+                        itens={outrosProdutos}
+                        quantidades={quantidades}
+                        onMudar={setQuantidades}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                ) : null}
+              </Accordion>
             </div>
           </div>
 
@@ -678,5 +942,51 @@ function DialogFinalizar({
         onConfirmar={() => concluir(true)}
       />
     </>
+  );
+}
+
+function ListaDeProdutos({
+  itens,
+  quantidades,
+  onMudar,
+}: {
+  itens: ItemEstoque[];
+  quantidades: Record<string, number>;
+  onMudar: (atualizar: (s: Record<string, number>) => Record<string, number>) => void;
+}) {
+  return (
+    <ul className="space-y-2">
+      {itens.map((p) => {
+        const quantidade = quantidades[p.id] ?? 0;
+        return (
+          <li
+            key={p.id}
+            className="flex items-center justify-between gap-3 rounded-xl border border-border p-2.5"
+          >
+            <label className="flex min-w-0 items-center gap-2.5">
+              <Checkbox
+                checked={quantidade > 0}
+                onCheckedChange={(v) => onMudar((s) => ({ ...s, [p.id]: v ? 1 : 0 }))}
+              />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{p.nome}</span>
+                <span className="block text-xs text-muted-foreground">
+                  Saldo: {p.quantidade_atual} {p.unidade} • {formatBRL(p.custo_medio)}
+                </span>
+              </span>
+            </label>
+            {quantidade > 0 ? (
+              <Input
+                type="number"
+                min={1}
+                value={quantidade}
+                onChange={(e) => onMudar((s) => ({ ...s, [p.id]: Number(e.target.value) }))}
+                className="h-9 w-16 rounded-lg text-center"
+              />
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

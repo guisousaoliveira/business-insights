@@ -81,6 +81,7 @@ interface ItemRow {
   custo_medio: number;
   custo_ultima_compra: number;
   ativo: boolean;
+  codigo_barras: string | null;
 }
 
 interface ServicoRow {
@@ -271,6 +272,7 @@ export class DemoDatabase {
       status: DemoDatabase.statusDoItem(row.quantidade_atual, row.quantidade_minima),
       deficit: Math.max(0, row.quantidade_minima - row.quantidade_atual),
       ativo: row.ativo,
+      codigo_barras: row.codigo_barras,
     };
   }
 
@@ -688,9 +690,10 @@ export class DemoDatabase {
 
   // ── estoque ────────────────────────────────────────────────────────────────
 
-  getItens(): Envelope<EstoquePagina> {
+  getItens(codigoBarras?: string): Envelope<EstoquePagina> {
     const itens = this.itens
       .filter((e) => e.ativo)
+      .filter((e) => !codigoBarras || e.codigo_barras === codigoBarras)
       .map((e) => this.itemToApi(e))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
@@ -704,9 +707,24 @@ export class DemoDatabase {
     );
   }
 
+  private validarCodigoBarrasLivre(codigo: string, ignorarItemId?: string): void {
+    const emUso = this.itens.some(
+      (e) => e.codigo_barras === codigo && e.id !== ignorarItemId,
+    );
+    if (emUso) {
+      this.erro(
+        AppErrorCodes.barcodeAlreadyUsed,
+        409,
+        "Esse código de barras já está em uso por outro item.",
+      );
+    }
+  }
+
   createItem(body: Body): Envelope<null> {
     const quantidade = numero(body, "quantidade_atual");
     const custo = numero(body, "custo_unitario");
+    const codigoBarras = (body["codigo_barras"] as string | null | undefined) ?? null;
+    if (codigoBarras) this.validarCodigoBarrasLivre(codigoBarras);
     const item: ItemRow = {
       id: this.novoId("item"),
       nome: texto(body, "nome"),
@@ -717,6 +735,7 @@ export class DemoDatabase {
       custo_medio: custo,
       custo_ultima_compra: custo,
       ativo: true,
+      codigo_barras: codigoBarras,
     };
     this.itens.push(item);
     if (quantidade > 0) this.movimentar(item, "entrada", quantidade, "Cadastro do item");
@@ -729,6 +748,11 @@ export class DemoDatabase {
     if ("unidade" in body) item.unidade = body["unidade"] as UnidadeEstoque;
     if ("categoria" in body) item.categoria = body["categoria"] as CategoriaEstoque;
     if ("quantidade_minima" in body) item.quantidade_minima = numero(body, "quantidade_minima");
+    if ("codigo_barras" in body) {
+      const codigoBarras = body["codigo_barras"] as string | null;
+      if (codigoBarras) this.validarCodigoBarrasLivre(codigoBarras, id);
+      item.codigo_barras = codigoBarras;
+    }
     // Saldo não se edita: ele é o acumulado das movimentações. Corrigir
     // contagem é lançar um `ajuste` — é por isso que existe histórico.
     return this.vazio();
@@ -1447,12 +1471,16 @@ export class DemoDatabase {
         custo_medio: medio,
         custo_ultima_compra: ultima,
         ativo: true,
+        codigo_barras: null,
       };
       this.itens.push(row);
       return row;
     };
 
     const fio = item("Fio mink 0.07", "cx", "cilios", 8, 3, 42, 45);
+    // Único com código de barras no seed: deixa o fluxo de "bipagem conhecida"
+    // demonstrável sem precisar cadastrar nada primeiro.
+    fio.codigo_barras = "7891234567890";
     const removedor = item("Removedor de cola", "ml", "cilios", 120, 50, 0.35, 0.4);
     const micropore = item("Fita micropore", "cx", "descartavel", 2, 2, 6.5, 6.5);
     const cola = item("Cola adesiva para cílios", "un", "cilios", 0, 2, 28, 30);
