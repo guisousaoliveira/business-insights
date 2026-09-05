@@ -17,7 +17,7 @@ from fastapi import APIRouter, Header, HTTPException, Depends
 from supabase import Client
 from pydantic import BaseModel
 
-from app.core.supabase_client import get_supabase
+from app.core.supabase_client import get_supabase, rows, row
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/webhooks", tags=["Webhooks n8n"])
@@ -102,7 +102,7 @@ async def acionar_resumo_semanal(
         .lte("data", fim.isoformat())
         .execute()
     )
-    ids_atend = [a["id"] for a in (resp_atend.data or [])]
+    ids_atend = [str(a["id"]) for a in rows(resp_atend.data)]
 
     receita_bruta = 0.0
     if ids_atend:
@@ -112,7 +112,7 @@ async def acionar_resumo_semanal(
             .in_("atendimento_id", ids_atend)
             .execute()
         )
-        receita_bruta = sum(float(s["preco_snapshot"]) for s in (resp_serv.data or []))
+        receita_bruta = sum(float(s["preco_snapshot"]) for s in rows(resp_serv.data))
 
     resp_gastos = (
         supabase.table("gastos")
@@ -123,7 +123,7 @@ async def acionar_resumo_semanal(
         .lte("prazo", fim.isoformat())
         .execute()
     )
-    gastos_pendentes = sum(float(g["valor"]) for g in (resp_gastos.data or []))
+    gastos_pendentes = sum(float(g["valor"]) for g in rows(resp_gastos.data))
 
     return {
         "user_id": user_id,

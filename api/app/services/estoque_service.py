@@ -3,6 +3,7 @@
 from fastapi import HTTPException
 from supabase import Client
 
+from app.core.supabase_client import row, rows
 from app.schemas.estoque import ItemIn, ItemPatchIn, MovimentacaoIn
 
 _CAMPOS_ITEM = "id, nome, unidade, categoria, quantidade_atual, quantidade_minima, custo_medio, custo_ultima_compra, status, deficit, ativo, codigo_barras"
@@ -19,7 +20,7 @@ def _validar_codigo_barras_livre(
     )
     if ignorar_item_id:
         query = query.neq("id", ignorar_item_id)
-    if query.execute().data:
+    if rows(query.execute().data):
         raise HTTPException(
             status_code=409,
             detail={
@@ -39,7 +40,7 @@ def _buscar_item(supabase: Client, user_id: str, item_id: str) -> dict:
         .eq("id", item_id)
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     if not linhas:
         raise HTTPException(
             status_code=404,
@@ -67,10 +68,10 @@ def listar(
         query = query.eq("ativo", ativo)
     else:
         query = query.eq("ativo", True)
-    itens = query.order("nome").execute().data or []
+    itens = rows(query.order("nome").execute().data)
 
     total_alertas = sum(1 for i in itens if i["status"] in ("alerta", "critico", "negativo"))
-    valor_total = sum(i["quantidade_atual"] * i["custo_medio"] for i in itens if i["quantidade_atual"] > 0)
+    valor_total = sum(float(i["quantidade_atual"]) * float(i["custo_medio"]) for i in itens if float(i["quantidade_atual"]) > 0)
     return {"total_alertas": total_alertas, "valor_total": valor_total, "itens": itens}
 
 
@@ -93,7 +94,8 @@ def criar(supabase: Client, user_id: str, body: ItemIn) -> dict:
         })
         .execute()
     )
-    return _buscar_item(supabase, user_id, resp.data[0]["id"])
+    criado = row(resp.data)
+    return _buscar_item(supabase, user_id, str(criado["id"]))
 
 
 def editar(supabase: Client, user_id: str, item_id: str, body: ItemPatchIn) -> dict:
@@ -124,7 +126,7 @@ def excluir(supabase: Client, user_id: str, item_id: str) -> None:
         .limit(1)
         .execute()
     )
-    if resp.data:
+    if rows(resp.data):
         supabase.table("estoque_itens").update({"ativo": False}).eq("id", item_id).execute()
     else:
         supabase.table("estoque_itens").delete().eq("id", item_id).execute()
@@ -133,7 +135,11 @@ def excluir(supabase: Client, user_id: str, item_id: str) -> None:
 def criar_movimentacao(supabase: Client, user_id: str, item_id: str, body: MovimentacaoIn) -> dict:
     item = _buscar_item(supabase, user_id, item_id)
 
-    if body.tipo == "saida" and item["quantidade_atual"] < body.quantidade:
+    qtd_atual = float(item["quantidade_atual"])
+    custo_medio = float(item["custo_medio"])
+    custo_ultima = float(item["custo_ultima_compra"])
+
+    if body.tipo == "saida" and qtd_atual < body.quantidade:
         raise HTTPException(
             status_code=409,
             detail={
@@ -145,31 +151,31 @@ def criar_movimentacao(supabase: Client, user_id: str, item_id: str, body: Movim
                         "nome": item["nome"],
                         "unidade": item["unidade"],
                         "quantidade_solicitada": body.quantidade,
-                        "quantidade_disponivel": item["quantidade_atual"],
-                        "deficit": body.quantidade - item["quantidade_atual"],
+                        "quantidade_disponivel": qtd_atual,
+                        "deficit": body.quantidade - qtd_atual,
                     }]
                 },
             },
         )
 
-    novo_saldo = item["quantidade_atual"]
-    novo_custo_medio = item["custo_medio"]
-    novo_custo_ultima_compra = item["custo_ultima_compra"]
+    novo_saldo = qtd_atual
+    novo_custo_medio = custo_medio
+    novo_custo_ultima_compra = custo_ultima
 
     if body.tipo == "entrada":
-        novo_saldo = item["quantidade_atual"] + body.quantidade
+        novo_saldo = qtd_atual + body.quantidade
         if body.custo_unitario is not None:
-            if item["quantidade_atual"] <= 0:
+            if qtd_atual <= 0:
                 novo_custo_medio = body.custo_unitario
             else:
                 novo_custo_medio = (
-                    item["quantidade_atual"] * item["custo_medio"] + body.quantidade * body.custo_unitario
+                    qtd_atual * custo_medio + body.quantidade * body.custo_unitario
                 ) / novo_saldo
             novo_custo_ultima_compra = body.custo_unitario
     elif body.tipo == "saida":
-        novo_saldo = item["quantidade_atual"] - body.quantidade
+        novo_saldo = qtd_atual - body.quantidade
     else:  # ajuste
-        novo_saldo = item["quantidade_atual"] + body.quantidade
+        novo_saldo = qtd_atual + body.quantidade
 
     supabase.table("estoque_movimentacoes").insert({
         "user_id": user_id,
@@ -209,20 +215,20 @@ def listar_movimentacoes(
         query = query.gte("criado_em", f"{inicio}T00:00:00-03:00")
     if fim:
         query = query.lte("criado_em", f"{fim}T23:59:59-03:00")
-    linhas = query.order("criado_em", desc=True).execute().data or []
+    linhas = rows(query.order("criado_em", desc=True).execute().data)
 
-    ids_item = list({m["item_id"] for m in linhas})
+    ids_item = list({str(m["item_id"]) for m in linhas})
     nomes: dict[str, str] = {}
     if ids_item:
         resp_itens = supabase.table("estoque_itens").select("id, nome").in_("id", ids_item).execute()
-        nomes = {i["id"]: i["nome"] for i in (resp_itens.data or [])}
+        nomes = {str(i["id"]): str(i["nome"]) for i in rows(resp_itens.data)}
 
     return {
         "movimentacoes": [
             {
                 "id": m["id"],
                 "item_id": m["item_id"],
-                "item_nome": nomes.get(m["item_id"], ""),
+                "item_nome": nomes.get(str(m["item_id"]), ""),
                 "tipo": m["tipo"],
                 "quantidade": m["quantidade"],
                 "motivo": m["motivo"],

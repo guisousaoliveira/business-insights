@@ -23,11 +23,18 @@ Todo endpoint autenticado depende de `usuario_atual`, que:
 
 import time
 
+from collections.abc import Mapping
+from typing import Any
+
 import httpx
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 
 from app.core.config import get_settings
+
+# Scheme para o Swagger UI reconhecer autenticação Bearer
+_bearer_scheme = HTTPBearer(auto_error=False)
 
 # Claim de audiência que o Supabase Auth usa por padrão nos tokens de usuário.
 _SUPABASE_AUDIENCE = "authenticated"
@@ -80,19 +87,29 @@ def _decodificar_token(token: str) -> dict:
         )
 
 
-def usuario_atual(authorization: str | None = Header(default=None)) -> str:
+def usuario_atual(
+    credenciais: HTTPAuthorizationCredentials | str | None = Depends(_bearer_scheme),
+    authorization: str | None = Header(default=None),
+) -> str:
     """
     Dependency usada por TODO endpoint autenticado. Retorna o user_id (uuid, string)
     extraído e VALIDADO do JWT. Nunca leia user_id do corpo ou da query — se um
     endpoint aceitar isso, é falha de servidor (ver endpoints-backend.md §0).
     """
-    if not authorization or not authorization.startswith("Bearer "):
+    token: str | None = None
+    if isinstance(credenciais, HTTPAuthorizationCredentials):
+        token = credenciais.credentials.strip()
+    elif isinstance(credenciais, str):
+        token = credenciais.removeprefix("Bearer ").strip()
+    elif authorization:
+        token = authorization.removeprefix("Bearer ").strip()
+
+    if not token:
         raise HTTPException(
             status_code=401,
             detail={"codigo": "AUTH_TOKEN_AUSENTE", "mensagem": "Token de autorização ausente"},
         )
 
-    token = authorization.removeprefix("Bearer ").strip()
     payload = _decodificar_token(token)
 
     user_id = payload.get("sub")

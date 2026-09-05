@@ -1,15 +1,9 @@
-"""
-Regras de `atendimentos` (endpoints-backend.md §2).
-
-Estoque, snapshot de preço/custo e as duas passadas de A5 moram aqui, não no
-router — mesma divisão de responsabilidade de `agendamento_publico_service.py`.
-"""
-
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from supabase import Client
 
+from app.core.supabase_client import rows, row
 from app.schemas.atendimentos import AtendimentoBodyIn, FinalizarBodyIn
 
 
@@ -25,7 +19,7 @@ def _resolver_servicos(supabase: Client, user_id: str, entradas: list) -> list[d
             .in_("id", ids)
             .execute()
         )
-        catalogo = {s["id"]: s for s in (resp.data or [])}
+        catalogo = {s["id"]: s for s in rows(resp.data)}
         faltantes = [i for i in ids if i not in catalogo]
         if faltantes:
             raise HTTPException(
@@ -55,7 +49,7 @@ def _buscar_atendimento(supabase: Client, user_id: str, atendimento_id: str) -> 
         .eq("id", atendimento_id)
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     if not linhas:
         raise HTTPException(
             status_code=404,
@@ -80,7 +74,7 @@ def _montar_saida(supabase: Client, user_id: str, atendimento: dict) -> dict:
     )
     servicos = [
         {"servico_id": s["servico_id"], "nome": s["nome_servico"], "preco": s["preco_snapshot"]}
-        for s in (resp_serv.data or [])
+        for s in rows(resp_serv.data)
     ]
     materiais = [
         {
@@ -89,7 +83,7 @@ def _montar_saida(supabase: Client, user_id: str, atendimento: dict) -> dict:
             "quantidade": m["quantidade"],
             "preco": m["preco"],
         }
-        for m in (resp_mat.data or [])
+        for m in rows(resp_mat.data)
     ]
     total_servicos = sum(s["preco"] for s in servicos)
     total_materiais = sum(m["preco"] * m["quantidade"] for m in materiais)
@@ -120,7 +114,7 @@ def listar(
     )
     if status:
         query = query.in_("status", status)
-    linhas = query.execute().data or []
+    linhas = rows(query.execute().data)
 
     atendimentos = [_montar_saida(supabase, user_id, a) for a in linhas]
     saldo_liquido = sum(a["saldo"] for a in atendimentos if a["status"] != "cancelado")
@@ -151,7 +145,7 @@ def criar(supabase: Client, user_id: str, body: AtendimentoBodyIn) -> dict:
         })
         .execute()
     )
-    atendimento = resp.data[0]
+    atendimento = row(resp.data)
 
     linhas_servico = [
         {
@@ -224,7 +218,7 @@ def finalizar(
             .in_("id", ids_estoque)
             .execute()
         )
-        itens_estoque = {i["id"]: i for i in (resp.data or [])}
+        itens_estoque = {i["id"]: i for i in rows(resp.data)}
         faltantes_cadastro = [i for i in ids_estoque if i not in itens_estoque]
         if faltantes_cadastro:
             raise HTTPException(
@@ -313,7 +307,7 @@ def finalizar(
         .eq("atendimento_id", atendimento_id)
         .execute()
     )
-    for s in resp_serv.data or []:
+    for s in rows(resp_serv.data):
         if not s["servico_id"]:
             continue
         resp_padrao = (
@@ -322,14 +316,14 @@ def finalizar(
             .eq("servico_id", s["servico_id"])
             .execute()
         )
-        padrao = resp_padrao.data or []
+        padrao = rows(resp_padrao.data)
         if not padrao:
             continue
         ids_padrao = [p["item_estoque_id"] for p in padrao]
         resp_custos = (
             supabase.table("estoque_itens").select("id, custo_medio").in_("id", ids_padrao).execute()
         )
-        custos = {i["id"]: i["custo_medio"] for i in (resp_custos.data or [])}
+        custos = {i["id"]: i["custo_medio"] for i in rows(resp_custos.data)}
         custo_total = sum(p["quantidade"] * custos.get(p["item_estoque_id"], 0) for p in padrao)
         supabase.table("atendimento_servicos").update({
             "custo_insumos_snapshot": custo_total,
@@ -375,14 +369,14 @@ def cancelar(supabase: Client, user_id: str, atendimento_id: str) -> dict:
             .eq("tipo", "saida")
             .execute()
         )
-        for mov in resp_mov.data or []:
+        for mov in rows(resp_mov.data):
             resp_item = (
                 supabase.table("estoque_itens")
                 .select("id, quantidade_atual")
                 .eq("id", mov["item_id"])
                 .execute()
             )
-            item = (resp_item.data or [None])[0]
+            item = row(resp_item.data)
             if not item:
                 continue
             supabase.table("estoque_movimentacoes").insert({
@@ -417,3 +411,4 @@ def excluir(supabase: Client, user_id: str, atendimento_id: str) -> None:
             },
         )
     supabase.table("atendimentos").delete().eq("id", atendimento_id).execute()
+

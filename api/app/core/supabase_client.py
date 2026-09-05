@@ -35,3 +35,29 @@ def get_supabase_auth() -> Client:
     """
     cfg = get_settings()
     return create_client(cfg.supabase_url, cfg.supabase_anon_key)
+
+
+from typing import Any, cast
+
+
+def rows(resp_data: Any) -> list[dict[str, Any]]:
+    """Converte retorno do Supabase em list[dict[str, Any]] para tipagem estrita."""
+    if not resp_data:
+        return []
+    if isinstance(resp_data, list):
+        return cast(list[dict[str, Any]], resp_data)
+    if isinstance(resp_data, dict):
+        return [cast(dict[str, Any], resp_data)]
+    return []
+
+
+def row(resp_data: Any) -> dict[str, Any]:
+    """Converte retorno unitário do Supabase em dict[str, Any]."""
+    if not resp_data:
+        return {}
+    if isinstance(resp_data, list):
+        return cast(dict[str, Any], resp_data[0]) if resp_data else {}
+    if isinstance(resp_data, dict):
+        return cast(dict[str, Any], resp_data)
+    return {}
+

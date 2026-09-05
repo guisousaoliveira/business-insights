@@ -15,6 +15,7 @@ from datetime import date, datetime, time, timedelta, timezone
 
 from fastapi import HTTPException
 from supabase import Client
+from app.core.supabase_client import row, rows
 
 STEP_MINUTOS = 30
 TZ_SALAO = timezone(timedelta(hours=-3))
@@ -27,7 +28,7 @@ def buscar_salao_por_slug(supabase: Client, slug: str) -> dict:
         .eq("slug_agendamento", slug)
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     if not linhas:
         raise HTTPException(
             status_code=404,
@@ -47,7 +48,7 @@ def listar_servicos_publicos(supabase: Client, user_id: str) -> list[dict]:
     )
     # Serviço sem duracao_minutos preenchida não pode ser oferecido no link
     # público — sem duração não dá para calcular horário livre nenhum (§8).
-    return [s for s in (resp.data or []) if s.get("duracao_minutos")]
+    return [s for s in rows(resp.data) if s.get("duracao_minutos")]
 
 
 def _buscar_servicos_solicitados(supabase: Client, user_id: str, servico_ids: list[str]) -> list[dict]:
@@ -63,7 +64,7 @@ def _buscar_servicos_solicitados(supabase: Client, user_id: str, servico_ids: li
         .in_("id", servico_ids)
         .execute()
     )
-    encontrados = {s["id"]: s for s in (resp.data or [])}
+    encontrados = {str(s["id"]): s for s in rows(resp.data)}
     faltantes = [sid for sid in servico_ids if sid not in encontrados]
     if faltantes:
         raise HTTPException(
@@ -100,7 +101,7 @@ def _buscar_expediente(supabase: Client, user_id: str, d: date) -> dict | None:
         .eq("dia_semana", _dia_semana_app(d))
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     return linhas[0] if linhas else None
 
 
@@ -116,18 +117,19 @@ def _intervalos_ocupados(supabase: Client, user_id: str, d: date) -> list[tuple[
         .lte("data", fim_dia.isoformat())
         .execute()
     )
-    atendimentos = resp_atend.data or []
+    atendimentos = rows(resp_atend.data)
     if not atendimentos:
         return []
 
-    ids = [a["id"] for a in atendimentos]
+    ids = [str(a["id"]) for a in atendimentos]
     resp_serv = (
         supabase.table("atendimento_servicos")
         .select("atendimento_id, servico_id")
         .in_("atendimento_id", ids)
         .execute()
     )
-    servico_ids = {s["servico_id"] for s in (resp_serv.data or []) if s.get("servico_id")}
+    servicos_linhas = rows(resp_serv.data)
+    servico_ids = {str(s["servico_id"]) for s in servicos_linhas if s.get("servico_id")}
     duracoes: dict[str, int] = {}
     if servico_ids:
         resp_dur = (
@@ -136,20 +138,22 @@ def _intervalos_ocupados(supabase: Client, user_id: str, d: date) -> list[tuple[
             .in_("id", list(servico_ids))
             .execute()
         )
-        duracoes = {s["id"]: s["duracao_minutos"] or 0 for s in (resp_dur.data or [])}
+        duracoes = {str(s["id"]): int(s["duracao_minutos"] or 0) for s in rows(resp_dur.data)}
 
     duracao_por_atendimento: dict[str, int] = {}
-    for s in resp_serv.data or []:
-        duracao_por_atendimento[s["atendimento_id"]] = (
-            duracao_por_atendimento.get(s["atendimento_id"], 0) + duracoes.get(s["servico_id"], 0)
+    for s in servicos_linhas:
+        aid = str(s["atendimento_id"])
+        sid = str(s.get("servico_id", ""))
+        duracao_por_atendimento[aid] = (
+            duracao_por_atendimento.get(aid, 0) + duracoes.get(sid, 0)
         )
 
     intervalos = []
     for a in atendimentos:
-        inicio = datetime.fromisoformat(a["data"])
+        inicio = datetime.fromisoformat(str(a["data"]))
         # Atendimento sem serviço vinculado (edge case raro) bloqueia um slot
         # mínimo em vez de não bloquear nada — evita sobreposição por engano.
-        duracao = duracao_por_atendimento.get(a["id"]) or STEP_MINUTOS
+        duracao = duracao_por_atendimento.get(str(a["id"])) or STEP_MINUTOS
         intervalos.append((inicio, inicio + timedelta(minutes=duracao)))
     return intervalos
 
@@ -162,8 +166,8 @@ def _slots_livres(supabase: Client, user_id: str, d: date, duracao_total_minutos
     if expediente is None or not expediente["ativo"]:
         return []
 
-    hora_inicio = time.fromisoformat(expediente["hora_inicio"])
-    hora_fim = time.fromisoformat(expediente["hora_fim"])
+    hora_inicio = time.fromisoformat(str(expediente["hora_inicio"]))
+    hora_fim = time.fromisoformat(str(expediente["hora_fim"]))
     inicio_expediente = datetime.combine(d, hora_inicio, tzinfo=TZ_SALAO)
     fim_expediente = datetime.combine(d, hora_fim, tzinfo=TZ_SALAO)
 
@@ -189,7 +193,7 @@ def calcular_horarios_disponiveis(
     supabase: Client, user_id: str, data_str: str, servico_ids: list[str]
 ) -> tuple[int, list[str]]:
     servicos = _buscar_servicos_solicitados(supabase, user_id, servico_ids)
-    duracao_total = sum(s["duracao_minutos"] for s in servicos)
+    duracao_total = sum(int(s["duracao_minutos"]) for s in servicos)
     d = date.fromisoformat(data_str)
     horarios = _slots_livres(supabase, user_id, d, duracao_total)
     return duracao_total, horarios
@@ -204,7 +208,7 @@ def criar_agendamento(
     servico_ids: list[str],
 ) -> dict:
     servicos = _buscar_servicos_solicitados(supabase, user_id, servico_ids)
-    duracao_total = sum(s["duracao_minutos"] for s in servicos)
+    duracao_total = sum(int(s["duracao_minutos"]) for s in servicos)
 
     data_hora_salao = data_hora.astimezone(TZ_SALAO)
     horarios_livres = _slots_livres(supabase, user_id, data_hora_salao.date(), duracao_total)
@@ -236,7 +240,7 @@ def criar_agendamento(
         })
         .execute()
     )
-    atendimento = resp_atend.data[0]
+    atendimento = row(resp_atend.data)
 
     linhas_servico = [
         {

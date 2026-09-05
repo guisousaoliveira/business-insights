@@ -12,7 +12,7 @@ no Supabase REST API — o Flutter chama diretamente.
 from fastapi import APIRouter, Depends, Query
 from supabase import Client
 
-from app.core.supabase_client import get_supabase
+from app.core.supabase_client import get_supabase, rows
 from app.core.security import usuario_atual
 from app.schemas.relatorio import ResumoMensal
 from app.services.relatorio_service import calcular_resumo_mensal
@@ -84,7 +84,7 @@ async def resumo_semanal(
         .lte("data", fim.isoformat())
         .execute()
     )
-    ids_atend = [a["id"] for a in (resp_atend.data or [])]
+    ids_atend = [str(a["id"]) for a in rows(resp_atend.data)]
 
     receita_bruta = 0.0
     if ids_atend:
@@ -94,7 +94,7 @@ async def resumo_semanal(
             .in_("atendimento_id", ids_atend)
             .execute()
         )
-        receita_bruta = sum(float(s["preco_snapshot"]) for s in (resp_serv.data or []))
+        receita_bruta = sum(float(s["preco_snapshot"]) for s in rows(resp_serv.data))
 
     # Gastos pendentes da semana
     resp_gastos = (
@@ -106,7 +106,7 @@ async def resumo_semanal(
         .lte("prazo", fim.isoformat())
         .execute()
     )
-    gastos_pendentes = sum(float(g["valor"]) for g in (resp_gastos.data or []))
+    gastos_pendentes = sum(float(g["valor"]) for g in rows(resp_gastos.data))
 
     await notificar_resumo_semanal(
         user_id=user_id,

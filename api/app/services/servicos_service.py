@@ -3,6 +3,7 @@
 from fastapi import HTTPException
 from supabase import Client
 
+from app.core.supabase_client import rows, row
 from app.schemas.servicos import ProdutoPadraoIn, ServicoIn, ServicoPatchIn
 
 
@@ -15,14 +16,14 @@ def _montar_produtos_padrao(supabase: Client, servico_ids: list[str]) -> dict[st
         .in_("servico_id", servico_ids)
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     itens: dict[str, dict] = {}
     ids_item = list({linha["item_estoque_id"] for linha in linhas})
     if ids_item:
         resp_itens = (
             supabase.table("estoque_itens").select("id, nome, unidade").in_("id", ids_item).execute()
         )
-        itens = {i["id"]: i for i in (resp_itens.data or [])}
+        itens = {i["id"]: i for i in rows(resp_itens.data)}
 
     por_servico: dict[str, list[dict]] = {sid: [] for sid in servico_ids}
     for linha in linhas:
@@ -47,7 +48,7 @@ def _validar_itens_estoque(supabase: Client, user_id: str, produtos: list[Produt
         .in_("id", ids)
         .execute()
     )
-    encontrados = {i["id"]: i for i in (resp.data or [])}
+    encontrados = {i["id"]: i for i in rows(resp.data)}
     invalidos = [i for i in ids if i not in encontrados or not encontrados[i]["ativo"]]
     if invalidos:
         raise HTTPException(
@@ -68,7 +69,7 @@ def _buscar_servico(supabase: Client, user_id: str, servico_id: str) -> dict:
         .eq("id", servico_id)
         .execute()
     )
-    linhas = resp.data or []
+    linhas = rows(resp.data)
     if not linhas:
         raise HTTPException(
             status_code=404,
@@ -98,7 +99,7 @@ def listar(supabase: Client, user_id: str) -> dict:
         .order("nome")
         .execute()
     )
-    servicos = resp.data or []
+    servicos = rows(resp.data)
     por_servico = _montar_produtos_padrao(supabase, [s["id"] for s in servicos])
     return {
         "servicos": [
@@ -128,7 +129,7 @@ def criar(supabase: Client, user_id: str, body: ServicoIn) -> dict:
         })
         .execute()
     )
-    servico = resp.data[0]
+    servico = row(resp.data)
     if body.produtos_padrao:
         supabase.table("servico_produtos_padrao").insert([
             {"servico_id": servico["id"], "item_estoque_id": p.item_estoque_id, "quantidade": p.quantidade}
@@ -138,7 +139,9 @@ def criar(supabase: Client, user_id: str, body: ServicoIn) -> dict:
 
 
 def editar(supabase: Client, user_id: str, servico_id: str, body: ServicoPatchIn) -> dict:
-    servico = _buscar_servico(supabase, user_id, servico_id)
+    _buscar_servico(supabase, user_id, servico_id)
+    if body.produtos_padrao is not None:
+        _validar_itens_estoque(supabase, user_id, body.produtos_padrao)
 
     campos = {}
     if body.nome is not None:
@@ -147,12 +150,11 @@ def editar(supabase: Client, user_id: str, servico_id: str, body: ServicoPatchIn
         campos["preco"] = body.preco
     if body.duracao_minutos is not None:
         campos["duracao_minutos"] = body.duracao_minutos
+
     if campos:
         supabase.table("servicos").update(campos).eq("id", servico_id).execute()
-        servico = {**servico, **campos}
 
     if body.produtos_padrao is not None:
-        _validar_itens_estoque(supabase, user_id, body.produtos_padrao)
         supabase.table("servico_produtos_padrao").delete().eq("servico_id", servico_id).execute()
         if body.produtos_padrao:
             supabase.table("servico_produtos_padrao").insert([
@@ -160,9 +162,20 @@ def editar(supabase: Client, user_id: str, servico_id: str, body: ServicoPatchIn
                 for p in body.produtos_padrao
             ]).execute()
 
-    return _montar_saida(supabase, servico)
+    return _montar_saida(supabase, _buscar_servico(supabase, user_id, servico_id))
 
 
 def excluir(supabase: Client, user_id: str, servico_id: str) -> None:
     _buscar_servico(supabase, user_id, servico_id)
-    supabase.table("servicos").update({"ativo": False}).eq("id", servico_id).execute()
+    resp = (
+        supabase.table("atendimento_servicos")
+        .select("id")
+        .eq("servico_id", servico_id)
+        .limit(1)
+        .execute()
+    )
+    if rows(resp.data):
+        supabase.table("servicos").update({"ativo": False}).eq("id", servico_id).execute()
+    else:
+        supabase.table("servico_produtos_padrao").delete().eq("servico_id", servico_id).execute()
+        supabase.table("servicos").delete().eq("id", servico_id).execute()

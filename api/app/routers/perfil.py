@@ -1,27 +1,136 @@
 """
-Router: /perfil (parcial)
-
-Só cobre o que o lote L8 (agendamento público) precisa —
-GET/PUT /perfil/horario-funcionamento e GET /perfil/link-agendamento.
-O resto do módulo perfil (GET/PUT /perfil, custos-fixos) ainda não existe.
+Router: /perfil (endpoints-backend.md §7, 7 operações + expediente e link).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 from supabase import Client
 
 from app.core.config import get_settings
 from app.core.security import usuario_atual
-from app.core.supabase_client import get_supabase
+from app.core.supabase_client import get_supabase, rows, row
 from app.schemas.envelope import ResponseModel, sucesso
 from app.schemas.perfil import (
+    PerfilOut,
+    PerfilUpdateIn,
+    CustoFixoIn,
+    CustoFixoPatchIn,
+    CustoFixoPagarIn,
+    CustoFixoOut,
+    CustosFixosListaOut,
     HorarioDia,
     HorarioFuncionamentoIn,
     HorarioFuncionamentoOut,
     LinkAgendamentoOut,
 )
+from app.services import perfil_service as service
 
 router = APIRouter(prefix="/perfil", tags=["Perfil"])
 
+
+# ── Perfil do Salão ──────────────────────────────────────────────────
+
+@router.get(
+    "",
+    response_model=ResponseModel[PerfilOut],
+    summary="Dados do salão e metas",
+)
+def obter_perfil(
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.obter_perfil(supabase=supabase, user_id=user_id)
+    return sucesso(resultado.model_dump())
+
+
+@router.put(
+    "",
+    response_model=ResponseModel[PerfilOut],
+    summary="Atualiza dados do salão e metas",
+)
+def atualizar_perfil(
+    dados: PerfilUpdateIn,
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.atualizar_perfil(supabase=supabase, user_id=user_id, dados=dados)
+    return sucesso(resultado.model_dump())
+
+
+# ── Custos Fixos ─────────────────────────────────────────────────────
+
+@router.get(
+    "/custos-fixos",
+    response_model=ResponseModel[CustosFixosListaOut],
+    summary="Lista custos fixos e status de pagamento por competência",
+)
+def listar_custos_fixos(
+    competencia: str | None = Query(None, description="Formato AAAA-MM (padrão: mês atual)"),
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.listar_custos_fixos(supabase=supabase, user_id=user_id, competencia=competencia)
+    return sucesso(resultado.model_dump(), total=len(resultado.custos))
+
+
+@router.post(
+    "/custos-fixos",
+    response_model=ResponseModel[CustoFixoOut],
+    summary="Cadastra novo custo fixo",
+)
+def criar_custo_fixo(
+    dados: CustoFixoIn,
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.criar_custo_fixo(supabase=supabase, user_id=user_id, dados=dados)
+    return sucesso(resultado.model_dump())
+
+
+@router.patch(
+    "/custos-fixos/{custo_id}",
+    response_model=ResponseModel[CustoFixoOut],
+    summary="Edita dados de um custo fixo",
+)
+def editar_custo_fixo(
+    custo_id: str,
+    dados: CustoFixoPatchIn,
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.editar_custo_fixo(supabase=supabase, user_id=user_id, custo_id=custo_id, dados=dados)
+    return sucesso(resultado.model_dump())
+
+
+@router.patch(
+    "/custos-fixos/{custo_id}/pagar",
+    response_model=ResponseModel[CustoFixoOut],
+    summary="Marca ou desmarca pagamento de custo fixo na competência",
+)
+def pagar_custo_fixo(
+    custo_id: str,
+    dados: CustoFixoPagarIn,
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    resultado = service.pagar_custo_fixo(supabase=supabase, user_id=user_id, custo_id=custo_id, dados=dados)
+    return sucesso(resultado.model_dump())
+
+
+@router.delete(
+    "/custos-fixos/{custo_id}",
+    response_model=ResponseModel[None],
+    summary="Exclui custo fixo e histórico de pagamentos",
+)
+def excluir_custo_fixo(
+    custo_id: str,
+    user_id: str = Depends(usuario_atual),
+    supabase: Client = Depends(get_supabase),
+):
+    service.excluir_custo_fixo(supabase=supabase, user_id=user_id, custo_id=custo_id)
+    return sucesso(None, total=0)
+
+
+# ── Expediente e Link de Agendamento ─────────────────────────────────
 
 @router.get(
     "/horario-funcionamento",
@@ -39,7 +148,7 @@ def obter_horario_funcionamento(
         .order("dia_semana")
         .execute()
     )
-    horarios = [HorarioDia(**linha) for linha in (resp.data or [])]
+    horarios = [HorarioDia.model_validate(linha) for linha in rows(resp.data)]
     return sucesso(HorarioFuncionamentoOut(horarios=horarios).model_dump(mode="json"))
 
 
@@ -53,9 +162,6 @@ def atualizar_horario_funcionamento(
     user_id: str = Depends(usuario_atual),
     supabase: Client = Depends(get_supabase),
 ):
-    # Substitui os 7 dias de uma vez — mesma filosofia do PATCH /servicos/{id}
-    # com produtos_padrao (§7): o cliente manda o estado final da tela, o
-    # servidor não faz diff.
     linhas = [
         {
             "user_id": user_id,
@@ -86,7 +192,7 @@ def obter_link_agendamento(
         .single()
         .execute()
     )
-    slug = (resp.data or {}).get("slug_agendamento")
+    slug = row(resp.data).get("slug_agendamento")
     if not slug:
         raise HTTPException(
             status_code=404,

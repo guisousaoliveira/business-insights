@@ -27,6 +27,8 @@ from app.routers import (
     atendimentos,
     servicos,
     estoque,
+    gastos,
+    alertas,
 )
 
 cfg = get_settings()
@@ -78,6 +80,8 @@ app.include_router(agendamento_publico.router, prefix=router_prefix)
 app.include_router(atendimentos.router, prefix=router_prefix)
 app.include_router(servicos.router, prefix=router_prefix)
 app.include_router(estoque.router, prefix=router_prefix)
+app.include_router(gastos.router, prefix=router_prefix)
+app.include_router(alertas.router, prefix=router_prefix)
 
 
 @app.get("/", include_in_schema=False)

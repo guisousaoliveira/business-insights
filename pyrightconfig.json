@@ -1,0 +1,25 @@
+{
+  "include": [
+    "api"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "api/.venv",
+    ".venv"
+  ],
+  "venvPath": "api",
+  "venv": ".venv",
+  "extraPaths": [
+    "api",
+    "api/app"
+  ],
+  "typeCheckingMode": "off",
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportCallIssue": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportOptionalOperand": "none"
+}

@@ -1,7 +1,77 @@
-from datetime import time as time_
+"""Schemas do módulo de perfil e custos fixos (endpoints-backend.md §7)."""
 
-from pydantic import BaseModel, model_validator
+from datetime import time as time_, datetime
+import re
+from pydantic import BaseModel, Field, field_validator, model_validator
 
+
+# ── Perfil do Salão ──────────────────────────────────────────────────
+
+class SalaoDados(BaseModel):
+    id: str
+    nome: str
+    proprietaria: str
+    foto_url: str | None = None
+    telefone_whatsapp: str
+    meta_faturamento_mensal: float
+
+
+class PerfilOut(BaseModel):
+    salao: SalaoDados
+
+
+class PerfilUpdateIn(BaseModel):
+    nome: str = Field(min_length=1)
+    proprietaria: str = Field(default="")
+    foto_url: str | None = None
+    telefone_whatsapp: str = Field(default="")
+    meta_faturamento_mensal: float = Field(ge=0, default=9000.0)
+
+
+# ── Custos Fixos ─────────────────────────────────────────────────────
+
+class CustoFixoIn(BaseModel):
+    descricao: str = Field(min_length=1)
+    valor: float = Field(gt=0)
+    dia_vencimento: int = Field(ge=1, le=31)
+
+
+class CustoFixoPatchIn(BaseModel):
+    descricao: str | None = Field(default=None, min_length=1)
+    valor: float | None = Field(default=None, gt=0)
+    dia_vencimento: int | None = Field(default=None, ge=1, le=31)
+
+
+class CustoFixoPagarIn(BaseModel):
+    competencia: str = Field(description="Formato AAAA-MM")
+    pago: bool = True
+
+    @field_validator("competencia")
+    @classmethod
+    def validar_competencia(cls, v: str) -> str:
+        if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", v):
+            raise ValueError("competencia deve estar no formato AAAA-MM")
+        return v
+
+
+class CustoFixoOut(BaseModel):
+    id: str
+    descricao: str
+    valor: float
+    dia_vencimento: int
+    competencia: str
+    pago: bool
+    pago_em: datetime | None = None
+
+
+class CustosFixosListaOut(BaseModel):
+    total_mensal: float
+    total_pago: float
+    total_pendente: float
+    custos: list[CustoFixoOut]
+
+
+# ── Horários de Funcionamento e Agendamento Público ──────────────────
 
 class HorarioDia(BaseModel):
     dia_semana: int
@@ -19,8 +89,6 @@ class HorarioDia(BaseModel):
             if self.hora_inicio >= self.hora_fim:
                 raise ValueError("hora_inicio deve ser menor que hora_fim")
         else:
-            # Dia inativo não abre horário nenhum, mesmo que hora_inicio/hora_fim
-            # tenham vindo preenchidos (endpoints-backend.md §7).
             self.hora_inicio = None
             self.hora_fim = None
         return self

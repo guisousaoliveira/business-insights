@@ -16,7 +16,7 @@ que o Supabase já resolve.
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.core.supabase_client import get_supabase, get_supabase_auth
+from app.core.supabase_client import get_supabase, get_supabase_auth, row, rows
 from app.core.security import usuario_atual
 from app.schemas.auth import (
     LoginRequest,
@@ -39,7 +39,7 @@ def _buscar_salao(supabase: Client, user_id: str) -> SalaoOut:
         .single()
         .execute()
     )
-    linha = resp.data or {}
+    linha = row(resp.data)
     return SalaoOut(
         id=linha.get("id", user_id),
         nome=linha.get("nome_salao", "Meu Salão"),

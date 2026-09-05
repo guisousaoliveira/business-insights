@@ -14,6 +14,7 @@ import calendar
 from collections import defaultdict
 from supabase import Client
 
+from app.core.supabase_client import rows
 from app.schemas.relatorio import (
     ResumoMensal,
     ResumoReceita,
@@ -44,8 +45,8 @@ async def calcular_resumo_mensal(
         .lte("data", data_fim)
         .execute()
     )
-    atendimentos = resp_atend.data or []
-    ids_atend = [a["id"] for a in atendimentos]
+    atendimentos = rows(resp_atend.data)
+    ids_atend = [str(a["id"]) for a in atendimentos]
 
     total_servicos = 0.0
     total_insumos = 0.0
@@ -60,10 +61,10 @@ async def calcular_resumo_mensal(
             .in_("atendimento_id", ids_atend)
             .execute()
         )
-        for s in resp_serv.data or []:
+        for s in rows(resp_serv.data):
             total_servicos += float(s["preco_snapshot"])
-            contagem_servicos[s["nome_servico"]] += 1
-            receita_servicos[s["nome_servico"]] += float(s["preco_snapshot"])
+            contagem_servicos[str(s["nome_servico"])] += 1
+            receita_servicos[str(s["nome_servico"])] += float(s["preco_snapshot"])
 
         # Insumos descartáveis usados
         resp_insumos = (
@@ -72,7 +73,7 @@ async def calcular_resumo_mensal(
             .in_("atendimento_id", ids_atend)
             .execute()
         )
-        for i in resp_insumos.data or []:
+        for i in rows(resp_insumos.data):
             total_insumos += float(i["preco"])
 
     liquido_atendimentos = total_servicos - total_insumos
@@ -98,7 +99,7 @@ async def calcular_resumo_mensal(
         .eq("user_id", user_id)
         .execute()
     )
-    total_fixos = sum(float(c["valor"]) for c in (resp_fixos.data or []))
+    total_fixos = sum(float(c["valor"]) for c in rows(resp_fixos.data))
 
     # ── 4. Gastos variáveis do mês ─────────────────────────────────
     resp_gastos = (
@@ -109,7 +110,7 @@ async def calcular_resumo_mensal(
         .lte("prazo", data_fim)
         .execute()
     )
-    total_gastos_var = sum(float(g["valor"]) for g in (resp_gastos.data or []))
+    total_gastos_var = sum(float(g["valor"]) for g in rows(resp_gastos.data))
 
     total_saiu = total_fixos + total_gastos_var
 
@@ -132,7 +133,7 @@ async def calcular_resumo_mensal(
             total_saiu=round(total_saiu, 2),
         ),
         saldo_final=saldo_final,
-        alerta_zero_a_zero=abs(saldo_final) < 100,
+        alerta_zero_a_zero=saldo_final < 100,
     )
 
 
