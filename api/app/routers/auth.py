@@ -16,7 +16,7 @@ que o Supabase já resolve.
 from fastapi import APIRouter, Depends, HTTPException
 from supabase import Client
 
-from app.core.supabase_client import get_supabase
+from app.core.supabase_client import get_supabase, get_supabase_auth
 from app.core.security import usuario_atual
 from app.schemas.auth import (
     LoginRequest,
@@ -77,9 +77,13 @@ def _montar_sessao(supabase: Client, auth_response) -> SessaoOut:
     response_model=ResponseModel[SessaoOut],
     summary="Autentica com e-mail e senha",
 )
-def login(dados: LoginRequest, supabase: Client = Depends(get_supabase)):
+def login(
+    dados: LoginRequest,
+    supabase: Client = Depends(get_supabase),
+    supabase_auth: Client = Depends(get_supabase_auth),
+):
     try:
-        auth_response = supabase.auth.sign_in_with_password(
+        auth_response = supabase_auth.auth.sign_in_with_password(
             {"email": dados.email, "password": dados.senha}
         )
     except Exception:
@@ -97,9 +101,13 @@ def login(dados: LoginRequest, supabase: Client = Depends(get_supabase)):
     response_model=ResponseModel[SessaoOut],
     summary="Renova o token a partir do refresh_token",
 )
-def refresh(dados: RefreshRequest, supabase: Client = Depends(get_supabase)):
+def refresh(
+    dados: RefreshRequest,
+    supabase: Client = Depends(get_supabase),
+    supabase_auth: Client = Depends(get_supabase_auth),
+):
     try:
-        auth_response = supabase.auth.refresh_session(dados.refresh_token)
+        auth_response = supabase_auth.auth.refresh_session(dados.refresh_token)
     except Exception:
         raise HTTPException(
             status_code=401,
@@ -115,9 +123,12 @@ def refresh(dados: RefreshRequest, supabase: Client = Depends(get_supabase)):
     response_model=ResponseModel[None],
     summary="Invalida a sessão corrente",
 )
-def logout(user_id: str = Depends(usuario_atual), supabase: Client = Depends(get_supabase)):
+def logout(
+    user_id: str = Depends(usuario_atual),
+    supabase_auth: Client = Depends(get_supabase_auth),
+):
     try:
-        supabase.auth.sign_out()
+        supabase_auth.auth.sign_out()
     except Exception:
         # Logout é best-effort — mesmo se a revogação no Supabase falhar,
         # o app já descarta o token localmente.

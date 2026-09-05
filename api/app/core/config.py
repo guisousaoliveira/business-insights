@@ -7,11 +7,16 @@ class Settings(BaseSettings):
     # Supabase
     supabase_url: str = Field(..., env="SUPABASE_URL")
     supabase_service_key: str = Field(..., env="SUPABASE_SERVICE_KEY")
+    # Chave pública (Dashboard > Settings > API > "anon" "public"). Usada só
+    # para login/refresh/logout — nunca para consulta administrativa (ver
+    # core/supabase_client.py sobre por que as duas chaves não podem
+    # compartilhar o mesmo cliente).
+    supabase_anon_key: str = Field(..., env="SUPABASE_ANON_KEY")
 
-    # JWT — necessário para validar a assinatura do token emitido pelo Supabase Auth.
-    # Dashboard > Settings > API > JWT Secret. Sem isso a API não sobe (ver validador
-    # abaixo): não existe modo "confiar sem validar" mais.
-    supabase_jwt_secret: str = Field(..., env="SUPABASE_JWT_SECRET")
+    # JWT — só necessário em projetos Supabase antigos, que ainda assinam com o
+    # "JWT Secret" legado (HS256). Projeto novo assina com chave assimétrica
+    # (ES256/RS256) e é validado via JWKS (ver core/security.py) — não usa isto.
+    supabase_jwt_secret: str = Field(default="", env="SUPABASE_JWT_SECRET")
 
     # CORS — lista separada por vírgula no .env
     cors_origins: str = Field(
